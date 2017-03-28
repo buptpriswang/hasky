@@ -85,7 +85,7 @@ def tf_train_flow(train_once,
   similary flow as tf_flow, but add model try reload and save
   """
   if sess is None:
-    #@TODO may have mutliple session ?
+    #TODO melt.get_session is global session but may cause
     sess = melt.get_session()
   logging.info('tf_train_flow start')
   print('max_models_keep:', max_models_keep)

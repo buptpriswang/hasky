@@ -114,7 +114,7 @@ def bidrectional_encode(cell_fw,
   if use_sum:
     output = output_forward + output_backward
   else:
-    output = tf.concat(-1, [output_forward, output_backward])
+    output = tf.concat([output_forward, output_backward], -1)
 
   return output, states[0]
 

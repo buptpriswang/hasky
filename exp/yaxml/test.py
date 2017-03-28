@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # ==============================================================================
-#          \file   conf.py
+#          \file   test.py
 #        \author   chenghuige  
-#          \date   2016-10-06 21:57:43.001959
+#          \date   2017-03-28 20:21:26.220192
 #   \Description  
 # ==============================================================================
 
@@ -12,7 +11,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-flags = tf.app.flags
-FLAGS = flags.FLAGS
+import sys, os
+
+import yaml  
   
+f = open('test.yaml')  
+  
+x = yaml.load(f)  
+  
+print(x)
+
+print('age', x['age'])

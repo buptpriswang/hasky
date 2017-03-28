@@ -496,7 +496,8 @@ def _create_attention_score_fn(name,
 
       tf.add_to_collection('attention_alignments', alignments)
       #will show 2 times since in outgraph decoding, first time you pass batch_size 1 then batch_size beam_size
-      print('attention_alignments', tf.get_collection('attention_alignments'))
+      #but in train evaluate mode.. will add many times!
+      #print('attention_alignments', tf.get_collection('attention_alignments'))
 
       # Now calculate the attention-weighted vector.
       alignments = array_ops.expand_dims(alignments, 2)

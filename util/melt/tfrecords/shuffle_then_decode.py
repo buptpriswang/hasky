@@ -87,6 +87,8 @@ def inputs(files, decode, batch_size=64,
   if isinstance(files, str):
     files = gezi.list_files(files)
 
+  assert len(files) > 0
+
   if not min_after_dequeue : min_after_dequeue = melt.tfrecords.read.MIN_AFTER_QUEUE
   if not num_epochs: num_epochs = None
 

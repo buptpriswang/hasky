@@ -28,9 +28,6 @@ tensorflow has built-in support for batch padding. If you set dynamic_pad=True w
 
 But now only batch support dynamic_pad, batch_join and shuffle_batch not..
 
-
-#this one is the same as models/im2txt did
-
 @TODO consider tf.nn.sparse_ops.sparse_to_dense
 
 python gen-sequence-records.py /home/gezi/data/urate/train /tmp/urate.train 
@@ -45,8 +42,8 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('num_examples', 1000, 'Batch size.')
-flags.DEFINE_boolean('fake_var_len', True, 'for testing popurse make some examples fake len, to make length unequal')
+flags.DEFINE_integer('num_examples', 0, 'Batch size.')
+flags.DEFINE_boolean('fake_var_len', False, 'for testing popurse make some examples fake len, to make length unequal')
 
 import melt
 
@@ -82,14 +79,13 @@ def main(argv):
       context=melt.features(
         {
         'id': melt.int_feature(id), 
-        'label': melt.int_feature(label),
-        'length': len(feature)
+        'label': melt.int_feature(label)
         }),
       feature_lists=melt.feature_lists(
         { 
           #see sequence_test.py use each single as a list and stack all lists(single items)
           #can this deal with var len sequence ?
-          'feature': melt.float_feature_list(feature)
+          'feature': melt.feature_list([melt.float_feature(item) for item in feature])
           #'feature': melt.feature_list(melt.float_feature(feature))
         }))
     

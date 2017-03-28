@@ -83,9 +83,12 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
     make small modifications, add more comments and add topn support, and 
     length_normalization_factor
 
-    NOTICE!: not dynamic, for loop based here
+    NOTICE!: not dynamic, for loop based here not tf.while_loop, so ingraph but currently static build graph  
     TODO: consider beam search decoder from https://github.com/google/seq2seq, that implementation might be dynamic!
-    
+    but that implementaion only allow batch size 1, so use batch[beam_size] ?
+
+    TODO:make beam_decode dynamic version, by using named_tuple, and tf.nest_map
+
     Args:
       decoder_inputs: A list of 2D Tensors [batch_size x input_size].
       initial_state: 2D Tensor with shape [batch_size x cell.state_size].

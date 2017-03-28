@@ -1,5 +1,6 @@
 input_path=/home/gezi/data/textsum/
-dir=/home/gezi/temp/textsum/tfrecord/seq-basic.10w 
+#dir=/home/gezi/temp/textsum/tfrecord/seq-basic.10w 
+dir=/home/gezi/temp/textsum/tfrecord/seq-basic
 
 hdfs_dir=/app/tuku/chenghuige/textsum/seq-basic.10w
 

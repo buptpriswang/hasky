@@ -9,7 +9,8 @@
 
   
 """
-python gen-records.py /home/gezi/data/urate/train /tmp/urate.train --num_examples 100
+python gen-records.py /home/gezi/data/urate/feature.txt /tmp/urate.train --num_examples 20000
+python gen-records.py /home/gezi/data/urate/feature.txt /tmp/urate.train 
 """
   
 from __future__ import absolute_import

@@ -71,6 +71,9 @@ class RnnEncoder(Encoder):
     sequence, sequence_length = melt.pad(sequence, 
                                      start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
                                      end_id=(self.end_id if FLAGS.encode_end_mark else None))
+
+    #tf.add_to_collection('debug_seqeuence', sequence)
+    #tf.add_to_collection('debug_length', sequence_length)
     
     #for attention due to float32 numerice accuracy problem, may has some diff, so not slice it
     #if self.is_predict:

@@ -132,13 +132,17 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
           decode_func = self.decoder.generate_sequence_beam_search
         else:
           raise ValueError('not supported decode_method: %d' % decode_method)
+        
+        input_text, input_text_length = melt.pad(input_text, end_id=self.encoder.end_id)
         return decode_func(decoder_input, 
                            max_words=max_words, 
                            initial_state=state,
                            attention_states=encoder_output,
                            beam_size=beam_size, 
                            convert_unk=convert_unk,
-                           length_normalization_factor=FLAGS.length_normalization_factor)
+                           length_normalization_factor=FLAGS.length_normalization_factor,
+                           input_text=input_text,
+                           input_text_length=input_text_length)
 
   def build_predict_graph(self, input_text, text, exact_prob=False, exact_loss=False):
     input_text = tf.reshape(input_text, [-1, INPUT_TEXT_MAX_WORDS])

@@ -181,6 +181,10 @@ def gen_sampled_softmax_loss_function(num_sampled, vocab_size,
   #if not is_predict and (num_sampled > 0 and num_sampled < vocab_size):
   if num_sampled > 0 and num_sampled < vocab_size:
     def sampled_loss(inputs, labels):
+      """
+      inputs: [batch_size * num_steps, dim]
+      labels: [batch_size * num_steps, num_true]
+      """
       #with tf.device("/cpu:0"):
       #---use this since default tf.contrib.seq2seq input labels as [-1], if you use melt.seq2seq.sequence_loss do not need reshape
       #labels = tf.reshape(labels, [-1, 1])

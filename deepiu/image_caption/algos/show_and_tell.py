@@ -122,13 +122,13 @@ class ShowAndTell(object):
         neg_loss = self.decoder.sequence_loss(image_emb, neg_text_i, exact_loss=exact_loss)
         neg_losses.append(neg_loss)
 
-      neg_losses = tf.concat(1, neg_losses)
+      neg_losses = tf.concat(neg_losses, 1)
       
       if FLAGS.use_neg:
         #neg_losses [batch_size, num_neg_text] 
         loss = melt.hinge_loss(-pos_loss, -neg_losses, FLAGS.margin)
       
-      scores = tf.concat(1, [pos_loss, neg_losses])
+      scores = tf.concat([pos_loss, neg_losses], 1)
 
     if loss is None:
       if not self.is_predict:
@@ -138,7 +138,7 @@ class ShowAndTell(object):
       
       if scores is None:
         if neg_text is not None:
-          scores = tf.concat(1, [pos_loss, pos_loss])
+          scores = tf.concat([pos_loss, pos_loss], 1)
         else:
           scores = pos_loss
 

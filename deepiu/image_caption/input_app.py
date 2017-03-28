@@ -368,8 +368,8 @@ class InputApp(object):
                        self.input_valid_name, self.fixed_input_valid_name, \
                        self.input_valid_neg_name]
 
-    #for name in input_name_list:
-    #  input_results[name] = None
+    for name in input_name_list:
+      input_results[name] = None
 
     inputs, decode, decode_neg = input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length, use_neg=(FLAGS.num_negs > 0))
 

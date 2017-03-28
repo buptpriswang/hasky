@@ -56,7 +56,7 @@ def predict(predictor, input_text):
                                         'beam_search_initial_state', 
                                         'beam_search_initial_ids', 
                                         'beam_search_initial_logprobs',
-                                        'beam_search_initial_alignments' #or attention_alignments
+                                        'beam_search_initial_alignments' 
                                         ], 
                                         feed_dict= {
                                           tf.get_collection('input_text_feed')[0] : [word_ids]

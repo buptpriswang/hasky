@@ -65,6 +65,7 @@ flags.DEFINE_string('attention_option', 'luong', 'luong or bahdanau')
 
 flags.DEFINE_integer('beam_size', 10, 'for seq decode beam search size')
 flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.py otherwise use decode_max_words')
+flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input words(copy mode)')
 
 import functools
 import melt 
@@ -302,6 +303,8 @@ class RnnDecoder(Decoder):
                              initial_state=None, attention_states=None,
                              beam_size=5, convert_unk=True,
                              length_normalization_factor=0., 
+                             input_text=None,
+                             input_text_length=None,
                              emb=None):
     """
     beam dcode means ingraph beam search
@@ -343,15 +346,31 @@ class RnnDecoder(Decoder):
                                   initial_state=None, attention_states=None,
                                   beam_size=10, convert_unk=True,
                                   length_normalization_factor=0., 
+                                  input_text=None,
+                                  input_text_length=None,
                                   emb=None):
     """
     outgraph beam search, input should be one instance only batch_size=1
-    max_words actuaolly not used here... for it is determined outgraph..
+    max_words actually not used here... for it is determined outgraph..
     return top (path, score)
     TODO add attention support!
     """
     if emb is None:
       emb = self.emb
+
+    
+    tf.add_to_collection('beam_search_beam_size', tf.constant(beam_size))
+    if input_text is not None and FLAGS.decode_copy:
+      input_text = tf.squeeze(input_text)
+      input_text_length = tf.to_int32(tf.squeeze(input_text_length))
+      input_text = input_text[0:input_text_length]
+      input_text, _ = tf.unique(input_text)
+      #sort from small to large
+      #input_text, _ = -tf.nn.top_k(-input_text, input_text_length)
+      #TODO may be need to be input_text_length, so as to do more decode limit out graph like using trie!
+      beam_size = tf.minimum(beam_size, input_text_length)
+    else:
+      input_text = None
 
     if attention_states is not None:
        attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
@@ -364,7 +383,8 @@ class RnnDecoder(Decoder):
                                          beam_size=beam_size,
                                          attention_construct_fn=attention_construct_fn,
                                          attention_keys=attention_keys,
-                                         attention_values=attention_values)
+                                         attention_values=attention_values,
+                                         input_text=input_text)
 
     #since before hack using generate_sequence_greedy, here can not set scope.reuse_variables
     #NOTICE inorder to use lstm which is in .../rnn/ nameapce here you must also add this scope to use the shared 
@@ -391,7 +411,6 @@ class RnnDecoder(Decoder):
         initial_state = tf.concat([initial_state, inital_attention], 1, name="initial_attention_state")
         state_size += self.cell.output_size
 
-      tf.add_to_collection('beam_search_beam_size', tf.constant(beam_size))
       tf.add_to_collection('beam_search_initial_state', initial_state)
       tf.add_to_collection('beam_search_initial_logprobs', initial_logprobs)
       tf.add_to_collection('beam_search_initial_ids', initial_ids)
@@ -440,7 +459,8 @@ class RnnDecoder(Decoder):
   def beam_search_step(self, input, state, beam_size, 
                        attention_construct_fn=None,
                        attention_keys=None,
-                       attention_values=None):
+                       attention_values=None,
+                       input_text=None):
     output, state = self.cell(input, state)
 
     #TODO: this step cause.. attenion decode each step after initalization still need input_text feed 
@@ -453,7 +473,15 @@ class RnnDecoder(Decoder):
     logits = tf.nn.xw_plus_b(output, self.w, self.v)
     logprobs = tf.nn.log_softmax(logits)
 
+    if input_text is not None:
+      logprobs = melt.gather_cols(logprobs, tf.to_int32(input_text))
+
     top_logprobs, top_ids = tf.nn.top_k(logprobs, beam_size)
+    #------too slow... for transfering large data between py and c++ cost a lot!
+    #top_logprobs, top_ids = tf.nn.top_k(logprobs, self.vocab_size)
+
+    if input_text is not None:
+      top_ids = tf.nn.embedding_lookup(input_text, top_ids)
 
     return output, state, top_logprobs, top_ids
 

@@ -506,6 +506,42 @@ def dynamic_last(output):
 def static_last(output):
   return output[:, int(output.get_shape()[1]) - 1, :]
 
+#http://stackoverflow.com/questions/37670886/gathering-columns-of-a-2d-tensor-in-tensorflow
+def gather_cols(params, indices, name=None):
+    """Gather columns of a 2D tensor.
+
+    Args:
+        params: A 2D tensor.
+        indices: A 1D tensor. Must be one of the following types: ``int32``, ``int64``.
+        name: A name for the operation (optional).
+
+    Returns:
+        A 2D Tensor. Has the same type as ``params``.
+    """
+    with tf.name_scope(name, "gather_cols", [params, indices]) as scope:
+        # Check input
+        params = tf.convert_to_tensor(params, name="params")
+        indices = tf.convert_to_tensor(indices, name="indices")
+        try:
+            params.get_shape().assert_has_rank(2)
+        except ValueError:
+            raise ValueError('\'params\' must be 2D.')
+        try:
+            indices.get_shape().assert_has_rank(1)
+        except ValueError:
+            raise ValueError('\'params\' must be 1D.')
+
+        # Define op
+        #int64 will cause Tensor conversion requested dtype int64 for Tensor with dtype int32
+        #indices = tf.to_int32(indices) 
+
+        p_shape = tf.shape(params)
+        p_flat = tf.reshape(params, [-1])
+        i_flat = tf.reshape(tf.reshape(tf.range(0, p_shape[0]) * p_shape[1],
+                                       [-1, 1]) + indices, [-1])
+        return tf.reshape(tf.gather(p_flat, i_flat),
+                          [p_shape[0], -1])
+
 #[batch_size, num_steps, emb_dim] * [emb_dim, vocab_size] -> [batch_size, num_steps, vocab_size] if keep_dims
 #else [batch_size * num_steps, vocab_size]
 def batch_matmul_embedding(x, emb, keep_dims=False):

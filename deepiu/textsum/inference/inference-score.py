@@ -106,7 +106,6 @@ def predicts(predictor, input_texts, texts):
   print('score:', score)
   print('calc score time(ms):', timer.elapsed_ms())
 
-  #TODO FIXME not work...  Incompatible shapes: [8] vs. [2,4]
   timer = gezi.Timer()
   exact_score = predictor.inference(['exact_score'], 
                                     feed_dict= {

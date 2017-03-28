@@ -55,6 +55,26 @@ global or inside function global sess will cause this but not big problem for co
       get_session.sess = tf_debug.LocalCLIDebugWrapperSession(get_session.sess)
   return get_session.sess
 
+#def get_session(log_device_placement=False, allow_soft_placement=True, debug=False):
+#  """
+#  TODO FIXME get_session will casue  at last
+##Exception UnboundLocalError: "local variable 'status' referenced before assignment" in <bound method Session.__del__ of <tensorflow.python.client.session.Session object at 0x858af10>> ignored
+##TRACE: 03-17 08:22:26:   * 0 [clear]: tag init stat error
+
+#global or inside function global sess will cause this but not big problem for convenience just accpet right now
+#  """
+#  if not hasattr(get_session, 'sess') or get_session.sess is None:
+#    config=tf.ConfigProto(
+#      allow_soft_placement=allow_soft_placement, 
+#      log_device_placement=log_device_placement)
+#    #config.operation_timeout_in_ms=600000
+#    #NOTICE https://github.com/tensorflow/tensorflow/issues/2130 but 5000 will cause init problem!
+#    #config.operation_timeout_in_ms=50000   # terminate on long hangs
+#    sess = tf.Session(config=config)
+#    if debug:
+#      sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+#  return sess
+
 def get_optimizer(name):
   if name in tf.contrib.layers.OPTIMIZER_CLS_NAMES:
     return tf.contrib.layers.OPTIMIZER_CLS_NAMES[name]
@@ -326,14 +346,23 @@ def float_feature(value):
   return tf.train.Feature(float_list=tf.train.FloatList(value=value))
 
 features = lambda d: tf.train.Features(feature=d)
-# Helpers for creating SequenceExample objects  copy from \tensorflow\python\kernel_tests\parsing_ops_test.py
-def feature_list(l):
-  if not isinstance(value, (list,tuple)):
-    l = [l]
-  return tf.train.FeatureList(feature=l)
 
+# Helpers for creating SequenceExample objects  copy from \tensorflow\python\kernel_tests\parsing_ops_test.py
+feature_list = lambda l: tf.train.FeatureList(feature=l)
 feature_lists = lambda d: tf.train.FeatureLists(feature_list=d)
 
+
+def int64_feature_list(values):
+  """Wrapper for inserting an int64 FeatureList into a SequenceExample proto."""
+  return tf.train.FeatureList(feature=[int64_feature(v) for v in values])
+
+def bytes_feature_list(values):
+  """Wrapper for inserting a bytes FeatureList into a SequenceExample proto."""
+  return tf.train.FeatureList(feature=[bytes_feature(v) for v in values])
+
+def float_feature_list(values):
+  """Wrapper for inserting a bytes FeatureList into a SequenceExample proto."""
+  return tf.train.FeatureList(feature=[float_feature(v) for v in values])
 
 def get_num_records_single(tf_record_file):
   return len([x for x in tf.python_io.tf_record_iterator(tf_record_file)])

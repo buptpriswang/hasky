@@ -99,15 +99,21 @@ def gen_train_graph(input_app, input_results, trainer):
   trainer.is_training = False
     
   deal_debug_results = None
+
+  #FLAGS.debug = True
   if FLAGS.debug == True:
-    ops += [tf.get_collection('scores')[-1], tf.get_collection('encode_feature')[-1], tf.get_collection('encode_state')[-1]]
-    
+    #ops += [tf.get_collection('scores')[-1], tf.get_collection('encode_feature')[-1], tf.get_collection('encode_state')[-1]]
+    ops += [tf.get_collection('debug_seqeuence')[-1], tf.get_collection('debug_length')[-1]]
     def _deal_debug_results(results):
-      print(results)
-      _, scores, encode_feature, encode_state = results
+      #print(results)
+      _, seq, len = results 
+      for item in seq[0]:
+        print(item)
+      print('len:', len[0])
+      #_, scores, encode_feature, encode_state = results
       #print('scores', scores)
-      print('encode_feature', encode_feature)  
-      print('encode_state', encode_state)      
+      #print('encode_feature', encode_feature)  
+      #print('encode_state', encode_state)      
 
     deal_debug_results = _deal_debug_results
 

@@ -12,7 +12,7 @@ from __future__ import division
 from __future__ import print_function
 
 '''
-python ./read-records-melt.py /tmp/urate.train
+python read-sequence-records.py /tmp/urate.train
 '''
 import sys, os, time
 import tensorflow as tf
@@ -24,12 +24,12 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('batch_size', 5, 'Batch size.')
-flags.DEFINE_integer('num_epochs', 2, 'Number of epochs to run trainer.')
+#flags.DEFINE_integer('num_epochs', 2, 'Number of epochs to run trainer.')
 flags.DEFINE_integer('num_threads', 12, '')
 flags.DEFINE_boolean('batch_join', True, '')
 flags.DEFINE_boolean('shuffle', True, '')
 
-flags.DEFINE_boolean('decode_then_shuffle', True, '')
+#flags.DEFINE_boolean('decode_then_shuffle', True, '')
 
 def read_once(sess, step, ops):
   id, X, y = sess.run(ops)
@@ -63,7 +63,13 @@ def decode_example(serialized_example):
   #must resphae = 488!
   #here may be can deal with like @TODO one image, multiple text(click query) we can pack the result here
   #like id,image, feature | id, image, feature1 ...
-  feature = tf.reshape(sequence_features['feature'], [num_features])
+  
+  print(sequence_features)
+  #feature = tf.reshape(sequence_features['feature'], [num_features])
+  feature = sequence_features['feature']
+  print(tf.shape(feature))
+  #feature = tf.reshape(sequence_features['feature'], [num_features])
+  
   #feature =  tf.reshape(sequence_features['feature'], [-1,])
   #feature = tf.squeeze(sequence_features['feature'])
   #feature = sequence_features['feature']

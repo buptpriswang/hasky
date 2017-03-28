@@ -87,7 +87,7 @@ def tower_loss(trainer, input_app=None, input_results=None):
   #--------train
   image_name, image_feature, text, text_str = input_results[input_app.input_train_name]
   #--------train neg
-  if input_app.input_train_neg_name in input_results:
+  if input_results[input_app.input_train_neg_name]:
     neg_text, neg_text_str = input_results[input_app.input_train_neg_name]
   else:
     neg_text, neg_text_str = None, None
@@ -228,7 +228,7 @@ def gen_validate(input_app, input_results, trainer, predictor):
   deal_eval_results = None
   if train_with_validation and not FLAGS.train_only:
     eval_image_name, eval_image_feature, eval_text, eval_text_str = input_results[input_app.input_valid_name]
-    if input_app.input_valid_neg_name in input_results:
+    if input_results[input_app.input_valid_neg_name]:
       eval_neg_text, eval_neg_text_str = input_results[input_app.input_valid_neg_name]
     else:
       eval_neg_text, eval_neg_text_str = None, None
