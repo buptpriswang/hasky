@@ -62,15 +62,18 @@ class RnnEncoder(Encoder):
       self.bwcell = create_rnn_cell(initializer=tf.random_uniform_initializer(-0.1, 0.1, seed=113));
     else:
       self.bwcell = None
+
+  def pad(self, sequence):
+    return melt.pad(sequence, 
+                    start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
+                    end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
   def encode(self, sequence, emb=None):
     if emb is None:
       emb = self.emb 
 
     #--for debug
-    sequence, sequence_length = melt.pad(sequence, 
-                                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
-                                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
+    sequence, sequence_length = self.pad(sequence)
 
     #tf.add_to_collection('debug_seqeuence', sequence)
     #tf.add_to_collection('debug_length', sequence_length)

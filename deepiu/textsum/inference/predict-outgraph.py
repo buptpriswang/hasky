@@ -87,7 +87,7 @@ def predict(predictor, input_text):
 
   for i, beam in enumerate(beams):
     print(i, beam.words, text2ids.ids2text(beam.words), math.exp(beam.logprob), beam.logprob, beam.score, beam.logprobs)
-    print(beam.alignments_list)
+    #print(beam.alignments_list)
 
   print('beam search using time(ms):', timer.elapsed_ms())
 
@@ -108,6 +108,8 @@ def main(_):
 
   predictor.load(FLAGS.model_dir) 
 
+  predict(predictor, "湿膜加湿器")
+  predict(predictor, "美女佟丽娅")
   predict(predictor, "宝宝太胖怎么办呢")
   predict(predictor, "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网")
   predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")

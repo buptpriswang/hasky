@@ -357,7 +357,6 @@ class RnnDecoder(Decoder):
     """
     if emb is None:
       emb = self.emb
-
     
     tf.add_to_collection('beam_search_beam_size', tf.constant(beam_size))
     if input_text is not None and FLAGS.decode_copy:
@@ -365,6 +364,7 @@ class RnnDecoder(Decoder):
       input_text_length = tf.to_int32(tf.squeeze(input_text_length))
       input_text = input_text[0:input_text_length]
       input_text, _ = tf.unique(input_text)
+      input_text_length = tf.shape(input_text)[-1]
       #sort from small to large
       #input_text, _ = -tf.nn.top_k(-input_text, input_text_length)
       #TODO may be need to be input_text_length, so as to do more decode limit out graph like using trie!
