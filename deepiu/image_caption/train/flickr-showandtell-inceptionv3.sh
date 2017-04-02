@@ -2,7 +2,7 @@ cp ./prepare/seq-with-unk/flickr/conf.py conf.py
 source ./prepare/seq-with-unk/flickr/config 
 
 dir=/home/gezi/temp/image-caption/ 
-model_dir=$dir/model.flickr.showandtell
+model_dir=$dir/model.flickr.showandtell.inceptionv3
 mkdir -p $model_dir
 
 python ./train.py \
@@ -25,12 +25,14 @@ python ./train.py \
   --debug 0 \
   --feed_dict 0 \
   --algo show_and_tell \
+  --add_global_scope 0 \
   --interval 100 \
   --eval_interval 1000\
   --seg_method en \
   --feed_single 0 \
   --seq_decode_method 0 \
   --dynamic_batch_length 1 \
+  --pre_calc_image_feature 0 \
   --shuffle_then_decode 1 \
   --margin 0.5 \
   --learning_rate 0.01 \

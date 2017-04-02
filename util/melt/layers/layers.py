@@ -85,7 +85,7 @@ def fully_connected(inputs,
   #with variable_scope.variable_scope(
   #  scope, 'Mlp', [inputs],
   #  reuse=reuse) as vs:
-  with tf.variable_scope(scope, 'fully_connected'):
+  with tf.variable_scope(scope, 'fully_connected', [inputs], reuse=reuse):
     is_dense_input = True if isinstance(inputs, tf.Tensor) else False
     dtype=inputs.dtype.base_dtype if is_dense_input else inputs[1].values.dtype.base_dtype
     #sparse input must tell input_dim

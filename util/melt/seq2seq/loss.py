@@ -62,6 +62,8 @@ def sequence_loss_by_example(logits, targets, weights,
       #logits = array_ops.reshape(logits, [-1, num_classes])
       #targets = array_ops.reshape(targets, [-1])
       crossents = nn_ops.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
+      crossents = array_ops.reshape(crossents, [batch_size, -1])
+      weights = array_ops.reshape(weights, [batch_size, -1])
     else:
       emb_dim = logits_shape[-1]
       #need reshape because unlike sparse_softmax_cross_entropy_with_logits, 

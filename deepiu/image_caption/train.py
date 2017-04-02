@@ -310,6 +310,19 @@ def train_process(trainer, predictor=None):
       if not algos_factory.is_generative(FLAGS.algo): 
         metric_eval_function = lambda: evaluator.evaluate_scores(predictor, random=True)
 
+  init_fn = None 
+  if not FLAGS.pre_calc_image_feature:
+    #TODO scope problem show_and_tell, now add_global_scope set 0
+    inception_variables = tf.get_collection(
+        tf.GraphKeys.GLOBAL_VARIABLES, scope="InceptionV3")
+    
+    saver = tf.train.Saver(inception_variables)
+    def restore_fn(sess):
+      tf.logging.info("Restoring Inception variables from checkpoint file %s",
+                        FLAGS.inception_checkpoint_file)
+      saver.restore(sess, FLAGS.inception_checkpoint_file)
+    init_fn = restore_fn
+
   melt.apps.train_flow(ops, 
                        gen_feed_dict=gen_feed_dict,
                        deal_results=deal_results,
@@ -321,6 +334,7 @@ def train_process(trainer, predictor=None):
                        num_steps_per_epoch=input_app.num_steps_per_epoch,
                        model_dir=FLAGS.model_dir,
                        metric_eval_function=metric_eval_function,
+                       init_fn=init_fn,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
   
 def train():

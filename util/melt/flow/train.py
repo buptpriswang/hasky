@@ -108,6 +108,7 @@ def train_flow(ops,
                restore_from_latest=True,
                metric_eval_function=None,
                metric_eval_interval_steps=0,
+               init_fn=None,
                sess=None):
   """
   train flow for tr records, with model saving/reload and summary considered
@@ -203,4 +204,5 @@ def train_flow(ops,
                 num_steps_per_epoch=num_steps_per_epoch,
                 restore_from_latest=restore_from_latest,
                 metric_eval_function=metric_eval_function,
+                init_fn=init_fn,
                 sess=sess)

@@ -83,16 +83,14 @@ class ShowAndTell(object):
     self.decoder = deepiu.seq2seq.rnn_decoder.RnnDecoder(is_training, is_predict)
     self.decoder.set_embedding(emb)
     
-    emb_dim = FLAGS.emb_dim
-    self.encode_img_W = melt.variable.get_weights_uniform(
-      'encode_img_W', 
-      [IMAGE_FEATURE_LEN, emb_dim], 
-      -FLAGS.initializer_scale, 
-      FLAGS.initializer_scale)
-    self.encode_img_b = melt.variable.get_bias('encode_img_b', [emb_dim])
-
+    self.emb_dim = FLAGS.emb_dim
     #TODO for safe, can add_text_start but add 0 not calc weight or 
     #do additional cell(image_embedding, state) and pass state with start_id as input like im2text
+
+    self.initializer = tf.random_uniform_initializer(
+        minval=-FLAGS.initializer_scale,
+        maxval=FLAGS.initializer_scale)
+
     assert FLAGS.add_text_start is False
 
   def feed_ops(self):
@@ -106,9 +104,24 @@ class ShowAndTell(object):
     else:
       return [], []
 
+  def build_image_embeddings(self, image_feature):
+    """
+    Builds the image model subgraph and generates image embeddings.
+    """
+    with tf.variable_scope("image_embedding") as scope:
+      image_embeddings = tf.contrib.layers.fully_connected(
+          inputs=image_feature,
+          num_outputs=self.emb_dim,
+          activation_fn=None,
+          weights_initializer=self.initializer,
+          biases_initializer=None,
+          scope=scope)
+    return image_embeddings
+
   #NOTICE mainly usage is not use neg! for generative method
   def build_graph(self, image_feature, text, neg_text=None, exact_loss=False):
-    image_emb = tf.nn.xw_plus_b(image_feature, self.encode_img_W, self.encode_img_b)
+    image_emb = self.build_image_embeddings(image_feature)
+
     pos_loss = self.decoder.sequence_loss(image_emb, text, exact_loss=exact_loss)
 
     loss = None

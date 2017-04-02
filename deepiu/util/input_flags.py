@@ -77,3 +77,10 @@ flags.DEFINE_boolean('dynamic_batch_length', True, """very important False means
                                       otherwise use dynamic batch size""")
 flags.DEFINE_string('seg_method', 'default', '')
 flags.DEFINE_boolean('feed_single', False, '')
+
+
+#--------for image caption
+flags.DEFINE_boolean('pre_calc_image_feature', True, '')
+flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
+flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
+flags.DEFINE_string('inception_checkpoint_file', '/home/gezi/data/image-caption/inception_v3.ckpt', '')

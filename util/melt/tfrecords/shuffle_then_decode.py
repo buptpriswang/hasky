@@ -17,7 +17,7 @@ import tensorflow as tf
 import gezi
 import melt
 
-def read(filename_queue):
+def _read(filename_queue):
   reader = tf.TFRecordReader()
   _, serialized_example = reader.read(filename_queue)
   return [serialized_example]
@@ -28,7 +28,8 @@ def inputs(files, decode, batch_size=64,
            min_after_dequeue=None, seed=None, 
            fix_random=False, no_random=False, fix_sequence=False,
            allow_smaller_final_batch=False, 
-           num_prefetch_batches=None, name='input'):
+           num_prefetch_batches=None, 
+           name='input'):
   """Reads input data num_epochs times.
   for sparse input here will do:
   1. read serialized_example
@@ -140,7 +141,7 @@ def inputs(files, decode, batch_size=64,
     if not num_prefetch_batches: num_prefetch_batches = num_threads + 3
     #@TODO diff between tf.batch_join and tf.batch
     if batch_join:
-      batch_list = [read(filename_queue) for _ in xrange(num_threads)]
+      batch_list = [_read(filename_queue) for _ in xrange(num_threads)]
       #print batch_list
       batch_serialized_examples = tf.train.shuffle_batch_join(
           batch_list, 
@@ -150,7 +151,7 @@ def inputs(files, decode, batch_size=64,
           seed=seed,
           allow_smaller_final_batch=allow_smaller_final_batch)
     else:
-      serialized_example = read(filename_queue)
+      serialized_example = _read(filename_queue)
       #@FIXME... for bug now can not be more random if want fix random see D:\mine\tensorflow-exp\models\image-text-sim\train-evaluate-fixrandom.py
       if shuffle_batch:	      
         batch_serialized_examples = tf.train.shuffle_batch(	

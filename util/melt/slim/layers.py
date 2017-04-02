@@ -19,7 +19,7 @@ from tensorflow.contrib.layers.python.layers import initializers
 from tensorflow.python.ops import init_ops
 import tensorflow.contrib.slim as slim
 
-def mlp(x, 
+def mlp(inputs, 
         dims, 
         activation_fn=tf.nn.relu,
         normalizer_fn=None,
@@ -33,15 +33,14 @@ def mlp(x,
         outputs_collections=None,
         trainable=True, 
         scope=None):
-  scope = 'mlp' if scope is None else scope
-  with tf.variable_scope(scope):
+  with tf.variable_scope(scope, 'mlp', [inputs], reuse=reuse):
     for i in xrange(len(dims) -1):
-      x = slim.fully_connected(x, dims[i], 
+      inputs = slim.fully_connected(inputs, dims[i], 
                                activation_fn=activation_fn, 
                                weights_initializer=weights_initializer,
                                biases_initializer=biases_initializer, 
                                scope='fc_%d'%i)
-    return slim.linear(x, 
+    return slim.linear(inputs, 
                        dims[-1], 
                        weights_initializer=weights_initializer,
                        biases_initializer=biases_initializer,

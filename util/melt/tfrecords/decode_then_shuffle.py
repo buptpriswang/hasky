@@ -16,10 +16,15 @@ import tensorflow as tf
 import gezi
 import melt
 
-def read_decode(filename_queue, decode):
+def _read_decode(filename_queue, decode_fn, thread_id=0):
   reader = tf.TFRecordReader()
   _, serialized_example = reader.read(filename_queue)
-  values = decode(serialized_example)
+  #TODO better handle? http://stackoverflow.com/questions/218616/getting-method-parameter-names-in-python
+  # inspect.getargspec(aMethod)
+  try:
+    values = decode_fn(serialized_example)
+  except Exception:
+    values = decode_fn(serialized_example, thread_id)
   #---for safe, or decode can make sure this for single value turn to list []
   if not isinstance(values, (list, tuple)):
     values = [values]
@@ -38,7 +43,7 @@ def inputs(files, decode, batch_size=64,
   2. shuffle decoded values
   3. return batch decoded values
   Args:
-  decode: user defined decode 
+  decode: user defined decode #TODO should be decode_fn
   #---decode example
   # features = tf.parse_single_example(
   #     serialized_example,
@@ -115,7 +120,7 @@ def inputs(files, decode, batch_size=64,
     #@TODO cifa10 always use num_prefetch_batches = 3, 3 * batch_size, check which is better
     if not num_prefetch_batches: num_prefetch_batches = num_threads + 3
     if batch_join:
-      batch_list = [read_decode(filename_queue, decode) for _ in xrange(num_threads)]
+      batch_list = [_read_decode(filename_queue, decode, thread_id) for thread_id in xrange(num_threads)]
       #print batch_list
       batch = tf.train.shuffle_batch_join(
           batch_list, 
@@ -125,7 +130,7 @@ def inputs(files, decode, batch_size=64,
           seed=seed,
           allow_smaller_final_batch=allow_smaller_final_batch)
     else:
-      serialized_example = read_decode(filename_queue, decode)
+      serialized_example = _read_decode(filename_queue, decode)
       num_threads = 1 if fix_random else num_threads
       if shuffle_batch:	    
           batch = tf.train.shuffle_batch(	

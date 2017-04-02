@@ -215,8 +215,8 @@ class RnnDecoder(Decoder):
     else:
       logits = outputs
 
-    mask = tf.cast(tf.sign(sequence), dtype=tf.float32)
-    
+    mask = tf.cast(tf.sign(targets), dtype=tf.float32)
+
     if self.is_predict and exact_prob:
       #generate real prob for sequence
       #for 10w vocab textsum seq2seq 20 -> 4 about 

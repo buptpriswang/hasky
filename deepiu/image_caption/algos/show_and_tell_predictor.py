@@ -34,8 +34,11 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     melt.PredictorBase.__init__(self)
     ShowAndTell.__init__(self, is_training=False, is_predict=True)
 
-    self.text_list = []
-    self.image_feature_place = tf.placeholder(tf.float32, [None, IMAGE_FEATURE_LEN], name='image_feature')
+    if FLAGS.pre_calc_image_feature:
+      self.image_feature_len = IMAGE_FEATURE_LEN 
+    else:
+      self.image_feature_len = 2048
+    self.image_feature_place = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
     self.text_place = tf.placeholder(tf.int64, [None, TEXT_MAX_WORDS], name='text')
 
   def init_predict_text(self, decode_method=0, beam_size=5, convert_unk=True):
@@ -46,8 +49,6 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       decode_method, 
       beam_size, 
       convert_unk)
-
-    self.text_list.append(text)
 
     return text
 
@@ -61,9 +62,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     """
     @TODO beam search, early stop maybe need c++ op
     """
-    image_emb = tf.matmul(image, self.encode_img_W) + self.encode_img_b
-
-    decoder_input = image_emb
+    decoder_input = self.build_image_embeddings(image)
     state = None
     
     if decode_method == SeqDecodeMethod.greedy:
@@ -82,7 +81,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       raise ValueError('not supported decode_method: %d' % decode_method)
 
   def build_predict_graph(self, image, text, exact_loss=False):
-    image = tf.reshape(image, [-1, IMAGE_FEATURE_LEN])
+    image = tf.reshape(image, [-1, self.image_feature_len])
     text = tf.reshape(text, [-1, TEXT_MAX_WORDS])
     
     loss = self.build_graph(image, text)
@@ -97,7 +96,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     default usage is one single image , single text predict one sim score
     """
     feed_dict = {
-      self.image_feature_place: image.reshape([-1, IMAGE_FEATURE_LEN]),
+      self.image_feature_place: image.reshape([-1, self.image_feature_len]),
       self.text_place: text.reshape([-1, TEXT_MAX_WORDS]),
     }
     score = self.sess.run(self.score, feed_dict)

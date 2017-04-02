@@ -80,6 +80,7 @@ def tf_train_flow(train_once,
                   num_steps_per_epoch=0,
                   restore_from_latest=True,
                   metric_eval_function=None,
+                  init_fn=None,
                   sess=None):
   """
   similary flow as tf_flow, but add model try reload and save
@@ -122,6 +123,9 @@ def tf_train_flow(train_once,
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
     sess.run(init_op)
+
+    if init_fn is not None:
+      init_fn(sess)
   
   if save_interval_epochs and num_steps_per_epoch:
     epoch_dir = os.path.join(model_dir, 'epoch')
@@ -178,7 +182,7 @@ def tf_train_flow(train_once,
     coord.request_stop()
 
   coord.join(threads, stop_grace_period_secs=5)
-  #FIMXE
+  #FIMXE due to use melt.get_session(global not handle del well)
   #Done training for 3090020 steps.
   #Exception TypeError: "'NoneType' object is not callable" in <bound method Session.__del__ of <tensorflow.python.client.session.Session object at 0x7f6cf33cd450>> ignored
   sess.close()

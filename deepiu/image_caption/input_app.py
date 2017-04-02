@@ -371,9 +371,11 @@ class InputApp(object):
     for name in input_name_list:
       input_results[name] = None
 
-    inputs, decode, decode_neg = input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length, use_neg=(FLAGS.num_negs > 0))
+    assert FLAGS.shuffle_then_decode, "since use sparse data for text, must shuffle then decode"
+    inputs, decode, decode_neg, decode_train = \
+     input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length, use_neg=(FLAGS.num_negs > 0))
 
-    input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode)
+    input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode_train)
 
     print('decode_neg', decode_neg)
 

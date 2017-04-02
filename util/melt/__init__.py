@@ -31,4 +31,5 @@ import melt.apps
 
 import melt.rnn 
 
-import melt.seq2seq
+import melt.seq2seq 
+import melt.image
