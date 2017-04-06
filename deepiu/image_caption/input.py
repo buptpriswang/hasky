@@ -45,10 +45,12 @@ def _decode(example, parse, dynamic_batch_length, is_training=False, reuse=None)
     image_feature = features['image_feature']
   else:
     image_feature = features['image_data']
+    #print('---------------', image_feature)
     image_feature = tf.map_fn(lambda img: melt.image.process_image(img,
                                                                    is_training,
                                                                    height=FLAGS.image_height, 
-                                                                   width=FLAGS.image_width), 
+                                                                   width=FLAGS.image_width,
+                                                                   distort=FLAGS.distort_image), 
                               image_feature,
                               dtype=tf.float32)
 
@@ -100,12 +102,13 @@ def decode_neg_example(serialized_example):
 def get_decodes(shuffle_then_decode, dynamic_batch_length, use_neg=True):
   if shuffle_then_decode:
     inputs = melt.shuffle_then_decode.inputs
-    decode_train = lambda x: decode_examples(x, dynamic_batch_length, is_training=True)
+    #TODO inception model first used in evaluator.py init... so here all reuse=True  TODO may not depend on building sequence ?
+    decode_train = lambda x: decode_examples(x, dynamic_batch_length, is_training=True, reuse=True)
     decode = lambda x: decode_examples(x, dynamic_batch_length, reuse=True)
     decode_neg = (lambda x: decode_neg_examples(x, dynamic_batch_length)) if use_neg else None
   else:
     inputs = melt.decode_then_shuffle.inputs
-    decode_train = lambda x: decode_example(x, dynamic_batch_length, is_training=True)
+    decode_train = lambda x: decode_example(x, dynamic_batch_length, is_training=True, reuse=True)
     decode = lambda x: decode_example(x, dynamic_batch_length, reuse=True)
     decode_neg = (lambda x: decode_neg_example(x, dynamic_batch_length)) if use_neg else None
   return inputs, decode, decode_neg, decode_train

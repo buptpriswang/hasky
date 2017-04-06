@@ -45,15 +45,23 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     self.fixed_text_score = None
     #input image feature, assume text final feature already load
     self.fixed_text_feature_score = None
+
+    if FLAGS.pre_calc_image_feature:
+      self.image_feature_len = IMAGE_FEATURE_LEN 
+    else:
+      self.image_feature_len = 2048 #inception v3
+      #use create function to avoid scope problem run/...
+      #self.image_process_fn = melt.image.create_images_processing_fn(FLAGS.image_height, FLAGS.image_width)
   
   def init_predict(self, text_max_words=TEXT_MAX_WORDS):
     self.score = self.build_predict_graph(text_max_words)
+    tf.get_variable_scope().reuse_variables()
     self.textsim_score = self.build_textsim_predict_graph(text_max_words)
     return self.score
 
   def predict(self, image, text):
     feed_dict = {
-      self.image_feature_place: image.reshape([1, IMAGE_FEATURE_LEN]),
+      self.image_feature_place: image.reshape([1, self.image_feature_len]),
       self.text_place: text.reshape([1, TEXT_MAX_WORDS])
       }
     score = self.sess.run(self.score, feed_dict)
@@ -93,7 +101,10 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
   
   def get_image_feature_place(self):
    if self.image_feature_place is None:
-     self.image_feature_place = tf.placeholder(tf.float32, [None, IMAGE_FEATURE_LEN], name='image_feature')
+     #if FLAGS.pre_calc_image_feature:
+     self.image_feature_place = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
+     #else:
+     #  self.image_feature_place =  tf.placeholder(tf.string, [None,], name='image_feature')
    return self.image_feature_place
 
   def get_text_place(self, text_max_words=TEXT_MAX_WORDS):
@@ -133,7 +144,11 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       return score
 
   def build_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
-    score = self.build_graph(self.get_image_feature_place(), self.get_text_place(text_max_words))
+    image_feature = self.get_image_feature_place()
+    #---below still face scope problem run/InceptionV3
+    #if not FLAGS.pre_calc_image_feature:
+    #  image_feature = self.image_process_fn(image_feature)
+    score = self.build_graph(image_feature, self.get_text_place(text_max_words))
     return score
 
   def build_textsim_predict_graph(self, text_max_words=TEXT_MAX_WORDS):

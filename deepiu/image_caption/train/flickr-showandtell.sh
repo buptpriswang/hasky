@@ -31,6 +31,7 @@ python ./train.py \
   --feed_single 0 \
   --seq_decode_method 0 \
   --dynamic_batch_length 1 \
+  --length_normalization_factor 1.0 \
   --shuffle_then_decode 1 \
   --margin 0.5 \
   --learning_rate 0.01 \

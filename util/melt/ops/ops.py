@@ -7,7 +7,7 @@
 # ==============================================================================
 
 """
-op_scope depreciated at tf.0.11
+TODO
 tf.sign should be replaced by tf.unequal 0, to allow -1
 """
   
@@ -56,24 +56,24 @@ def matmul(X, w):
 #@TODO try to use slim.fully_connected
 def mlp_forward(input, hidden, hidden_bais, out, out_bias, activation=tf.nn.relu, name=None):
   #@TODO **args?
-  with tf.op_scope([input, hidden, hidden_bais, out, out_bias, activation], name, 'mlp_forward'):
+  with tf.name_scope(name, 'mlp_forward', [input, hidden, hidden_bais, out, out_bias, activation]):
     hidden_output = activation(matmul(input, hidden) + hidden_bais)
     return tf.matmul(hidden_output, out) + out_bias
 
 def mlp_forward_nobias(input, hidden, out, activation=tf.nn.relu, name=None):
-  with tf.op_scope([input, hidden, out, activation], name, 'mlp_forward_nobias'):
+  with tf.name_scope(name, 'mlp_forward_nobias', [input, hidden, out, activation]):
     hidden_output = activation(matmul(input, hidden))
     return tf.matmul(hidden_output, out) 
 
 def element_wise_cosine_nonorm(a, b, keep_dims=True, name=None):
-  with tf.op_scope([a, b], name, 'element_wise_cosine_nonorm'):
+  with tf.name_scope(name, 'element_wise_cosine_nonorm', [a, b]):
     return tf.reduce_sum(tf.multiply(a, b), 1, keep_dims=keep_dims)
 
 #[batch_size, y], [batch_size, y] => [batch_size, 1]
 def element_wise_cosine(a, b, a_normed=False, b_normed=False, nonorm=False, keep_dims=True, name=None):
   if nonorm:
     return element_wise_cosine_nonorm(a, b, keep_dims, name)
-  with tf.op_scope([a,b], name, 'element_wise_cosine'):
+  with tf.name_scope(name, 'element_wise_cosine', [a,b]):
     if a_normed:
       normalized_a = a 
     else:
@@ -86,13 +86,13 @@ def element_wise_cosine(a, b, a_normed=False, b_normed=False, nonorm=False, keep
     return tf.reduce_sum(tf.mul(normalized_a, normalized_b), 1, keep_dims=keep_dims)
 
 def cosine_nonorm(a, b, name=None):
-  with tf.op_scope([a,b], name, 'cosine_nonorm'):
+  with tf.name_scope(name, 'cosine_nonorm', [a,b]):
     return tf.matmul(a, b, transpose_b=True)  
 #[batch_size, y] [x, y] => [batch_size, x]
 def cosine(a, b, a_normed=False, b_normed=False, nonorm=False, name=None):
   if nonorm:
     return cosine_nonorm(a, b)
-  with tf.op_scope([a,b], name, 'cosine'):
+  with tf.name_scope(name, 'cosine', [a,b]):
     if a_normed:
       normalized_a = a 
     else:
@@ -125,7 +125,7 @@ def reduce_mean_with_mask(input_tensor, mask, reduction_indices=None, keep_dims=
           tf.reduce_sum(mask, reduction_indices=reduction_indices, keep_dims=keep_dims)
 
 def embedding_lookup(emb, index, reduction_indices=None, combiner='mean', name=None):
-  with tf.op_scope([emb, index], name, 'emb_lookup_%s'%combiner):
+  with tf.name_scope(name, 'emb_lookup_%s'%combiner, [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     if combiner == 'mean':
       return tf.reduce_mean(lookup_result, reduction_indices)
@@ -135,12 +135,12 @@ def embedding_lookup(emb, index, reduction_indices=None, combiner='mean', name=N
       raise ValueError('Unsupported combiner: ', combiner)
 
 def embedding_lookup_mean(emb, index, reduction_indices=None, name=None):
-  with tf.op_scope([emb, index], name, 'emb_lookup_mean'):
+  with tf.name_scope(name, 'emb_lookup_mean', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     return tf.reduce_mean(lookup_result, reduction_indices)
 
 def embedding_lookup_sum(emb, index, reduction_indices=None, name=None):
-  with tf.op_scope([emb, index], name, 'emb_lookup_sum'):
+  with tf.name_scope(name, 'emb_lookup_sum', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     return tf.reduce_sum(lookup_result, reduction_indices)
 
@@ -157,7 +157,7 @@ def masked_embedding_lookup_mean(emb, index, reduction_indices=None, exclude_zer
   @TODO need c++ op to really mask last dim zero feature vector
   now assume vector should zero filtered to be zero vector @TODO
   """
-  with tf.op_scope([emb, index], name, 'masked_emb_lookup_mean'):
+  with tf.name_scope(name, 'masked_emb_lookup_mean', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     if exclude_zero_index:
       masked_emb = mask2d(emb)
@@ -173,7 +173,7 @@ def masked_embedding_lookup_sum(emb, index, reduction_indices=None, exclude_zero
   now assume vector should zero filtered  to be zero vector
   or to just make emb firt row zero before lookup ?
   """
-  with tf.op_scope([emb, index], name, 'masked_emb_lookup_sum'):
+  with tf.name_scope(name, 'masked_emb_lookup_sum', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     if exclude_zero_index:
       masked_emb = mask2d(emb)
@@ -195,7 +195,7 @@ def batch_embedding_lookup(emb, index, combiner='mean', name=None):
   """
   same as embedding_lookup but use index_dim_length - 1 as reduction_indices
   """
-  with tf.op_scope([emb, index], name, 'batch_emb_lookup_%s'%combiner):
+  with tf.name_scope(name, 'batch_emb_lookup_%s'%combiner, [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     #@NOTICE for tf.nn.embedding_lookup, index can be list.. here only tensor
     reduction_indices = len(index.get_shape()) - 1
@@ -207,13 +207,13 @@ def batch_embedding_lookup(emb, index, combiner='mean', name=None):
       raise ValueError('Unsupported combiner: ', combiner)
 
 def batch_embedding_lookup_mean(emb, index, name=None):
-  with tf.op_scope([emb, index], name, 'batch_emb_lookup_mean'):
+  with tf.name_scope(name, 'batch_emb_lookup_mean', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     reduction_indices = len(index.get_shape()) - 1
     return tf.reduce_mean(lookup_result, reduction_indices)
 
 def batch_embedding_lookup_sum(emb, index, name=None):
-  with tf.op_scope([emb, index], name, 'batch_emb_lookup_sum'):
+  with tf.name_scope(name, 'batch_emb_lookup_sum', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     reduction_indices = len(index.get_shape()) - 1
     return tf.reduce_sum(lookup_result, reduction_indices)
@@ -232,7 +232,7 @@ def batch_masked_embedding_lookup_mean(emb, index, exclude_zero_index=True, name
   now assume vector should zero filtered to be zero vector if not exclude_zero_index
   or will have to do lookup twice
   """
-  with tf.op_scope([emb, index], name, 'batch_masked_emb_lookup_mean'):
+  with tf.name_scope(name, 'batch_masked_emb_lookup_mean', [emb, index]):
     #if exclude_zero_index:
     #-----so slow..
     #  emb = tf.concat(0, [tf.zeros([1, emb.get_shape()[1]]), 
@@ -254,7 +254,7 @@ def batch_masked_embedding_lookup_sum(emb, index, exclude_zero_index=True, name=
   now assume vector should zero filtered to be zero vector if not exclude_zero_index
   or will have to do lookup twice
   """
-  with tf.op_scope([emb, index], name, 'batch_masked_emb_lookup_sum'):
+  with tf.name_scope(name, 'batch_masked_emb_lookup_sum', [emb, index]):
     lookup_result = tf.nn.embedding_lookup(emb, index)
     reduction_indices = len(index.get_shape()) - 1  
     if exclude_zero_index:
@@ -646,13 +646,13 @@ def reduce_loss(loss_matrix, combiner='mean'):
 #--@TODO other rank loss
 #@TODO move to losses
 def hinge_loss(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
-  with tf.op_scope([pos_score, neg_score], name, 'hinge_loss'):
+  with tf.name_scope(name, 'hinge_loss', [pos_score, neg_score]):
     loss_matrix = tf.maximum(0., margin - (pos_score - neg_score))
     loss = reduce_loss(loss_matrix, combiner)
     return loss
 
 def cross_entropy_loss(scores, num_negs=1, combiner='mean', name=None):
-  with tf.op_scope([scores], name, 'cross_entropy_loss'):
+  with tf.name_scope(name, 'cross_entropy_loss', [scores]):
     batch_size = scores.get_shape()[0]
     targets = tf.concat(1, [tf.ones([batch_size, 1], tf.float32), tf.zeros([batch_size, num_negs], tf.float32)])
     #TODO check code of sigmoid and softmax
@@ -662,7 +662,7 @@ def cross_entropy_loss(scores, num_negs=1, combiner='mean', name=None):
     return loss
 
 def hinge_cross_loss(pos_score, neg_score, combiner='mean', name=None):
-  with tf.op_scope([pos_score, neg_score], name, 'hinge_cross_loss'):
+  with tf.name_scope(name, 'hinge_cross_loss', [pos_score, neg_score]):
     logits = pos_score - neg_score
     targets = tf.ones_like(neg_score, tf.float32)
     loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits, targets)

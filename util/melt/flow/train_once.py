@@ -202,22 +202,12 @@ def train_once(sess,
         logging.info2('{} eval_step: {} {}'.format(epoch_str, step, train_average_loss_str))
 
     if log_dir:
-      #timer_ = gezi.Timer('witting log')
-      
       if not hasattr(train_once, 'summary_op'):
-        try:
-          train_once.summary_op = tf.summary.merge_all()
-        except Exception:
-          train_once.summary_op = tf.merge_all_summaries()
-
+        train_once.summary_op = tf.summary.merge_all()
         #melt.print_summary_ops()
 
-        try:
-          train_once.summary_train_op = tf.summary.merge_all(key=melt.MonitorKeys.TRAIN)
-          train_once.summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
-        except Exception:
-          train_once.summary_train_op = tf.merge_all_summaries(key=melt.MonitorKeys.TRAIN)
-          train_once.summary_writer = tf.train.SummaryWriter(log_dir, sess.graph)
+        train_once.summary_train_op = tf.summary.merge_all(key=melt.MonitorKeys.TRAIN)
+        train_once.summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
 
         tf.contrib.tensorboard.plugins.projector.visualize_embeddings(train_once.summary_writer, projector_config)
 
@@ -232,12 +222,19 @@ def train_once(sess,
         #get train loss, for every batch train
         if train_once.summary_op is not None:
           #timer2 = gezi.Timer('sess run')
-          summary_str = sess.run(train_once.summary_op, feed_dict=feed_dict)
+          try:
+            summary_str = sess.run(train_once.summary_op, feed_dict=feed_dict)
+          except Exception:
+            summary_str = ''
           #timer2.print()
           train_once.summary_writer.add_summary(summary_str, step)
       else:
         #get eval loss for every batch eval, then add train loss for eval step average loss
-        summary_str = sess.run(train_once.summary_op, feed_dict=eval_feed_dict) if train_once.summary_op is not None else ''
+        try:
+          summary_str = sess.run(train_once.summary_op, feed_dict=eval_feed_dict) if train_once.summary_op is not None else ''
+        except Exception:
+          print('warning!, summary_str = sess.run(train_once.summary_op, feed_dict=eval_feed_dict) fail')
+          summary_str = ''
         #all single value results will be add to summary here not using tf.scalar_summary..
         summary.ParseFromString(summary_str)
         melt.add_summarys(summary, eval_results, eval_names_, suffix='eval')

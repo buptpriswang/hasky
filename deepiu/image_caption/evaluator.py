@@ -18,6 +18,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('valid_resource_dir', '/home/gezi/temp/image-caption/flickr/seq-with-unk/valid/', '')
 flags.DEFINE_string('image_url_prefix', 'D:\\data\\\image-caption\\flickr\\imgs\\', 'http://b.hiphotos.baidu.com/tuba/pic/item/')
+flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images/', 'input images dir')
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
 flags.DEFINE_string('img2text', '', '')
@@ -89,6 +90,14 @@ def init():
     else:
       all_distinct_text_strs = []
 
+    if not FLAGS.pre_calc_image_feature:
+      global image_process_op
+      image_process_op = gen_image_process_op()
+      inception_variables = tf.get_collection(
+        tf.GraphKeys.GLOBAL_VARIABLES, scope="InceptionV3")
+      saver = tf.train.Saver(inception_variables)
+      saver.restore(melt.get_session(), FLAGS.inception_checkpoint_file)
+
 
 def init_labels():
   """
@@ -149,6 +158,11 @@ def get_label(img):
   image_labels = get_image_labels()
   return list(image_labels[img])[0]
 
+def read_image(image_path):
+  with tf.gfile.FastGFile(image_path, "r") as f:
+    encoded_image = f.read()
+  return encoded_image
+
 def get_image_names_and_features():
   global image_names, image_features
   if image_names is None:
@@ -159,7 +173,12 @@ def get_image_names_and_features():
     else:
       lines = open(FLAGS.image_feature_file).readlines()
       image_names = np.array([line.split('\t')[0] for line in lines])
-      image_features = np.array([[float(x) for x in line.split('\t')[1: 1 + IMAGE_FEATURE_LEN]] for line in lines])
+      if FLAGS.pre_calc_image_feature:
+        image_features = np.array([[float(x) for x in line.split('\t')[1: 1 + IMAGE_FEATURE_LEN]] for line in lines])
+      else:
+        #image_features = np.array([read_image(FLAGS.image_dir + '/' + img) for img in image_names])
+        image_features = [read_image(FLAGS.image_dir + '/' + img) for img in image_names]
+        image_features = np.array(image_features)
     timer.print()
   return image_names, image_features
 
@@ -310,10 +329,32 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
 
 score_op = None
 
+
+image_process_fn = None
+
+#TODO FIXME why in train_once.py when sess.run summary.op still need feed this ? eval op!
+image_feature_place =  tf.placeholder(tf.string, [None,], name='image_feature_str')
+
+def gen_image_process_op():
+  #image_process_fn = melt.image.create_images_processing_fn(FLAGS.height, FLAGS.width)
+  #TODO where is flags?
+  image_process_fn = melt.image.create_images_processing_fn(299, 299)
+  image_feature = image_process_fn(image_feature_place)
+  return image_feature
+
+image_process_op = None
+
+def process_image_feature(image_feature):
+  sess = melt.get_session()
+  return sess.run(image_process_op, {image_feature_place: image_feature})
+
+
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   #score = predictor.bulk_predict(img_features, all_distinct_texts[:FLAGS.max_texts])
   # TODO gpu outofmem predict for showandtell
+  if not FLAGS.pre_calc_image_feature:
+    img_features = process_image_feature(img_features)
   score = predictor.bulk_predict(img_features, all_distinct_texts)
   timer.print()
 

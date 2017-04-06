@@ -72,6 +72,7 @@ def process_image(encoded_image,
                   width,
                   resize_height=346,
                   resize_width=346,
+                  distort=True,
                   image_format="jpeg"):
   """Decode an image, resize and apply random distortions.
 
@@ -96,9 +97,8 @@ def process_image(encoded_image,
   """
   # Helper function to log an image summary to the visualizer. Summaries are
   # only logged in thread 0.  TODO summary
-  #def image_summary(name, image):
-  #  if not thread_id:
-  #    tf.summary.image(name, tf.expand_dims(image, 0))
+  def image_summary(name, image):
+    tf.summary.image(name, tf.expand_dims(image, 0))
 
   # Decode image into a float32 Tensor of shape [?, ?, 3] with values in [0, 1).
   with tf.name_scope("decode", values=[encoded_image]):
@@ -130,7 +130,7 @@ def process_image(encoded_image,
   #image_summary("resized_image", image)
 
   # Randomly distort the image.
-  if is_training:
+  if is_training and distort:
     image = distort_image(image)
   
   #image_summary("final_image", image)
@@ -139,3 +139,24 @@ def process_image(encoded_image,
   image = tf.subtract(image, 0.5)
   image = tf.multiply(image, 2.0)
   return image
+
+
+import melt
+def create_images_processing_fn(height, width, is_training=False, reuse=None):
+  #TODO maybe licke attention_decoder_fn.py scope outside construct_fn can solve run/ scope problem
+  def construct_fn(image_feature):
+    image_feature = tf.map_fn(lambda img: melt.image.process_image(img,
+                                                                   is_training=False,
+                                                                   height=height, 
+                                                                   width=width), 
+                              image_feature,
+                              dtype=tf.float32)
+
+    image_feature = melt.image.inception_v3(
+      image_feature,
+      trainable=False,
+      is_training=False,
+      reuse=reuse)
+    return image_feature
+
+  return construct_fn

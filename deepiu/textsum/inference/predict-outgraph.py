@@ -108,17 +108,18 @@ def main(_):
 
   predictor.load(FLAGS.model_dir) 
 
-  predict(predictor, "湿膜加湿器")
-  predict(predictor, "迪丽热巴和张彬彬的《丽姬传》剧照养眼，网友吐槽：要不是因为是这两位早就喷一脸！")
-  predict(predictor, "美女佟丽娅")
-  predict(predictor, "宝宝太胖怎么办呢")
-  predict(predictor, "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网")
-  predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
+  #predict(predictor, "湿膜加湿器")
+  #predict(predictor, "迪丽热巴和张彬彬的《丽姬传》剧照养眼，网友吐槽：要不是因为是这两位早就喷一脸！")
+  #predict(predictor, "美女佟丽娅")
+  #predict(predictor, "宝宝太胖怎么办呢")
+  #predict(predictor, "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网")
+  #predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
 
-  text = raw_input('')
-  predict(predictor, text)
+  while True:
+    text = raw_input('')
+    if text.startswith('quit'):
+      break
+    predict(predictor, text)
   
-
-
 if __name__ == '__main__':
   tf.app.run()

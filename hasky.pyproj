@@ -265,6 +265,10 @@
     <Compile Include="util\melt\flow\train_once.py" />
     <Compile Include="util\melt\flow\train_tfrecord.py" />
     <Compile Include="util\melt\flow\__init__.py" />
+    <Compile Include="util\melt\image\image_decoder.py" />
+    <Compile Include="util\melt\image\image_embedding.py" />
+    <Compile Include="util\melt\image\image_processing.py" />
+    <Compile Include="util\melt\image\__init__.py" />
     <Compile Include="util\melt\inference\predictor.py" />
     <Compile Include="util\melt\inference\predictor_base.py" />
     <Compile Include="util\melt\inference\__init__.py" />
@@ -401,6 +405,7 @@
     <Folder Include="util\melt" />
     <Folder Include="util\melt\apps\" />
     <Folder Include="util\melt\flow\" />
+    <Folder Include="util\melt\image\" />
     <Folder Include="util\melt\inference\" />
     <Folder Include="util\melt\layers\" />
     <Folder Include="util\melt\losses" />

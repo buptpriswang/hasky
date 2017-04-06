@@ -15,6 +15,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 
+flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images', 'input images dir')
 flags.DEFINE_string('image_feature', '/home/gezi/data/image-auto-comment/train/img2fea.txt', 'input image feature file')
 flags.DEFINE_string('text', '/home/gezi/data/image-auto-comment/train/results_20130124.token', 'input image text file')
 flags.DEFINE_string('vocab', '/tmp/train.comment/vocab.bin', 'vocabulary binary file')
@@ -81,6 +82,8 @@ text_strs_dict = manager.dict()
 gtexts = [[]] * FLAGS.threads
 gtext_strs = [[]] * FLAGS.threads
 
+decoder = melt.image.ImageDecoder()
+
 #--------- same text for the same image will treat as only 1
 def parse_text_file(text_file):
   num_lines = gezi.get_num_lines(text_file)
@@ -115,6 +118,19 @@ def _parse_line(line, writer, thread_index = 0):
     print('image %s ignore'%image_name)
     return
   else:
+    image_path =  FLAGS.image_dir + '/' + image_name
+    print(image_path)
+    with tf.gfile.FastGFile(image_path, "r") as f:
+      encoded_image = f.read()
+
+    #---------below will hang if multi process
+    #try:
+    #  decoder.decode_jpeg(encoded_image)
+    #except (tf.errors.InvalidArgumentError, AssertionError):
+    #  print("Skipping file with invalid JPEG data: %s" % image_path)
+    #  return
+
+      
     for text, ori_text in text_map[image_name]:
       word_ids = [vocabulary.id(word) for word in text.split(WORDS_SEP) if vocabulary.has(word) or ENCODE_UNK]
       if not word_ids:
@@ -123,18 +139,20 @@ def _parse_line(line, writer, thread_index = 0):
       word_ids = word_ids[:TEXT_MAX_WORDS]
       if FLAGS.pad:
         word_ids = gezi.pad(word_ids, TEXT_MAX_WORDS)
-     
-      if FLAGS.np_save:
-        gtexts[thread_index].append(word_ids)
-        gtext_strs[thread_index].append(ori_text)
- 
+
       example = tf.train.Example(features=tf.train.Features(feature={
         'image_name': melt.bytes_feature(image_name),
+        'image_data': melt.bytes_feature(encoded_image),
         'image_feature': melt.float_feature(image_feature),
         'text': melt.int_feature(word_ids),
         'text_str': melt.bytes_feature(ori_text),
         }))
-      
+     
+      if FLAGS.np_save:
+        gtexts[thread_index].append(word_ids)
+        gtext_strs[thread_index].append(ori_text)
+
+
       #NOTICE not test here for num_threads > 1
       if FLAGS.num_records:
         if image_name not in images:

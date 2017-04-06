@@ -107,6 +107,8 @@ def inception_v3(images,
               scope="dropout")
           net = slim.flatten(net, scope="flatten")
 
+    #--TODO why not in effect?
+    #scope.reuse_variables()
   # Add summaries.
   if add_summaries:
     for v in end_points.values():
