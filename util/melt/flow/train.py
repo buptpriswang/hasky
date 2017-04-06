@@ -108,6 +108,7 @@ def train_flow(ops,
                restore_from_latest=True,
                metric_eval_function=None,
                metric_eval_interval_steps=0,
+               summary_excls=None,
                init_fn=None,
                sess=None):
   """
@@ -190,7 +191,8 @@ def train_flow(ops,
                is_start, 
                num_steps_per_epoch,
                metric_eval_function=metric_eval_function,
-               metric_eval_interval_steps=metric_eval_interval_steps)
+               metric_eval_interval_steps=metric_eval_interval_steps,
+               summary_excls=summary_excls)
   
   tf_train_flow(train_once_, 
                 model_dir, 

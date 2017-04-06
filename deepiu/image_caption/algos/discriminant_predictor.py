@@ -7,6 +7,10 @@
 #   \Description  
 # ==============================================================================
 
+"""
+TODO
+place shold be feed
+"""
   
 from __future__ import absolute_import
 from __future__ import division
@@ -16,6 +20,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+import functools
 import numpy as np
 
 import gezi
@@ -32,11 +37,11 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     DiscriminantTrainer.__init__(self, is_training=False, is_predict=True)
 
     self.text = None
-    self.text_place = None
-    self.text2_place = None
+    self.text_feed = None
+    self.text2_feed = None
 
     self.image_feature = None
-    self.image_feature_place = None
+    self.image_feature_feed = None
 
     #input image feature, text ids
     self.score = None
@@ -46,13 +51,12 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     #input image feature, assume text final feature already load
     self.fixed_text_feature_score = None
 
+    #TODO should be flags?
     if FLAGS.pre_calc_image_feature:
       self.image_feature_len = IMAGE_FEATURE_LEN 
     else:
       self.image_feature_len = 2048 #inception v3
-      #use create function to avoid scope problem run/...
-      #self.image_process_fn = melt.image.create_images_processing_fn(FLAGS.image_height, FLAGS.image_width)
-  
+
   def init_predict(self, text_max_words=TEXT_MAX_WORDS):
     self.score = self.build_predict_graph(text_max_words)
     tf.get_variable_scope().reuse_variables()
@@ -61,8 +65,9 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
 
   def predict(self, image, text):
     feed_dict = {
-      self.image_feature_place: image.reshape([1, self.image_feature_len]),
-      self.text_place: text.reshape([1, TEXT_MAX_WORDS])
+      #self.image_feature_feed: image.reshape([1, self.image_feature_len]),
+      self.image_feature_feed: image,
+      self.text_feed: text.reshape([1, TEXT_MAX_WORDS])
       }
     score = self.sess.run(self.score, feed_dict)
     return score[0][0]
@@ -73,16 +78,16 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     outut [m, n], for each image output n scores for each text  
     """
     feed_dict = {
-      self.image_feature_place: images,
-      self.text_place: texts
+      self.image_feature_feed: images,
+      self.text_feed: texts
       }
     score = self.sess.run(self.score, feed_dict)
     return score
 
   def predict_textsim(self, text, text2):
     feed_dict = {
-      self.text_place: text.reshape([1, TEXT_MAX_WORDS]),
-      self.text2_place: text.reshape([1, TEXT_MAX_WORDS])
+      self.text_feed: text.reshape([1, TEXT_MAX_WORDS]),
+      self.text2_feed: text.reshape([1, TEXT_MAX_WORDS])
       }
     score = self.sess.run(self.textsim_score, feed_dict)
     return score[0][0]
@@ -93,24 +98,24 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     outut [m, n], for each image output n scores for each text  
     """
     feed_dict = {
-      self.text_place: texts,
-      self.text2_place: texts2
+      self.text_feed: texts,
+      self.text2_feed: texts2
       }
     score = self.sess.run(self.textsim_score, feed_dict)
     return score
   
-  def get_image_feature_place(self):
-   if self.image_feature_place is None:
-     #if FLAGS.pre_calc_image_feature:
-     self.image_feature_place = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
-     #else:
-     #  self.image_feature_place =  tf.placeholder(tf.string, [None,], name='image_feature')
-   return self.image_feature_place
+  def get_image_feature_feed(self):
+   if self.image_feature_feed is None:
+     if FLAGS.pre_calc_image_feature:
+      self.image_feature_feed = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
+     else:
+      self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
+   return self.image_feature_feed
 
-  def get_text_place(self, text_max_words=TEXT_MAX_WORDS):
-    if self.text_place is None:
-      self.text_place = tf.placeholder(tf.int32, [None, text_max_words], name='text')
-    return self.text_place
+  def get_text_feed(self, text_max_words=TEXT_MAX_WORDS):
+    if self.text_feed is None:
+      self.text_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text')
+    return self.text_feed
 
   def bulk_fixed_text_predict(self, images):
     """
@@ -118,15 +123,15 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     """
     if self.fixed_text_score is None:
       assert self.text is not None, 'call init_evaluate_constant at first'
-      self.fixed_text_score = self.build_evaluate_fixed_text_graph(self.get_image_feature_place())
-    return self.sess.run(self.fixed_text_score, feed_dict={self.image_feature_place: images})
+      self.fixed_text_score = self.build_evaluate_fixed_text_graph(self.get_image_feature_feed())
+    return self.sess.run(self.fixed_text_score, feed_dict={self.image_feature_feed: images})
 
   def bulk_fixed_text_feature_predict(self, images):
     """
     this will be fast
     """
     assert self.fixed_text_feature_score is not None, 'call build_fixed_text_feature_graph(self, text_feature_npy) at first'
-    return self.sess.run(self.fixed_text_feature_score, feed_dict={self.image_feature_place: images})
+    return self.sess.run(self.fixed_text_feature_score, feed_dict={self.image_feature_feed: images})
 
   def build_graph(self, image_feature, text):
     with tf.variable_scope("image_text_sim"):
@@ -144,16 +149,12 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       return score
 
   def build_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
-    image_feature = self.get_image_feature_place()
-    #---below still face scope problem run/InceptionV3
-    #if not FLAGS.pre_calc_image_feature:
-    #  image_feature = self.image_process_fn(image_feature)
-    score = self.build_graph(image_feature, self.get_text_place(text_max_words))
+    score = self.build_graph(self.get_image_feature_feed(), self.get_text_feed(text_max_words))
     return score
 
   def build_textsim_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
-    self.text2_place = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
-    score = self.build_textsim_graph(self.get_text_place(text_max_words), self.text2_place)
+    self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
+    score = self.build_textsim_graph(self.get_text_feed(text_max_words), self.text2_feed)
     return score
 
   def build_fixed_text_feature_graph(self, text_feature_npy): 
@@ -163,14 +164,14 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     @FIXME dump text feature should change api
     """
     with tf.variable_scope("image_text_sim"):
-      image_feature = self.forward_image_feature(self.image_feature_place)
+      image_feature = self.forward_image_feature(self.image_feature_feed)
       text_feature = melt.load_constant(self.sess, text_feature_npy)
       score = melt.cosine(image_feature, text_feature, nonorm=True)
       return score
 
   #def build_fixed_text_graph(self, text_npy): 
   #  self.init_evaluate_constant(text_npy)
-  #  score = self.build_evaluate_fixed_image_text_graph(self.get_image_feature_place())
+  #  score = self.build_evaluate_fixed_image_text_graph(self.get_image_feature_feed())
   #  return score
 
   def build_fixed_text_graph(self, text_npy): 

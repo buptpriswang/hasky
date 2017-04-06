@@ -24,7 +24,6 @@ python ./train.py \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 3 \
   --num_evaluate_examples 1 \
-  --save_interval_seconds 600 \
   --save_interval_steps 1000 \
   --num_negs 1 \
   --debug 0 \

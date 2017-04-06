@@ -25,6 +25,20 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+def read_image(image_path):
+  with tf.gfile.FastGFile(image_path, "r") as f:
+    encoded_image = f.read()
+  return encoded_image
+
+def create_image_model_init_fn(image_model_name, image_checkpoint_file):
+  inception_variables = tf.get_collection(
+    tf.GraphKeys.GLOBAL_VARIABLES, scope=image_model_name)
+  saver = tf.train.Saver(inception_variables)
+  def restore_fn(sess):
+    tf.logging.info("Restoring image variables from checkpoint file %s",
+                        image_checkpoint_file)
+    saver.restore(sess, image_checkpoint_file)
+  return restore_fn
 
 def distort_image(image):
   """Perform random distortions on an image.
@@ -142,21 +156,73 @@ def process_image(encoded_image,
 
 
 import melt
-def create_images_processing_fn(height, width, is_training=False, reuse=None):
-  #TODO maybe licke attention_decoder_fn.py scope outside construct_fn can solve run/ scope problem
-  def construct_fn(image_feature):
-    image_feature = tf.map_fn(lambda img: melt.image.process_image(img,
-                                                                   is_training=False,
-                                                                   height=height, 
-                                                                   width=width), 
-                              image_feature,
-                              dtype=tf.float32)
 
-    image_feature = melt.image.inception_v3(
-      image_feature,
-      trainable=False,
-      is_training=False,
-      reuse=reuse)
-    return image_feature
+#----------mainly for escape scope TODO is there bette method exists?
+#TODO allow using other models like vgg
+def create_image2feature_fn(name='InceptionV3'):
+  #NOTICE how this method solve run/ scope problem, scope must before def
+  with tf.variable_scope(name) as scope:
+    def construct_fn(image_feature, 
+                     height, 
+                     width, 
+                     is_training=False,
+                     resize_height=346,
+                     resize_width=346,
+                     distort=True,
+                     image_format="jpeg",
+                     reuse=None):
+      image_feature = tf.map_fn(lambda img: process_image(img,
+                                                          is_training=False,
+                                                          height=height, 
+                                                          width=width,
+                                                          resize_height=resize_height,
+                                                          resize_width=resize_width,
+                                                          distort=distort,
+                                                          image_format=image_format), 
+                                image_feature,
+                                dtype=tf.float32)
 
-  return construct_fn
+      image_feature = melt.image.image_embedding.inception_v3(
+        image_feature,
+        trainable=False,
+        is_training=False,
+        reuse=reuse,
+        scope=scope)
+
+      #if not set this eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text) will fail
+      #but still need to set reuse for melt.image.image_embedding.inception_v3... confused.., anyway now works..
+      #with out reuse=True score = predictor.init_predict() will fail, resue_variables not work for it..
+      #trainer create function once use it second time(same function) work here(with scope.reuse_variables)
+      #predictor create another function, though seem same name same scope, but you need to set reuse=True again!
+      #even if use tf.make_template still need this..
+      scope.reuse_variables()
+      return image_feature
+
+    return construct_fn
+
+
+#TODO... not in affect... Still not very clear with make_template and create_scope_now_ (google/seq2seq set this True, default is False)
+# it is like above useing scope.reuse_variables() right after.. I suppose
+
+"""
+#encode_fn = SomeEncoderModule(...)
+
+## New variables are created in this call.
+#output1 = encode_fn(input1)
+
+## No new variables are created here. The variables from the above call are re-used.
+## Note how this is different from normal TensorFlow where you would need to use variable scopes.
+#output2 = encode_fn(input2)
+
+## Because this is a new instance a second set of variables is created.
+#encode_fn2 = SomeEncoderModule(...)
+#output3 = encode_fn2(input3)
+"""
+
+#this will be safe as build graph as root scope but has problem always building using image_processing?
+#from textsum seems not affected, will not create graph if you not use this function
+#_image2feature_fn = create_image2feature_fn()
+#make this function to be resued/share without manully set scope reuse
+#image2feature_fn = tf.make_template('image2feature', _image2feature_fn, create_scope_now_=True)
+#image2feature_fn = tf.make_template('image2feature', _image2feature_fn, create_scope_now_=False)
+image2feature_fn =  create_image2feature_fn()

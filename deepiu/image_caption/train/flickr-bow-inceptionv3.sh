@@ -3,7 +3,7 @@ source ./prepare/bow/flickr/config
 
 #dir=/home/gezi/temp.local/image-caption/ 
 dir=/home/gezi/temp/image-caption/ 
-model_dir=$dir/model.flickr.bow.inceptionv3 
+model_dir=$dir/model.flickr.bow.inceptionv3
 mkdir -p $model_dir
 
 python ./train.py \
@@ -18,8 +18,6 @@ python ./train.py \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 3 \
   --num_evaluate_examples 10 \
-  --metric_eval_batch_size 250 \
-  --save_interval_seconds 600 \
   --save_interval_steps 1000 \
   --num_negs 1 \
   --debug 0 \
@@ -33,8 +31,10 @@ python ./train.py \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
-  --add_global_scope 0 \
+  --gen_predict 1 \
   --pre_calc_image_feature 0 \
+  --metric_eval_batch_size 250 \
+  --distort_image 0 \
   --restore_from_latest 1 \
   --train_only 0 \
   --show_eval 1 \

@@ -450,9 +450,18 @@ def get_summary_ops():
   return ops.get_collection(ops.GraphKeys.SUMMARIES)
 
 def print_summary_ops():
+  print('summary ops:')
   sops = ops.get_collection(ops.GraphKeys.SUMMARIES)
   for sop in sops:
-    print(sop.op.name, sop)
+    print(sop)
+
+def print_global_varaiables(sope=None):
+  for item in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+    print(item)
+
+def print_varaiables(key, sope=None):
+  for item in tf.get_collection(key):
+    print(item)
 
 def get_global_int(key):
   if key not in os.environ:

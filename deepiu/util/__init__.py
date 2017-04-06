@@ -16,4 +16,5 @@ import tensorflow as tf
   
 import deepiu.util.vocabulary 
 import deepiu.util.text2ids 
-import deepiu.util.input_flags
+import deepiu.util.input_flags 
+import deepiu.util.algos_factory

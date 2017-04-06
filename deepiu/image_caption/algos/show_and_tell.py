@@ -37,6 +37,8 @@ FLAGS = flags.FLAGS
 flags.DEFINE_boolean('use_neg', False, 'use neg means using hinge loss(rank nce)')
 flags.DEFINE_boolean('show_neg', False, 'show neg means show neg score')
 
+import functools
+
 import melt
 logging = melt.logging
 from deepiu.image_caption import conf 
@@ -56,6 +58,8 @@ class ShowAndTell(object):
   """
   def __init__(self, is_training=True, is_predict=False):
     super(ShowAndTell, self).__init__()
+
+    assert FLAGS.add_text_start is False
 
     #---------should be show_and_tell/model_init_1
     #print('ShowAndTell init:', tf.get_variable_scope().name)
@@ -91,7 +95,9 @@ class ShowAndTell(object):
         minval=-FLAGS.initializer_scale,
         maxval=FLAGS.initializer_scale)
 
-    assert FLAGS.add_text_start is False
+    self.image_process_fn = functools.partial(melt.image.image2feature_fn,
+                                              height=FLAGS.image_height, 
+                                              width=FLAGS.image_width)
 
   def feed_ops(self):
     """
@@ -108,6 +114,8 @@ class ShowAndTell(object):
     """
     Builds the image model subgraph and generates image embeddings.
     """
+    if not FLAGS.pre_calc_image_feature:
+      image_feature = self.image_process_fn(image_feature)
     with tf.variable_scope("image_embedding") as scope:
       image_embeddings = tf.contrib.layers.fully_connected(
           inputs=image_feature,

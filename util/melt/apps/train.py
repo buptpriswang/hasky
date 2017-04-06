@@ -114,6 +114,7 @@ def train_flow(ops,
                model_dir=None, 
                metric_eval_function=None, 
                debug=False,
+               summary_excls=None,
                init_fn=None,
                sess=None):
 
@@ -221,5 +222,6 @@ def train_flow(ops,
              metric_eval_function=metric_eval_function,
              metric_eval_interval_steps=metric_eval_interval_steps,
              no_log=FLAGS.no_log,
+             summary_excls=summary_excls,
              init_fn=init_fn,
              sess=sess)

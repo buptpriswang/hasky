@@ -89,11 +89,17 @@ def _gen_builder(algo, is_predict=True):
 def gen_predictor(algo, reuse=None):
   with tf.variable_scope("model_init", reuse=reuse):
     predictor = _gen_builder(algo, is_predict=True)
+  if getattr(predictor, 'init', None) is not None:
+    predictor.init(reuse=reuse)
   return predictor
   
 def gen_tranier(algo, reuse=None):
   with tf.variable_scope("model_init", reuse=reuse):
     trainer = _gen_builder(algo, is_predict=False)
+  #sepcial, used using inceptionV3 to avoid model_init scope outside
+  if getattr(trainer, 'init', None) is not None:
+    trainer.init(reuse=reuse)
+
   return trainer
 
 def gen_trainer_and_predictor(algo):

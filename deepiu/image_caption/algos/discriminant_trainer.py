@@ -26,6 +26,8 @@ flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can spee
 flags.DEFINE_string('rank_loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
 
   
+import functools
+
 import tensorflow.contrib.slim as slim
 import melt
 import melt.slim 
@@ -64,7 +66,15 @@ class DiscriminantTrainer(object):
     self.weights_initializer = tf.random_uniform_initializer(-FLAGS.initializer_scale, FLAGS.initializer_scale)
     self.biases_initialzier = melt.slim.init_ops.zeros_initializer if FLAGS.bias else None
 
+    self.image_process_fn = functools.partial(melt.image.image2feature_fn,
+                                              #name=FLAGS.image_model_name, 
+                                              height=FLAGS.image_height, 
+                                              width=FLAGS.image_width)
+
   def forward_image_layers(self, image_feature):
+    if not FLAGS.pre_calc_image_feature:
+      image_feature = self.image_process_fn(image_feature)
+
     dims = [FLAGS.hidden_size, FLAGS.hidden_size]
     return melt.slim.mlp(image_feature, 
                          dims, 

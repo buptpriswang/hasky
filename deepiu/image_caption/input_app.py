@@ -43,7 +43,10 @@ def text_placeholder(name):
   return tf.placeholder(tf.int64, [None, TEXT_MAX_WORDS], name=name) 
 
 def image_feature_placeholder(name):
-  return tf.placeholder(tf.float32, [None, IMAGE_FEATURE_LEN], name=name) 
+  if FLAGS.pre_calc_image_feature:
+    return tf.placeholder(tf.float32, [None, IMAGE_FEATURE_LEN], name=name) 
+  else:
+    return tf.placeholder(tf.string, [None,], name=name)
 
 def image_name_placeholder(name):
   return tf.placeholder(tf.string, None, name=name)

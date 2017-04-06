@@ -285,7 +285,7 @@ def train_process(trainer, predictor=None):
   input_app = InputApp.InputApp()
   input_results = input_app.gen_input()
 
-  with tf.variable_scope('run') as scope:
+  with tf.variable_scope(FLAGS.main_scope) as scope:
     ops, gen_feed_dict, deal_results = gen_train(
      input_app, 
      input_results, 
@@ -295,7 +295,7 @@ def train_process(trainer, predictor=None):
 
     #saving predict graph, so later can direclty predict without building from scratch
     #also used in gen validate if you want to use direclty predict as evaluate per epoch
-    if predictor is not None:
+    if predictor is not None and FLAGS.gen_predict:
      gen_predict_graph(predictor)
 
     eval_ops, gen_eval_feed_dict, deal_eval_results = gen_validate(
@@ -310,19 +310,19 @@ def train_process(trainer, predictor=None):
       if not algos_factory.is_generative(FLAGS.algo): 
         metric_eval_function = lambda: evaluator.evaluate_scores(predictor, random=True)
 
-  init_fn = None 
+  init_fn = None
+  summary_excls = None
   if not FLAGS.pre_calc_image_feature:
-    #TODO scope problem show_and_tell, now add_global_scope set 0
-    inception_variables = tf.get_collection(
-        tf.GraphKeys.GLOBAL_VARIABLES, scope="InceptionV3")
-    
-    saver = tf.train.Saver(inception_variables)
-    def restore_fn(sess):
-      tf.logging.info("Restoring Inception variables from checkpoint file %s",
-                        FLAGS.inception_checkpoint_file)
-      saver.restore(sess, FLAGS.inception_checkpoint_file)
-    init_fn = restore_fn
+    init_fn = melt.image.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
 
+    if predictor is not None and FLAGS.gen_predict:
+      #need to excl InceptionV3 summarys why inceptionV3 op might need image_feature_feed if gen_predict
+      #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: [melt.image.read_image(FLAGS.one_image)]}
+      #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: ['']}
+      summary_excls = [FLAGS.image_model_name]
+
+
+  melt.print_global_varaiables()
   melt.apps.train_flow(ops, 
                        gen_feed_dict=gen_feed_dict,
                        deal_results=deal_results,
@@ -334,6 +334,7 @@ def train_process(trainer, predictor=None):
                        num_steps_per_epoch=input_app.num_steps_per_epoch,
                        model_dir=FLAGS.model_dir,
                        metric_eval_function=metric_eval_function,
+                       summary_excls=summary_excls,
                        init_fn=init_fn,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
   
@@ -354,13 +355,13 @@ def main(_):
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))
-  
+   
+  global sess
+  sess = melt.get_session(log_device_placement=FLAGS.log_device_placement)
+
   global_scope = ''
   if FLAGS.add_global_scope:
     global_scope = FLAGS.global_scope if FLAGS.global_scope else FLAGS.algo
- 
-  global sess
-  sess = melt.get_session(log_device_placement=FLAGS.log_device_placement)
   with tf.variable_scope(global_scope):
     train()
  

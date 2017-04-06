@@ -37,7 +37,7 @@ def inception_v3(images,
                  batch_norm_params=None,
                  add_summaries=True,
                  reuse=None,
-                 scope="InceptionV3"):
+                 scope=None):
   """Builds an Inception V3 subgraph for image embeddings.
 
   Args:

@@ -1,8 +1,9 @@
-cp ./prepare/seq-with-unk/flickr/conf.py conf.py
-source ./prepare/seq-with-unk/flickr/config 
+cp ./prepare/bow/flickr/conf.py conf.py
+source ./prepare/bow/flickr/config 
 
+#dir=/home/gezi/temp.local/image-caption/ 
 dir=/home/gezi/temp/image-caption/ 
-model_dir=$dir/model.flickr.showandtell.inceptionv3
+model_dir=$dir/model.flickr.bow.inceptionv3.distort
 mkdir -p $model_dir
 
 python ./train.py \
@@ -13,33 +14,31 @@ python ./train.py \
 	--vocab=$train_output_path/vocab.bin \
   --num_records_file=$train_output_path/num_records.txt \
   --image_url_prefix='D:\data\image-text-sim\flickr\imgs\' \
-  --model_dir $model_dir \
-  --show_eval 1 \
+  --batch_size 16 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 3 \
   --num_evaluate_examples 10 \
-  --keep_interval 0.5 \
-  --monitor_level 2 \
-  --num_negs 0 \
-  --use_neg 0 \
+  --save_interval_steps 1000 \
+  --num_negs 1 \
   --debug 0 \
-  --feed_dict 0 \
-  --algo show_and_tell \
-  --gen_predict 1 \
+  --algo bow \
   --interval 100 \
-  --eval_interval 1000\
+  --eval_interval_steps 1000 \
+  --margin 0.5 \
+  --feed_dict 0 \
   --seg_method en \
   --feed_single 0 \
-  --seq_decode_method 0 \
+  --combiner=sum \
+  --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
   --pre_calc_image_feature 0 \
-  --length_normalization_factor 1.0 \
-  --shuffle_then_decode 1 \
-  --margin 0.5 \
-  --learning_rate 0.01 \
-  --batch_size 16 \
-  --num_layers 1 \
-  --keep_prob 1 \
-  --num_sampled 0 \ 
-  --log_uniform_sample 1 \
-
+  --metric_eval_batch_size 250 \
+  --distort_image 1 \
+  --restore_from_latest 1 \
+  --train_only 0 \
+  --show_eval 1 \
+  --metric_eval 0 \
+  --metric_eval_interval_steps 1000 \
+  --model_dir=$model_dir \
+  --num_gpus 0 \
+  --log_device 0 \

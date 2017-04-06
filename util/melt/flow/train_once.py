@@ -46,7 +46,8 @@ def train_once(sess,
                is_start=False,
                num_steps_per_epoch=None,
                metric_eval_function=None,
-               metric_eval_interval_steps=0):
+               metric_eval_interval_steps=0,
+               summary_excls=None):
 
   timer = gezi.Timer()
   if print_time:
@@ -203,8 +204,20 @@ def train_once(sess,
 
     if log_dir:
       if not hasattr(train_once, 'summary_op'):
-        train_once.summary_op = tf.summary.merge_all()
-        #melt.print_summary_ops()
+        melt.print_summary_ops()
+        if summary_excls is None:
+          train_once.summary_op = tf.summary.merge_all()
+        else:
+          summary_ops = []
+          for op in tf.get_collection(tf.GraphKeys.SUMMARIES):
+            for summary_excl in summary_excls:
+              if not summary_excl in op.name:
+                summary_ops.append(op)
+          print('filtered summary_ops:')
+          for op in summary_ops:
+            print(op)
+          train_once.summary_op = tf.summary.merge(summary_ops)
+        
 
         train_once.summary_train_op = tf.summary.merge_all(key=melt.MonitorKeys.TRAIN)
         train_once.summary_writer = tf.summary.FileWriter(log_dir, sess.graph)

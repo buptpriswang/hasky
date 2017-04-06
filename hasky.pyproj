@@ -111,6 +111,7 @@
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-generation.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-rerank.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-sim-hit.py" />
+    <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-sim-inceptionv3.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-sim-metagraph.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-sim-multimodel.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-sim.py" />

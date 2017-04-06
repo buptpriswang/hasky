@@ -44,7 +44,6 @@ flags.DEFINE_string('algo', 'seq2seq', 'default algo is bow(cbow), also support 
 flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic.10w/train/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_boolean('debug', False, '')
-flags.DEFINE_boolean('gen_predict', True, '')
 
 import sys, math
 import functools
@@ -229,6 +228,7 @@ def train_process(trainer, predictor=None):
         metric_eval_function = lambda: evaluator.evaluate_scores(predictor, random=True)
 
   if FLAGS.mode == 'train':
+    melt.print_global_varaiables()
     melt.apps.train_flow(ops, 
                          gen_feed_dict=gen_feed_dict,
                          deal_results=deal_results,
