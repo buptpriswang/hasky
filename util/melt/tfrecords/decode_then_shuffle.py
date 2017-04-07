@@ -18,13 +18,13 @@ import melt
 
 def _read_decode(filename_queue, decode_fn, thread_id=0):
   reader = tf.TFRecordReader()
-  _, serialized_example = reader.read(filename_queue)
+  _, decoded_example = reader.read(filename_queue)
   #TODO better handle? http://stackoverflow.com/questions/218616/getting-method-parameter-names-in-python
   # inspect.getargspec(aMethod)
   try:
-    values = decode_fn(serialized_example)
+    values = decode_fn(decoded_example)
   except Exception:
-    values = decode_fn(serialized_example, thread_id)
+    values = decode_fn(decoded_example, thread_id)
   #---for safe, or decode can make sure this for single value turn to list []
   if not isinstance(values, (list, tuple)):
     values = [values]
@@ -36,17 +36,21 @@ def inputs(files, decode, batch_size=64,
            min_after_dequeue=None, seed=None, 
            fix_random=False, no_random=False, fix_sequence=False,
            allow_smaller_final_batch=False, 
-           num_prefetch_batches=None, name='input'):
+           num_prefetch_batches=None, 
+           dynamic_pad=False,
+           bucket_boundaries=None,
+           length_index=None,
+           name='input'):
   """Reads input data num_epochs times.
   for sparse input here will do:
-  1. read decode serialized_example
+  1. read decode decoded_example
   2. shuffle decoded values
   3. return batch decoded values
   Args:
   decode: user defined decode #TODO should be decode_fn
   #---decode example
   # features = tf.parse_single_example(
-  #     serialized_example,
+  #     decoded_example,
   #     features={
   #         'feature': tf.FixedLenFeature([], tf.string),
   #         'name': tf.FixedLenFeature([], tf.string),
@@ -100,6 +104,12 @@ def inputs(files, decode, batch_size=64,
     shuffle_batch = False 
     num_threads = 1
 
+  if dynamic_pad:
+    #use tf.batch
+    batch_join = False
+    shuffle_batch = False
+
+
   #shuffle=True
   #batch_join = True #setting to False can get fixed result
   #seed = 1024
@@ -119,34 +129,55 @@ def inputs(files, decode, batch_size=64,
     #   min_after_dequeue + (num_threads + a small safety margin) * batch_size
     #@TODO cifa10 always use num_prefetch_batches = 3, 3 * batch_size, check which is better
     if not num_prefetch_batches: num_prefetch_batches = num_threads + 3
+
+    capacity = min_after_dequeue + num_prefetch_batches * batch_size
+
     if batch_join:
       batch_list = [_read_decode(filename_queue, decode, thread_id) for thread_id in xrange(num_threads)]
       #print batch_list
       batch = tf.train.shuffle_batch_join(
           batch_list, 
           batch_size=batch_size, 
-          capacity=min_after_dequeue + num_prefetch_batches * batch_size,
+          capacity=capacity,
           min_after_dequeue=min_after_dequeue,
           seed=seed,
-          allow_smaller_final_batch=allow_smaller_final_batch)
+          allow_smaller_final_batch=allow_smaller_final_batch,
+          name='shuffle_batch_join_queue')
     else:
-      serialized_example = _read_decode(filename_queue, decode)
+      decoded_example = list(_read_decode(filename_queue, decode))
       num_threads = 1 if fix_random else num_threads
-      if shuffle_batch:	    
+      if bucket_boundaries:
+        assert length_index, ' you must set length_index for bucket'
+        _, batch = tf.contrib.training.bucket_by_sequence_length(
+              input_length=tf.to_int32(decoded_example[length_index]),
+              bucket_boundaries=bucket_boundaries,
+              tensors=decoded_example,
+              batch_size=batch_size,
+              keep_input=decoded_example[length_index] >= 1,
+              num_threads=num_threads,
+              dynamic_pad=True,
+              capacity=capacity,
+              allow_smaller_final_batch=allow_smaller_final_batch,
+              name="bucket_queue")
+      else:
+        if shuffle_batch:	    
           batch = tf.train.shuffle_batch(	
-             serialized_example,
+             decoded_example,
              batch_size=batch_size, 
              num_threads=num_threads,
-             capacity=min_after_dequeue + num_prefetch_batches * batch_size,
+             capacity=capacity,
              min_after_dequeue=min_after_dequeue,
              seed=seed,
-             allow_smaller_final_batch=allow_smaller_final_batch)
-      else:
+             allow_smaller_final_batch=allow_smaller_final_batch,
+             name='shuffle_batch_queue')
+        else:
           batch = tf.train.batch(
-             serialized_example, 
+             decoded_example, 
              batch_size=batch_size, 
              num_threads=num_threads,
-             capacity=min_after_dequeue + num_prefetch_batches * batch_size,
-             allow_smaller_final_batch=allow_smaller_final_batch)
+             capacity=capacity,
+             allow_smaller_final_batch=allow_smaller_final_batch,
+             dynamic_pad=dynamic_pad,
+             name='batch_queue')
 
     return batch

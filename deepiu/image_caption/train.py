@@ -51,10 +51,9 @@ import melt
 logging = melt.logging
 
 from deepiu.image_caption import input_app as InputApp
-
 from deepiu.image_caption import eval_show
-from deepiu.util import evaluator
 
+from deepiu.util import evaluator
 from deepiu.util import algos_factory
 
 #debug
@@ -347,7 +346,6 @@ def train():
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
-
 
   if not FLAGS.pre_calc_image_feature:
     melt.apps.image_processing.init()

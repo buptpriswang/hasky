@@ -13,6 +13,7 @@ python ./inference/predict-outgraph.py \
   --decode_max_words 10 \
   --rnn_method 0 \
   --emb_dim 1000 \
+  --length_normalization_factor 1 \
   --rnn_hidden_size 1023 \
   --add_text_start 1 \
   --rnn_output_method 3 \

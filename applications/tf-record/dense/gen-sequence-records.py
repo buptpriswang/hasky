@@ -33,7 +33,7 @@ But now only batch support dynamic_pad, batch_join and shuffle_batch not..
 
 @TODO consider tf.nn.sparse_ops.sparse_to_dense
 
-python gen-sequence-records.py /home/gezi/data/urate/train /tmp/urate.train 
+python gen-sequence-records.py /home/gezi/data/urate/train /tmp/urate.train.seq
 """
   
 from __future__ import absolute_import
@@ -45,7 +45,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('num_examples', 1000, 'Batch size.')
+flags.DEFINE_integer('num_examples', 0, '')
 flags.DEFINE_boolean('fake_var_len', True, 'for testing popurse make some examples fake len, to make length unequal')
 
 import melt
@@ -66,24 +66,37 @@ def main(argv):
       id = int(l[0][1:])
     else:
       id = num
+    id = num
     label = int(l[label_index])
     
     start = label_index + 1
-    feature = [float(x) for x in l[start:]]
+    feature = [float(x) + 100 for x in l[start:]]
 
     if FLAGS.fake_var_len:
       if id % 2 == 0:
         feature = feature[:10]
-
       if id % 3 == 0:
         feature = feature[:20]
+      if id % 4 == 0:
+        feature = feature[:30]
+      if id % 5 == 0:
+         feature = feature[:40]
+      if id % 6 == 0:
+         feature = feature[:50]
+      if id % 7 == 0:
+         feature = feature[:60]
+      if id % 8 == 0:
+         feature = feature[:70]
+      if id % 9 == 0:
+         feature = feature[:80]
 
+    #print(id, len(feature))
     example =  tf.train.SequenceExample(
       context=melt.features(
         {
         'id': melt.int_feature(id), 
         'label': melt.int_feature(label),
-        'length': len(feature)
+        'length': melt.int_feature(len(feature))
         }),
       feature_lists=melt.feature_lists(
         { 

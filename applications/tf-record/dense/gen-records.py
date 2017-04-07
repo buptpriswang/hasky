@@ -42,6 +42,7 @@ def main(argv):
       id = int(l[0][1:])
     else:
       id = num
+    id = num
     label = int(l[label_index])
     
     start = label_index + 1

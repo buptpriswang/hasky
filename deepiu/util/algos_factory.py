@@ -53,43 +53,40 @@ def is_discriminant(algo):
 def is_generative(algo):
   return AlgosTypeMap[algo] == AlgosType.generative
 
-def _gen_builder(algo, is_predict=True):
-  """
-  Args:
-  is_predict: set to False if only train, no need for predict/eval
-  """
-  if is_predict:
-    if algo == Algos.bow:
-      return BowPredictor()
-    elif algo == Algos.show_and_tell:
-      return ShowAndTellPredictor()
-    elif algo == Algos.rnn:
-      return RnnPredictor()
-    elif algo == Algos.seq2seq:
-      return Seq2seqPredictor()
-    else:
-      raise ValueError('Unsupported algo %s'%algo) 
+#TODO this is c++ way, use yaxml python way pass BowPredictor.. like this directly
+def _gen_predictor(algo):
+  if algo == Algos.bow:
+    return BowPredictor()
+  elif algo == Algos.show_and_tell:
+    return ShowAndTellPredictor()
+  elif algo == Algos.rnn:
+    return RnnPredictor()
+  elif algo == Algos.seq2seq:
+    return Seq2seqPredictor()
   else:
-    if algo == Algos.bow:
-      return Bow()
-    elif algo == Algos.show_and_tell:
-      return ShowAndTell()
-    elif algo == Algos.rnn:
-      return Rnn()
-    elif algo == Algos.seq2seq:
-      return Seq2seq()
-    else:
-      raise ValueError('Unsupported algo %s'%algo) 
+    raise ValueError('Unsupported algo %s'%algo) 
+
+def _gen_trainer(algo):
+  if algo == Algos.bow:
+    return Bow()
+  elif algo == Algos.show_and_tell:
+    return ShowAndTell()
+  elif algo == Algos.rnn:
+    return Rnn()
+  elif algo == Algos.seq2seq:
+    return Seq2seq()
+  else:
+    raise ValueError('Unsupported algo %s'%algo) 
 
 #TODO use tf.make_template to remove "model_init" scope?
 def gen_predictor(algo, reuse=None):
   with tf.variable_scope("model_init", reuse=reuse):
-    predictor = _gen_builder(algo, is_predict=True)
+    predictor = _gen_predictor(algo)
   return predictor
   
 def gen_tranier(algo, reuse=None):
   with tf.variable_scope("model_init", reuse=reuse):
-    trainer = _gen_builder(algo, is_predict=False)
+    trainer = _gen_trainer(algo)
   return trainer
 
 def gen_trainer_and_predictor(algo):

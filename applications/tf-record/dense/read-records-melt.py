@@ -27,19 +27,21 @@ flags.DEFINE_integer('batch_size', 5, 'Batch size.')
 flags.DEFINE_integer('num_threads', 12, '')
 flags.DEFINE_boolean('batch_join', True, '')
 flags.DEFINE_boolean('shuffle', True, '')
+flags.DEFINE_boolean('shuffle_batch', True, '')
 
+flags.DEFINE_integer('num_test_steps', 10000, '')
 flags.DEFINE_boolean('shuffle_then_decode', True, '')
 
 def read_once(sess, step, ops):
   id, X, y = sess.run(ops)
   if not hasattr(read_once, "timer"):
     read_once.timer = Timer()
-  if step % 10000 == 0:
-    print('duration:', read_once.timer.elapsed())
-    if step == 0:
-      print(id)
-      print(X)
-      print(y)
+  if step % FLAGS.num_test_steps == 0:
+    duration = read_once.timer.elapsed()
+    print('steps:', step, ' duration:', duration, 'instance/s:',  FLAGS.batch_size * FLAGS.num_test_steps / duration)
+    print('id', id)
+    print(X)
+    print(y)
 
 num_features = 488
 def decode_examples(batch_serialized_examples):
@@ -100,14 +102,17 @@ def read_records():
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,
-      shuffle=FLAGS.shuffle)
+      shuffle=FLAGS.shuffle,
+      shuffle_batch=FLAGS.shuffle_batch)
+      #fix_random=1)
     
     tf_flow(lambda sess, step: read_once(sess, step, [id, X, y]))
     
 
 def main(_):
+  print('shuffle then decode?', FLAGS.shuffle_then_decode)
+  print('batch_size:', FLAGS.batch_size)
   read_records()
-
 
 if __name__ == '__main__':
   tf.app.run()

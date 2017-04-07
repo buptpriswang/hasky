@@ -24,12 +24,12 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('batch_size', 5, 'Batch size.')
 flags.DEFINE_integer('max_batch_length', 100, 'max batch length.')
-flags.DEFINE_integer('num_epochs', 1, 'Number of epochs to run trainer.')
+#flags.DEFINE_integer('num_epochs', 1, 'Number of epochs to run trainer.')
 flags.DEFINE_integer('num_threads', 1, '')
 flags.DEFINE_boolean('batch_join', False, '')
 flags.DEFINE_boolean('shuffle', False, '')
 
-flags.DEFINE_boolean('shuffle_then_decode', True, 'here tested all ok! 0 or 1!')
+flags.DEFINE_boolean('shuffle_then_decode', True, '')
 
 def read_once(sess, step, ops):
   label_, index_, index2_, index3_, value_ = sess.run(ops) 
@@ -56,7 +56,7 @@ def decode_examples(batch_serialized_examples):
   label = features['label']
   index = features['index']
   index2 = tf.sparse_tensor_to_dense(index)
-  index3 = tf.sparse_to_dense(index.indices, [index.shape[0], FLAGS.max_batch_length], index.values)
+  index3 = tf.sparse_to_dense(index.indices, [index.dense_shape[0], FLAGS.max_batch_length], index.values)
   value = features['value']
 
   return label, index, index2, index3, value
@@ -73,7 +73,7 @@ def decode_example(serialized_example):
   label = features['label']
   index = features['index']
   index2 = tf.sparse_tensor_to_dense(index)
-  index3 = tf.sparse_to_dense(index.indices, [index.shape[0], FLAGS.max_batch_length], index.values)
+  index3 = tf.sparse_to_dense(index.indices, [index.dense_shape[0], FLAGS.max_batch_length], index.values)
   value = features['value']
 
   return label, index, index2, index3, value
@@ -88,10 +88,18 @@ def read_records():
     inputs = melt.decode_then_shuffle.inputs
     decode = decode_example
 
+  print('shuffle_then_decode?:', FLAGS.shuffle_then_decode)
+
   #looks like setting sparse==1 or 0 all ok, but sparse=1 is faster...
   #may be for large example and you only decode a small part features then sparse==0 will be
   #faster since decode before shuffle, shuffle less data
   #but sparse==0 for one flow can deal both sparse input and dense input
+
+  #well, may be earlier tf version work with both shuffle_then_decode 1 or 0
+  #now only work shuffle_then_decode for data with sparse ... if set 0
+  #ValueError: All shapes must be fully defined: [TensorShape([]), TensorShape([Dimension(1)]), TensorShape([Dimension(None)]), TensorShape([Dimension(None), Dimension(100)]), TensorShape([Dimension(1)])]
+  #since shuffle_then_decode is faster prefer to use it  ok!
+
   
   with tf.Graph().as_default():
     ops = inputs(
