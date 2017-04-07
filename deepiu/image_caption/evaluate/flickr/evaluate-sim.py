@@ -34,22 +34,25 @@ import melt
 logging = melt.logging
 import gezi
 
-from deepiu.image_caption import evaluator
-from deepiu.image_caption.algos import algos_factory
+from deepiu.util import evaluator
+from deepiu.util import algos_factory
 
 
 def evaluate_score():
-  evaluator.init()
   text_max_words = evaluator.all_distinct_texts.shape[1]
   print('text_max_words:', text_max_words)
   predictor = algos_factory.gen_predictor(FLAGS.algo)
-  with tf.variable_scope('run'):
+  with tf.variable_scope(FLAGS.main_scope):
     predictor.init_predict(text_max_words)
     predictor.load(FLAGS.model_dir)
   evaluator.evaluate_scores(predictor)
 
 
 def main(_):
+  if not FLAGS.pre_calc_image_feature:
+    melt.apps.image_processing.init()
+  evaluator.init()
+  
   logging.init(logtostderr=True, logtofile=False)
   global_scope = ''
   if FLAGS.add_global_scope:

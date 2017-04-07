@@ -95,9 +95,11 @@ class ShowAndTell(object):
         minval=-FLAGS.initializer_scale,
         maxval=FLAGS.initializer_scale)
 
-    self.image_process_fn = functools.partial(melt.image.image2feature_fn,
-                                              height=FLAGS.image_height, 
-                                              width=FLAGS.image_width)
+    if not FLAGS.pre_calc_image_feature:
+      assert melt.apps.image_processing.image_processing_fn is not None, 'forget melt.apps.image_processing.init()'
+      self.image_process_fn = functools.partial(melt.apps.image_processing.image_processing_fn,
+                                                height=FLAGS.image_height, 
+                                                width=FLAGS.image_width)
 
   def feed_ops(self):
     """

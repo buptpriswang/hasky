@@ -28,7 +28,7 @@ import gezi, melt
 import numpy as np
 
 from deepiu.util import text2ids
-from deepiu.image_caption.algos import algos_factory
+from deepiu.util import algos_factory
 from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod
 
 import conf  

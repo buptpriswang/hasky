@@ -20,7 +20,6 @@ python ./evaluate-sim.py \
   --algo bow \
   --interval 100 \
   --eval_interval 500 \
-  --add_global_scope 0 \
   --pre_calc_image_feature 0 \
   --margin 0.5 \
   --feed_dict 0 \

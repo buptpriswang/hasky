@@ -12,9 +12,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import deepiu.util 
 import deepiu.image_caption   
 import deepiu.textsum 
-import deepiu.util 
 import deepiu.seq2seq
-
 import deepiu.textsum_pytorch

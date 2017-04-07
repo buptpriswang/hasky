@@ -14,9 +14,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import deepiu.image_caption.conf 
-import deepiu.image_caption.vocabulary
-import deepiu.image_caption.text2ids
-import deepiu.image_caption.evaluator 
+#import deepiu.image_caption.conf 
+#---not expose this, use algos_factor to create trainer or predictor
+#import deepiu.image_caption.algos
 
-import deepiu.image_caption.algos

@@ -14,3 +14,4 @@ from __future__ import print_function
 import melt.apps.train
 from melt.apps.train import *  
 
+import melt.apps.image_processing 

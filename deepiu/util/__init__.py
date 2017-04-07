@@ -13,8 +13,10 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-  
+ 
+import deepiu.util.conf
 import deepiu.util.vocabulary 
 import deepiu.util.text2ids 
-import deepiu.util.input_flags 
 import deepiu.util.algos_factory
+import deepiu.util.evaluator
+import deepiu.util.input_flags 

@@ -23,10 +23,12 @@ from deepiu.image_caption import input
 import gezi
 list_files = gezi.bigdata_util.list_files
 
-#from deepiu.image_caption.conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
-import conf 
-from conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
-from deepiu.util import text2ids 
+try:
+  import conf 
+  from conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
+  from deepiu.util import text2ids
+except Exception:
+  from deepiu.image_caption.conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN 
 
 texts2ids = None
 def init():

@@ -26,7 +26,7 @@ flags.DEFINE_integer('seq_decode_method', 0, 'sequence decode method: 0 max prob
 
 import functools
 import melt
-from deepiu.image_caption import evaluator
+from deepiu.util import evaluator
 
 from deepiu.util import text2ids
 from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod

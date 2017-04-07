@@ -42,10 +42,14 @@ logging = melt.logging
 from deepiu.util import vocabulary
 vocab = None
 vocab_size = None
-from deepiu.util.text2ids import ids2words, ids2text
+from deepiu.util.text2ids import ids2words, ids2text, texts2ids
 
-from deepiu.image_caption.conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
-from deepiu.image_caption.input_app import texts2ids
+try:
+  import conf 
+  from conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
+except Exception:
+  print('Warning, no conf.py in current path use util conf')
+  from deepiu.util.conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
 
 import numpy as np
 import math

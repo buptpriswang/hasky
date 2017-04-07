@@ -20,9 +20,14 @@ import gezi
 
 from deepiu.util import vocabulary 
 
-#from deepiu.image_caption.conf import TEXT_MAX_WORDS, ENCODE_UNK
-import conf
-from conf import TEXT_MAX_WORDS, ENCODE_UNK
+#TODO-- remove conf.py using gfalgs or yaxml
+
+try:
+  import conf
+  from conf import TEXT_MAX_WORDS, ENCODE_UNK
+except Exception:
+  print('Warning: no conf.py in current path use util conf')
+  from deepiu.util.conf import TEXT_MAX_WORDS, ENCODE_UNK
 
 vocab = None 
 Segmentor = None 

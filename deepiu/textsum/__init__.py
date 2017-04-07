@@ -13,5 +13,5 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import deepiu.textsum.conf 
-import deepiu.textsum.algos
+#import deepiu.textsum.conf 
+#import deepiu.textsum.algos

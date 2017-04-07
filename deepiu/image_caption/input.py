@@ -17,8 +17,11 @@ FLAGS = flags.FLAGS
 
 import melt
 
-import conf
-from conf import IMAGE_FEATURE_LEN,TEXT_MAX_WORDS
+try:
+  import conf
+  from conf import IMAGE_FEATURE_LEN,TEXT_MAX_WORDS
+except Exception:
+  from deepiu.image_caption.conf import IMAGE_FEATURE_LEN, TEXT_MAX_WORDS
 
 def _decode(example, parse, dynamic_batch_length, is_training=False, reuse=None):
   if FLAGS.pre_calc_image_feature:

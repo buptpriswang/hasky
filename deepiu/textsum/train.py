@@ -54,8 +54,8 @@ logging = melt.logging
 from deepiu.textsum import input_app as InputApp
 
 from deepiu.textsum import eval_show
-from deepiu.image_caption import evaluator
-from deepiu.image_caption.algos import algos_factory
+from deepiu.util import evaluator
+from deepiu.util import algos_factory
 
 #debug
 from deepiu.util import vocabulary

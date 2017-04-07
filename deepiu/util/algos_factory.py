@@ -25,11 +25,7 @@ from deepiu.image_caption.algos.rnn import Rnn, RnnPredictor
 from deepiu.image_caption.algos.show_and_tell import ShowAndTell 
 from deepiu.image_caption.algos.show_and_tell_predictor import ShowAndTellPredictor
 
-try:
-  from deepiu.textsum.algos.seq2seq import Seq2seq, Seq2seqPredictor
-  #from deepiu.textsum.alogs.seq2seq_attention import Seq2seqAttention
-except Exception:
-  pass
+from deepiu.textsum.algos.seq2seq import Seq2seq, Seq2seqPredictor
 
 class Algos:
   bow = 'bow'    #bow encode for text
@@ -89,17 +85,11 @@ def _gen_builder(algo, is_predict=True):
 def gen_predictor(algo, reuse=None):
   with tf.variable_scope("model_init", reuse=reuse):
     predictor = _gen_builder(algo, is_predict=True)
-  if getattr(predictor, 'init', None) is not None:
-    predictor.init(reuse=reuse)
   return predictor
   
 def gen_tranier(algo, reuse=None):
   with tf.variable_scope("model_init", reuse=reuse):
     trainer = _gen_builder(algo, is_predict=False)
-  #sepcial, used using inceptionV3 to avoid model_init scope outside
-  if getattr(trainer, 'init', None) is not None:
-    trainer.init(reuse=reuse)
-
   return trainer
 
 def gen_trainer_and_predictor(algo):

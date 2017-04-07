@@ -12,7 +12,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from deepiu.image_caption.algos import *
+import deepiu.image_caption.algos.discriminant_trainer
+import deepiu.image_caption.algos.discriminant_predictor
 
-import deepiu.image_caption.algos.algos_factory
+import deepiu.image_caption.algos.bow
+import deepiu.image_caption.algos.rnn 
+
+import deepiu.image_caption.algos.show_and_tell
+import deepiu.image_caption.algos.show_and_tell_predictor
 

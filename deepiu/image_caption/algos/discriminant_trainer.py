@@ -66,10 +66,12 @@ class DiscriminantTrainer(object):
     self.weights_initializer = tf.random_uniform_initializer(-FLAGS.initializer_scale, FLAGS.initializer_scale)
     self.biases_initialzier = melt.slim.init_ops.zeros_initializer if FLAGS.bias else None
 
-    self.image_process_fn = functools.partial(melt.image.image2feature_fn,
-                                              #name=FLAGS.image_model_name, 
-                                              height=FLAGS.image_height, 
-                                              width=FLAGS.image_width)
+    if not FLAGS.pre_calc_image_feature:
+      assert melt.apps.image_processing.image_processing_fn is not None, 'forget melt.apps.image_processing.init()'
+      self.image_process_fn = functools.partial(melt.apps.image_processing.image_processing_fn,
+                                                height=FLAGS.image_height, 
+                                                width=FLAGS.image_width)
+
 
   def forward_image_layers(self, image_feature):
     if not FLAGS.pre_calc_image_feature:
