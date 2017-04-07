@@ -106,7 +106,6 @@ def inputs(files, decode, batch_size=64,
 
   if dynamic_pad:
     #use tf.batch
-    batch_join = False
     shuffle_batch = False
 
 
@@ -135,14 +134,23 @@ def inputs(files, decode, batch_size=64,
     if batch_join:
       batch_list = [_read_decode(filename_queue, decode, thread_id) for thread_id in xrange(num_threads)]
       #print batch_list
-      batch = tf.train.shuffle_batch_join(
+      if shuffle_batch:
+        batch = tf.train.shuffle_batch_join(
+            batch_list, 
+            batch_size=batch_size, 
+            capacity=capacity,
+            min_after_dequeue=min_after_dequeue,
+            seed=seed,
+            allow_smaller_final_batch=allow_smaller_final_batch,
+            name='shuffle_batch_join_queue')
+      else:
+        batch = tf.train.batch_join(
           batch_list, 
           batch_size=batch_size, 
           capacity=capacity,
-          min_after_dequeue=min_after_dequeue,
-          seed=seed,
           allow_smaller_final_batch=allow_smaller_final_batch,
-          name='shuffle_batch_join_queue')
+          dynamic_pad=dynamic_pad,
+          name='batch_join_queue')
     else:
       decoded_example = list(_read_decode(filename_queue, decode))
       num_threads = 1 if fix_random else num_threads
@@ -171,6 +179,7 @@ def inputs(files, decode, batch_size=64,
              allow_smaller_final_batch=allow_smaller_final_batch,
              name='shuffle_batch_queue')
         else:
+          #http://honggang.io/2016/08/19/tensorflow-data-reading/
           batch = tf.train.batch(
              decoded_example, 
              batch_size=batch_size, 

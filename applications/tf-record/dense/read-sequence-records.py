@@ -26,9 +26,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_integer('batch_size', 3, 'Batch size.')
 #flags.DEFINE_integer('num_epochs', 2, 'Number of epochs to run trainer.')
 flags.DEFINE_integer('num_threads', 12, '')
-flags.DEFINE_boolean('batch_join', False, '')
+flags.DEFINE_boolean('batch_join', True, '')
 flags.DEFINE_boolean('shuffle', False, '')
-flags.DEFINE_string('bukets', '', '')
+flags.DEFINE_string('buckets', '', '')
 
 #flags.DEFINE_boolean('decode_then_shuffle', True, '')
 
@@ -108,7 +108,8 @@ def read_records():
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,
       dynamic_pad=True,
-      bucket_boundaries=[int(x) for x in FLAGS.bukets.split(',') if x],
+      batch_join=FLAGS.batch_join,
+      bucket_boundaries=[int(x) for x in FLAGS.buckets.split(',') if x],
       length_index=-1)
     
     tf_flow(lambda sess, step: read_once(sess, step, [id, X, y, length]))

@@ -125,7 +125,6 @@ def inputs(files, decode, batch_size=64,
 
   if dynamic_pad:
     #use tf.batch
-    batch_join = False
     shuffle_batch = False
 
   #shuffle=True
@@ -148,18 +147,27 @@ def inputs(files, decode, batch_size=64,
     #@TODO cifa10 always use num_prefetch_batches = 3, 3 * batch_size, check which is better
     if not num_prefetch_batches: num_prefetch_batches = num_threads + 3
     capacity = min_after_dequeue + num_prefetch_batches * batch_size
-    #@TODO diff between tf.batch_join and tf.batch
+    #@TODO diff between tf.batch_join and tf.batch, batch_join below means shuffle_batch_join.. TODO
     if batch_join:
       batch_list = [_read(filename_queue) for _ in xrange(num_threads)]
       #print batch_list
-      batch_serialized_examples = tf.train.shuffle_batch_join(
+      if shuffle_batch:
+        batch_serialized_examples = tf.train.shuffle_batch_join(
+            batch_list, 
+            batch_size=batch_size, 
+            capacity=capacity,
+            min_after_dequeue=min_after_dequeue,
+            seed=seed,
+            allow_smaller_final_batch=allow_smaller_final_batch,
+            name='shuffle_batch_join_queue')
+      else:
+        batch_serialized_examples = tf.train.batch_join(
           batch_list, 
           batch_size=batch_size, 
           capacity=capacity,
-          min_after_dequeue=min_after_dequeue,
-          seed=seed,
           allow_smaller_final_batch=allow_smaller_final_batch,
-          name='shuffle_batch_join_queue')
+          dynamic_pad=dynamic_pad,
+          name='batch_join_queue')
     else:
       serialized_example = list(_read(filename_queue))
       #@FIXME... for bug now can not be more random if want fix random see D:\mine\tensorflow-exp\models\image-text-sim\train-evaluate-fixrandom.py
