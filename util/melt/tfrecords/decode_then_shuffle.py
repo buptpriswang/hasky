@@ -30,7 +30,7 @@ def _read_decode(filename_queue, decode_fn, thread_id=0):
     values = [values]
   return values
 
-def inputs(files, decode, batch_size=64,
+def inputs(files, decode_fn, batch_size=64,
            num_epochs = None, num_threads=12, 
            shuffle_files=True, batch_join=True, shuffle_batch=True, 
            min_after_dequeue=None, seed=None, 
@@ -132,7 +132,7 @@ def inputs(files, decode, batch_size=64,
     capacity = min_after_dequeue + num_prefetch_batches * batch_size
 
     if batch_join:
-      batch_list = [_read_decode(filename_queue, decode, thread_id) for thread_id in xrange(num_threads)]
+      batch_list = [_read_decode(filename_queue, decode_fn, thread_id) for thread_id in xrange(num_threads)]
       #print batch_list
       if shuffle_batch:
         batch = tf.train.shuffle_batch_join(
@@ -152,7 +152,7 @@ def inputs(files, decode, batch_size=64,
           dynamic_pad=dynamic_pad,
           name='batch_join_queue')
     else:
-      decoded_example = list(_read_decode(filename_queue, decode))
+      decoded_example = list(_read_decode(filename_queue, decode_fn))
       num_threads = 1 if fix_random else num_threads
       if bucket_boundaries:
         assert length_index, ' you must set length_index for bucket'

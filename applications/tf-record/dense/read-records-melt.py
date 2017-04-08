@@ -84,10 +84,10 @@ def read_records():
   # Tell TensorFlow that the model will be built into the default Graph.
   if FLAGS.shuffle_then_decode:
     inputs = melt.shuffle_then_decode.inputs
-    decode = decode_examples
+    decode_fn = decode_examples
   else:
     inputs = melt.decode_then_shuffle.inputs
-    decode = decode_example
+    decode_fn = decode_example
 
   #looks like setting sparse==1 or 0 all ok, but sparse=1 is faster...
   #may be for large example and you only decode a small part features then sparse==0 will be
@@ -97,7 +97,7 @@ def read_records():
   with tf.Graph().as_default():
     id, X, y = inputs(
       sys.argv[1], 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.batch_size,
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,

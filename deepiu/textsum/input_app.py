@@ -68,7 +68,7 @@ class InputApp(object):
 
     # self.step = 0
 
-  def gen_train_input(self, inputs, decode):
+  def gen_train_input(self, inputs, decode_fn):
      #--------------------- train
     logging.info('train_input: %s'%FLAGS.train_input)
     trainset = list_files(FLAGS.train_input)
@@ -90,7 +90,7 @@ class InputApp(object):
     
     image_name, text, text_str, input_text, input_text_str = inputs(
       trainset, 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.batch_size,
       num_epochs=FLAGS.num_epochs, 
       #seed=seed,
@@ -108,13 +108,13 @@ class InputApp(object):
 
     return (image_name, text, text_str, input_text, input_text_str), trainset
 
-  def gen_valid_input(self, inputs, decode):
+  def gen_valid_input(self, inputs, decode_fn):
     #---------------------- valid  
     validset = list_files(FLAGS.valid_input)
     logging.info('validset:{} {}'.format(len(validset), validset[:2]))
     eval_image_name, eval_text, eval_text_str, eval_input_text, eval_input_text_str = inputs(
       validset, 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.eval_batch_size,
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,
@@ -144,7 +144,7 @@ class InputApp(object):
         logging.info('fixed_validset:{} {}'.format(len(fixed_validset), fixed_validset[:2]))
         fixed_image_name, fixed_text, fixed_text_str, fixed_input_text, fixed_input_text_str = inputs(
           fixed_validset, 
-          decode=decode,
+          decode_fn=decode_fn,
           batch_size=FLAGS.fixed_eval_batch_size,
           fix_sequence=True,
           num_prefetch_batches=FLAGS.num_prefetch_batches,
@@ -205,9 +205,9 @@ class InputApp(object):
     for name in input_name_list:
       input_results[name] = None
 
-    inputs, decode = input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length)
+    inputs, decode_fn = input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length)
 
-    input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode)
+    input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode_fn)
     
     if not train_only:
       #---------------------- valid
@@ -217,7 +217,7 @@ class InputApp(object):
       if train_with_validation:
         input_results[self.input_valid_name], \
         input_results[self.fixed_input_valid_name], \
-        eval_batch_size = self.gen_valid_input(inputs, decode)
+        eval_batch_size = self.gen_valid_input(inputs, decode_fn)
 
     print_input_results(input_results)
 

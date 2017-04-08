@@ -74,15 +74,15 @@ def read_records():
   label_type = tf.int64 if FLAGS.label_type == 'int' else tf.float32
   if FLAGS.shuffle_then_decode:
     inputs = melt.shuffle_then_decode.inputs
-    decode = functools.partial(melt.libsvm_decode.decode, label_type=label_type)
+    decode_fn = functools.partial(melt.libsvm_decode.decode, label_type=label_type)
   else:
     inputs = melt.decode_then_shuffle.inputs
-    decode = functools.partial(decode_example, label_type=label_type)
+    decode_fn = functools.partial(decode_example, label_type=label_type)
 
   with tf.Graph().as_default():
     X, y = inputs(
       sys.argv[1], 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.batch_size,
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,

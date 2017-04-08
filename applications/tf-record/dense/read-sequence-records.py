@@ -94,7 +94,7 @@ def read_records():
   #all work for both dense and sparse
   inputs = melt.decode_then_shuffle.inputs
   #inputs = melt.shuffle_then_decode.inputs #since only parse_single_sequence_example could not use shuffle_then_decode
-  decode = decode_example
+  decode_fn = decode_example
 
   #looks like setting sparse==1 or 0 all ok, but sparse=1 is faster...
   #may be for large example and you only decode a small part features then sparse==0 will be
@@ -103,7 +103,7 @@ def read_records():
   with tf.Graph().as_default():
     id, X, y, length = inputs(
       sys.argv[1], 
-      decode=decode,
+      decode=decode_fn,
       batch_size=FLAGS.batch_size,
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,

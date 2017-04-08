@@ -147,7 +147,7 @@ class InputApp(object):
          
     return eval_feed_dict
 
-  def gen_train_input(self, inputs, decode):
+  def gen_train_input(self, inputs, decode_fn):
      #--------------------- train
     logging.info('train_input: %s'%FLAGS.train_input)
     trainset = list_files(FLAGS.train_input)
@@ -169,7 +169,7 @@ class InputApp(object):
     
     image_name, image_feature, text, text_str = inputs(
       trainset, 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.batch_size,
       num_epochs=FLAGS.num_epochs, 
       #seed=seed,
@@ -197,10 +197,10 @@ class InputApp(object):
       melt.scalar_summary("text/batch_mean", tf.reduce_mean(lengths))
     return (image_name, image_feature, text, text_str), trainset
 
-  def gen_train_neg_input(self, inputs, decode_neg, trainset):
+  def gen_train_neg_input(self, inputs, decode_neg_fn, trainset):
     neg_text, neg_text_str = inputs(
       trainset, 
-      decode=decode_neg,
+      decode_fn=decode_neg_fn,
       batch_size=FLAGS.batch_size * FLAGS.num_negs,
       num_epochs=0, 
       num_threads=FLAGS.num_threads,
@@ -221,13 +221,13 @@ class InputApp(object):
 
     return neg_text, neg_text_str
 
-  def gen_valid_input(self, inputs, decode):
+  def gen_valid_input(self, inputs, decode_fn):
     #---------------------- valid  
     validset = list_files(FLAGS.valid_input)
     logging.info('validset:{} {}'.format(len(validset), validset[:2]))
     eval_image_name, eval_image_feature, eval_text, eval_text_str = inputs(
       validset, 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.eval_batch_size,
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,
@@ -272,7 +272,7 @@ class InputApp(object):
         logging.info('fixed_validset:{} {}'.format(len(fixed_validset), fixed_validset[:2]))
         fixed_image_name, fixed_image_feature, fixed_text, fixed_text_str = inputs(
           fixed_validset, 
-          decode=decode,
+          decode_fn=decode_fn,
           batch_size=FLAGS.fixed_eval_batch_size,
           fix_sequence=True,
           num_prefetch_batches=FLAGS.num_prefetch_batches,
@@ -329,10 +329,10 @@ class InputApp(object):
     
     return eval_result, eval_show_result, eval_batch_size
 
-  def gen_valid_neg_input(self, inputs, decode_neg, trainset, eval_batch_size):
+  def gen_valid_neg_input(self, inputs, decode_neg_fn, trainset, eval_batch_size):
     eval_neg_text, eval_neg_text_str = inputs(
       trainset, 
-      decode=decode_neg,
+      decode_fn=decode_neg_fn,
       batch_size=eval_batch_size * FLAGS.num_negs,
       num_epochs=0, 
       num_threads=FLAGS.num_threads,
@@ -377,15 +377,15 @@ class InputApp(object):
       input_results[name] = None
 
     assert FLAGS.shuffle_then_decode, "since use sparse data for text, must shuffle then decode"
-    inputs, decode, decode_neg, decode_train = \
+    inputs, decode_fn, decode_neg_fn = \
      input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length, use_neg=(FLAGS.num_negs > 0))
 
-    input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode_train)
+    input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode_fn)
 
-    print('decode_neg', decode_neg)
+    print('decode_neg_fn', decode_neg_fn)
 
-    if decode_neg is not None:
-      input_results[self.input_train_neg_name] = self.gen_train_neg_input(inputs, decode_neg, trainset)
+    if decode_neg_fn is not None:
+      input_results[self.input_train_neg_name] = self.gen_train_neg_input(inputs, decode_neg_fn, trainset)
     
     if not train_only:
       #---------------------- valid
@@ -395,10 +395,10 @@ class InputApp(object):
       if train_with_validation:
         input_results[self.input_valid_name], \
         input_results[self.fixed_input_valid_name], \
-        eval_batch_size = self.gen_valid_input(inputs, decode)
+        eval_batch_size = self.gen_valid_input(inputs, decode_fn)
 
-        if decode_neg is not None:
-          input_results[self.input_valid_neg_name] = self.gen_valid_neg_input(inputs, decode_neg, trainset, eval_batch_size)
+        if decode_neg_fn is not None:
+          input_results[self.input_valid_neg_name] = self.gen_valid_neg_input(inputs, decode_neg_fn, trainset, eval_batch_size)
 
     print_input_results(input_results)
 

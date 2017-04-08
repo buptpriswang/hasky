@@ -23,7 +23,7 @@ try:
 except Exception:
   from deepiu.image_caption.conf import IMAGE_FEATURE_LEN, TEXT_MAX_WORDS
 
-def _decode(example, parse, dynamic_batch_length, is_training=False, reuse=None):
+def _decode(example, parse, dynamic_batch_length):
   if FLAGS.pre_calc_image_feature:
     features = parse(
         example,
@@ -56,13 +56,11 @@ def _decode(example, parse, dynamic_batch_length, is_training=False, reuse=None)
   
   return image_name, image_feature, text, text_str
 
-def decode_examples(serialized_examples, dynamic_batch_length, is_training=False, reuse=None):
-  return _decode(serialized_examples, tf.parse_example, dynamic_batch_length,
-                 is_training=is_training, reuse=reuse)
+def decode_examples(serialized_examples, dynamic_batch_length):
+  return _decode(serialized_examples, tf.parse_example, dynamic_batch_length)
 
-def decode_example(serialized_example, dynamic_batch_length, is_training=False, reuse=None):
-  return _decode(serialized_example, tf.parse_single_example, dynamic_batch_length, 
-                 is_training=is_training, reuse=reuse)
+def decode_example(serialized_example, dynamic_batch_length):
+  return _decode(serialized_example, tf.parse_single_example, dynamic_batch_length)
 
 #---------------for negative sampling using tfrecords
 def _decode_neg(example, parse, dynamic_batch_length):
@@ -90,16 +88,13 @@ def decode_neg_example(serialized_example):
 def get_decodes(shuffle_then_decode, dynamic_batch_length, use_neg=True):
   if shuffle_then_decode:
     inputs = melt.shuffle_then_decode.inputs
-    #TODO inception model first used in evaluator.py init... so here all reuse=True  TODO may not depend on building sequence ?
-    decode_train = lambda x: decode_examples(x, dynamic_batch_length, is_training=True, reuse=None)
-    decode = lambda x: decode_examples(x, dynamic_batch_length, reuse=True)
+    decode = lambda x: decode_examples(x, dynamic_batch_length)
     decode_neg = (lambda x: decode_neg_examples(x, dynamic_batch_length)) if use_neg else None
   else:
     inputs = melt.decode_then_shuffle.inputs
-    decode_train = lambda x: decode_example(x, dynamic_batch_length, is_training=True, reuse=None)
-    decode = lambda x: decode_example(x, dynamic_batch_length, reuse=True)
+    decode = lambda x: decode_example(x, dynamic_batch_length)
     decode_neg = (lambda x: decode_neg_example(x, dynamic_batch_length)) if use_neg else None
-  return inputs, decode, decode_neg, decode_train
+  return inputs, decode, decode_neg
 
 def reshape_neg_tensors(neg_ops, batch_size, num_negs):
   neg_ops = list(neg_ops)

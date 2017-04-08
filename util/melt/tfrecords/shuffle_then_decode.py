@@ -22,7 +22,7 @@ def _read(filename_queue):
   _, serialized_example = reader.read(filename_queue)
   return [serialized_example]
 
-def inputs(files, decode, batch_size=64,
+def inputs(files, decode_fn, batch_size=64,
            num_epochs = None, num_threads=12, 
            shuffle_files=True, batch_join=True, shuffle_batch=True, 
            min_after_dequeue=None, seed=None, 
@@ -193,6 +193,6 @@ def inputs(files, decode, batch_size=64,
             dynamic_pad=dynamic_pad,
             name='batch_queue')
 
-    return decode(batch_serialized_examples) if decode is not None else batch_serialized_examples
+    return decode_fn(batch_serialized_examples) if decode_fn is not None else batch_serialized_examples
 
   

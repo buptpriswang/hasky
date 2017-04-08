@@ -83,10 +83,10 @@ def read_records():
   # Tell TensorFlow that the model will be built into the default Graph.
   if FLAGS.shuffle_then_decode:
     inputs = melt.shuffle_then_decode.inputs
-    decode = decode_examples
+    decode_fn = decode_examples
   else:
     inputs = melt.decode_then_shuffle.inputs
-    decode = decode_example
+    decode_fn = decode_example
 
   print('shuffle_then_decode?:', FLAGS.shuffle_then_decode)
 
@@ -104,7 +104,7 @@ def read_records():
   with tf.Graph().as_default():
     ops = inputs(
       sys.argv[1], 
-      decode=decode,
+      decode_fn=decode_fn,
       batch_size=FLAGS.batch_size,
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,
