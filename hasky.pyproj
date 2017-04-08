@@ -234,6 +234,8 @@
     <Compile Include="deepiu\textsum_pytorch\read-records.py" />
     <Compile Include="deepiu\textsum_pytorch\seq2seq.py" />
     <Compile Include="deepiu\textsum_pytorch\train.py" />
+    <Compile Include="deepiu\util\algos_factory.py" />
+    <Compile Include="deepiu\util\evaluator.py" />
     <Compile Include="deepiu\util\input_flags.py" />
     <Compile Include="deepiu\util\text2ids.py" />
     <Compile Include="deepiu\util\vocabulary.py" />
@@ -436,6 +438,7 @@
     <Content Include="applications\text-regression\predict.sh" />
     <Content Include="applications\text-regression\run.sh" />
     <Content Include="applications\text-regression\train.sh" />
+    <Content Include="applications\tf-record\dense\README.md" />
     <Content Include="applications\tf-record\dense\run.sh" />
     <Content Include="applications\tf-record\sparse\run.sh" />
     <Content Include="applications\tf-record\sparse\run4regresssion.sh" />

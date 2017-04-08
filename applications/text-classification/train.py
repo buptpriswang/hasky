@@ -49,7 +49,7 @@ def train():
     num_epochs=FLAGS.num_epochs, 
     num_threads=FLAGS.num_preprocess_threads,
     batch_join=FLAGS.batch_join,
-    shuffle=FLAGS.shuffle)
+    shuffle_files=FLAGS.shuffle)
   
   train_with_validation = len(sys.argv) > 2
   if train_with_validation:
@@ -60,7 +60,7 @@ def train():
       batch_size=FLAGS.batch_size * 10,
       num_threads=FLAGS.num_preprocess_threads,
       batch_join=FLAGS.batch_join,
-      shuffle=FLAGS.shuffle)
+      shuffle_files=FLAGS.shuffle)
   
   with tf.variable_scope('main') as scope:
     loss, accuracy = model.build_graph(X, y)

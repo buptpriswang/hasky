@@ -25,7 +25,7 @@ flags.DEFINE_integer('batch_size', 5, 'Batch size.')
 #flags.DEFINE_integer('num_epochs', 2, 'Number of epochs to run trainer.')
 flags.DEFINE_integer('num_threads', 12, '')
 flags.DEFINE_boolean('batch_join', True, '')
-flags.DEFINE_boolean('shuffle', True, '')
+flags.DEFINE_boolean('shuffle_files', True, '')
 flags.DEFINE_string('label_type', 'int', '')
 
 flags.DEFINE_integer('num_test_steps', 10000, '')
@@ -87,7 +87,7 @@ def read_records():
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,
-      shuffle=FLAGS.shuffle,
+      shuffle_files=FLAGS.shuffle_files,
       dynamic_pad=FLAGS.dynamic_pad) #here is just test dynamic_pad not work for sparse if use decode_then_shuffle
     tf_flow(lambda sess, step: read_once(sess, step, [X, y]))
     

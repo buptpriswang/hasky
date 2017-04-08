@@ -36,8 +36,9 @@ flags.DEFINE_integer('num_evaluate_examples', 1, '')
 flags.DEFINE_integer('num_threads', 12, """threads for reading input tfrecords,
                                            setting to 1 may be faster but less randomness
                                         """)
+
+flags.DEFINE_boolean('shuffle_files', True, '')
 flags.DEFINE_boolean('batch_join', True, '')
-flags.DEFINE_boolean('shuffle', True, '')
 flags.DEFINE_boolean('shuffle_then_decode', True, '')
 
 flags.DEFINE_integer('num_negs', 1, '0 means no neg')
@@ -64,7 +65,7 @@ flags.DEFINE_integer('num_prefetch_batches', 0, '')
 #----------eval
 flags.DEFINE_boolean('show_eval', True, '')
 
-flags.DEFINE_boolean('eval_shuffle', True, '')
+flags.DEFINE_boolean('eval_shuffle_files', True, '')
 flags.DEFINE_boolean('eval_fix_random', True, '')
 flags.DEFINE_integer('eval_seed', 1024, '')
 
@@ -85,7 +86,7 @@ flags.DEFINE_boolean('pre_calc_image_feature', True, '')
 flags.DEFINE_boolean('distort_image', False, '')
 flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
 flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
-flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/image-caption/inception_v3.ckpt', '')
+flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
 #---in melt.apps.image_processing.py
 #flags.DEFINE_string('image_model_name', 'InceptionV3', '')
 flags.DEFINE_string('one_image', '/home/gezi/data/flickr/flickr30k-images/1000092795.jpg', '')

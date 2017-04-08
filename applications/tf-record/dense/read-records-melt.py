@@ -26,7 +26,7 @@ flags.DEFINE_integer('batch_size', 5, 'Batch size.')
 #flags.DEFINE_integer('num_epochs', 2, 'Number of epochs to run trainer.')
 flags.DEFINE_integer('num_threads', 12, '')
 flags.DEFINE_boolean('batch_join', True, '')
-flags.DEFINE_boolean('shuffle', True, '')
+flags.DEFINE_boolean('shuffle_files', True, '')
 flags.DEFINE_boolean('shuffle_batch', True, '')
 
 flags.DEFINE_integer('num_test_steps', 10000, '')
@@ -102,7 +102,7 @@ def read_records():
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,
-      shuffle=FLAGS.shuffle,
+      shuffle_files=FLAGS.shuffle_files,
       shuffle_batch=FLAGS.shuffle_batch)
       #fix_random=1)
     

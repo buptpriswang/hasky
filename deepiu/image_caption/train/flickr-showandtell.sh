@@ -6,11 +6,11 @@ model_dir=$dir/model.flickr.showandtell
 mkdir -p $model_dir
 
 python ./train.py \
-	--train_input=$train_output_path/'train*' \
-	--valid_input=$valid_output_path/'test*' \
-	--fixed_valid_input=$fixed_valid_output_path/'test*' \
-	--valid_resource_dir=$valid_output_path \
-	--vocab=$train_output_path/vocab.bin \
+  --train_input=$train_output_path/'train*' \
+  --valid_input=$valid_output_path/'test*' \
+  --fixed_valid_input=$fixed_valid_output_path/'test*' \
+  --valid_resource_dir=$valid_output_path \
+  --vocab=$train_output_path/vocab.bin \
   --num_records_file=$train_output_path/num_records.txt \
   --image_url_prefix='D:\data\image-text-sim\flickr\imgs\' \
   --model_dir $model_dir \

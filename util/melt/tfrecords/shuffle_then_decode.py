@@ -24,7 +24,7 @@ def _read(filename_queue):
 
 def inputs(files, decode, batch_size=64,
            num_epochs = None, num_threads=12, 
-           shuffle=True, batch_join=True, shuffle_batch=True, 
+           shuffle_files=True, batch_join=True, shuffle_batch=True, 
            min_after_dequeue=None, seed=None, 
            fix_random=False, no_random=False, fix_sequence=False,
            allow_smaller_final_batch=False, 
@@ -83,8 +83,9 @@ def inputs(files, decode, batch_size=64,
   decode: user defined decode 
   min_after_dequeue: set to >2w for production train, suggesed will be 0.4 * num_instances, but also NOTICE do not exceed mem
   #--default parmas will make most randomness
-  shuffle: wehter shuffle file
+  shuffle_files: wehter shuffle file 
   shuffle_batch: batch or shuffle_batch
+  batch_join: wether to use multiple reader or use one reader mutlitple thread
   fix_random: if True make at most random which can fix random result
   allow_smaller_final_batch: set True usefull if you want verify on small dataset
   """
@@ -99,7 +100,7 @@ def inputs(files, decode, batch_size=64,
   if fix_random:
     if seed is None:
       seed = 1024
-    shuffle = True  
+    shuffle_files = True  
     batch_join = False  #check can be True ?
 
     #to get fix_random 
@@ -119,7 +120,7 @@ def inputs(files, decode, batch_size=64,
     num_threads = 1
 
   if no_random:
-    shuffle = False
+    shuffle_files = False
     batch_join = False
     shuffle_batch = False 
 
@@ -135,7 +136,7 @@ def inputs(files, decode, batch_size=64,
     filename_queue = tf.train.string_input_producer(
       files, 
       num_epochs=num_epochs,
-      shuffle=shuffle,
+      shuffle=shuffle_files,
       seed=seed)
     
     # min_after_dequeue defines how big a buffer we will randomly sample

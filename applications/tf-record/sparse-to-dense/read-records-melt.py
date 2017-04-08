@@ -109,7 +109,7 @@ def read_records():
       num_epochs=FLAGS.num_epochs, 
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,
-      shuffle=FLAGS.shuffle,
+      shuffle_files=FLAGS.shuffle,
       fix_random=True)
     
     tf_flow(lambda sess, step: read_once(sess, step, ops))
