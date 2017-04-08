@@ -27,14 +27,14 @@ bow,
 rnn,  
 cnn(TODO)  
 #### generative method:  
-show_and_tell  
-show_attend_and_tell(TODO)  
-Input with both image and text(TODO) 
+show_and_tell   
+show_attend_and_tell(TODO)    
+Input with both image and text(TODO)   
 
 #### features
 show_and_tell supported similary as im2txt, but here we also support discriminant method    
 we support both ingraph/outgraph beam search  
-will follow google/seq2seq method but now they work though beam search is not dynamic  
+will follow google/seq2seq method but now here just works though beam search is not dynamic  
 training is dynamic also support sampled softmax  
 we support directly deal with image like im2txt(using inception v3) and also support use pre calc image feature  as image input(faster traning speed)  
 use melt for training the code will be much shorter and handel all training details and atuo handel summary ops  
