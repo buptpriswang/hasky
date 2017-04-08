@@ -1,16 +1,6 @@
 # tensorflow related work(nlp and image related, text classification, image caption, seq2seq..) 
 mainly tf work, may do some pytorch related     
 
-<div align="center">
-  <img src="http://images2015.cnblogs.com/blog/61573/201703/61573-20170318205837260-872722304.png"><br><br>
-</div>  
-<div align="center">
-  <img src="http://images2015.cnblogs.com/blog/61573/201703/61573-20170318205836604-2137010595.png"><br><br>
-</div>      
-<div align="center">
-  <img src="http://images2015.cnblogs.com/blog/61573/201703/61573-20170318205836120-181624783.png"><br><br>
-</div>  
-
 ## incase not find dependence, make sure set PYTHONPATH to include hasky/util so we can find gezi and melt  
 ## ./applications/   
 ### ./applications/tf-record/   
@@ -66,6 +56,17 @@ supporting method:
 seq2seq  
 seq2seq_attetion     
 seq2seq_attetion_copy(TODO)    
+
+<div align="center">
+  <img src="http://images2015.cnblogs.com/blog/61573/201703/61573-20170318205837260-872722304.png"><br><br>
+</div>  
+<div align="center">
+  <img src="http://images2015.cnblogs.com/blog/61573/201703/61573-20170318205836604-2137010595.png"><br><br>
+</div>      
+<div align="center">
+  <img src="http://images2015.cnblogs.com/blog/61573/201703/61573-20170318205836120-181624783.png"><br><br>
+</div>  
+
 ### ./deepiu/seq2seq 
 common seq2seq codes used for image-caption, text-sum and other applications
 ### ./deepiu/util
