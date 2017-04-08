@@ -38,7 +38,7 @@ will follow google/seq2seq method but now here just works though beam search is 
 training is dynamic also support sampled softmax  
 support directly deal with image like im2txt(using inception v3) and also support use pre calc image feature  as image input(faster traning speed)   
 support using Example while im2txt use SequenceExample, also support use SequenceExample incase you want do bucket batch for rnn decode train  
-use melt for training the code will be much shorter and handel all training details and atuo handel summary ops  
+use melt for training the code will be much shorter and handel all training details and auto handel summary ops  
 support <train + validate(random) + fixed validate + predict evaluate> all in one mode, see below graph, will help experiment a lot, while im2txt you need seperate process to do validation  
 
 <div align="center">
