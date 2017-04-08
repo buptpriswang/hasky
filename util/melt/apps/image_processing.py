@@ -15,12 +15,10 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('image_model_name', 'InceptionV3', '')
-
 image_processing_fn = None
 
 import melt
-def init():
+def init(image_model_name='InceptionV3'):
   global image_processing_fn 
-  image_processing_fn = melt.image.create_image2feature_fn(FLAGS.image_model_name)
+  image_processing_fn = melt.image.create_image2feature_fn(image_model_name)
   return image_processing_fn

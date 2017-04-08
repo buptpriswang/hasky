@@ -234,6 +234,7 @@
     <Compile Include="deepiu\textsum_pytorch\read-records.py" />
     <Compile Include="deepiu\textsum_pytorch\seq2seq.py" />
     <Compile Include="deepiu\textsum_pytorch\train.py" />
+    <Compile Include="deepiu\tools\imgs2features.py" />
     <Compile Include="deepiu\util\algos_factory.py" />
     <Compile Include="deepiu\util\evaluator.py" />
     <Compile Include="deepiu\util\input_flags.py" />
@@ -256,6 +257,7 @@
     <Compile Include="util\gezi\util.py" />
     <Compile Include="util\gezi\__init__.py" />
     <Compile Include="util\hasky\__init__.py" />
+    <Compile Include="util\melt\apps\image_processing.py" />
     <Compile Include="util\melt\apps\logging.py" />
     <Compile Include="util\melt\apps\read.py" />
     <Compile Include="util\melt\apps\train.py" />
@@ -399,6 +401,7 @@
     <Folder Include="deepiu\textsum\prepare\data\wordseg\wordrank\wordtagdict\" />
     <Folder Include="deepiu\textsum\train\" />
     <Folder Include="deepiu\textsum_pytorch\" />
+    <Folder Include="deepiu\tools\" />
     <Folder Include="deepiu\util\" />
     <Folder Include="tests\" />
     <Folder Include="tests\flags" />

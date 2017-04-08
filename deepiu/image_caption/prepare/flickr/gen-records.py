@@ -42,6 +42,8 @@ flags.DEFINE_integer('ori_text_index', -2, """defualt assume the last colums as 
                                               text(segged text) so -2, for en corpuse wich do not 
                                               need seg, will only have ori_text so ori_text index will be -1 """)
 
+flags.DEFINE_boolean('write_raw_image_bytes', True, '')
+
 #flags.DEFINE_boolean('encode_unk', False, 'encode unk in output word ids')
 #flags.DEFINE_integer('num_reserved_ids', 1, 'reserve one for pad, so to make unk as 1, diff from pad')
 
@@ -120,8 +122,12 @@ def _parse_line(line, writer, thread_index = 0):
   else:
     image_path =  FLAGS.image_dir + '/' + image_name
     print(image_path)
-    with tf.gfile.FastGFile(image_path, "r") as f:
-      encoded_image = f.read()
+
+    if FLAGS.write_raw_image_bytes:
+      with tf.gfile.FastGFile(image_path, "r") as f:
+        encoded_image = f.read()
+    else:
+      encoded_image = ''
 
     #---------below will hang if multi process
     #try:

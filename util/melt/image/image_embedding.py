@@ -26,7 +26,8 @@ from tensorflow.contrib.slim.python.slim.nets.inception_v3 import inception_v3_b
 
 slim = tf.contrib.slim
 
-
+#TODO check vgg to support other models maybe like cifar 10 inference example not build graph just load from pbgraph 
+#and fetch op name to run (by that way will trainable or not ?)
 def inception_v3(images,
                  trainable=True,
                  is_training=True,
