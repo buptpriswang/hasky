@@ -73,9 +73,9 @@ def train():
 
   melt.apps.train_flow(
              [loss, accuracy], 
-             deal_results=melt.show_precision_at_k,
+             deal_results_fn=melt.show_precision_at_k,
              eval_ops=eval_ops,
-             deal_eval_results= lambda x: melt.print_results(x, names=['precision@1']),
+             deal_eval_results_fn= lambda x: melt.print_results(x, names=['precision@1']),
              model_dir=FLAGS.model_dir
              )
 

@@ -103,16 +103,16 @@ def gen_learning_rate():
 
 def train_flow(ops, 
                names=None, 
-               gen_feed_dict=None, 
-               deal_results=None, 
+               gen_feed_dict_fn=None, 
+               deal_results_fn=None, 
                eval_ops=None, 
-               gen_eval_feed_dict=None, 
-               deal_eval_results=None,
+               gen_eval_feed_dict_fn=None, 
+               deal_eval_results_fn=None,
                optimizer=None, 
                learning_rate=0.1, 
                num_steps_per_epoch=None,
                model_dir=None, 
-               metric_eval_function=None, 
+               metric_eval_fn=None, 
                debug=False,
                summary_excls=None,
                init_fn=None,
@@ -180,14 +180,14 @@ def train_flow(ops,
 
   if FLAGS.work_mode == 'train':
     eval_ops = None 
-    metric_eval_function = None
+    metric_eval_fn = None
     logging.info('running train only mode')
   elif FLAGS.work_mode == 'train_metric':
     eval_ops = None 
-    assert metric_eval_function is not None, 'set metric_eval to 1'
+    assert metric_eval_fn is not None, 'set metric_eval to 1'
     logging.info('running train+metric mode')
   elif FLAGS.work_mode == 'train_valid':
-    metric_eval_function = None
+    metric_eval_fn = None
     logging.info('running train+valid mode')
   elif FLAGS.work_mode == 'test':
     ops = None
@@ -199,11 +199,11 @@ def train_flow(ops,
 
   return melt.flow.train_flow(
              ops, 
-             gen_feed_dict=gen_feed_dict,
-             deal_results=deal_results,
+             gen_feed_dict_fn=gen_feed_dict_fn,
+             deal_results_fn=deal_results_fn,
              eval_ops=eval_ops,
-             gen_eval_feed_dict=gen_eval_feed_dict,
-             deal_eval_results=deal_eval_results,
+             gen_eval_feed_dict_fn=gen_eval_feed_dict_fn,
+             deal_eval_results_fn=deal_eval_results_fn,
              interval_steps=interval_steps,
              eval_interval_steps=eval_interval_steps,
              num_epochs=FLAGS.num_epochs,
@@ -219,7 +219,7 @@ def train_flow(ops,
              max_models_keep=FLAGS.max_models_keep,
              model_dir=model_dir,
              restore_from_latest=FLAGS.restore_from_latest,
-             metric_eval_function=metric_eval_function,
+             metric_eval_fn=metric_eval_fn,
              metric_eval_interval_steps=metric_eval_interval_steps,
              no_log=FLAGS.no_log,
              summary_excls=summary_excls,

@@ -68,7 +68,7 @@ def _get_model_path(model_dir, save_model):
     #the file exists and we NOTICE we do not check if it is valid model file!
     return model_dir
 
-def tf_train_flow(train_once, 
+def tf_train_flow(train_once_fn, 
                   model_dir='./model', 
                   max_models_keep=1, 
                   save_interval_seconds=600, 
@@ -79,7 +79,7 @@ def tf_train_flow(train_once,
                   save_interval_epochs=1, 
                   num_steps_per_epoch=0,
                   restore_from_latest=True,
-                  metric_eval_function=None,
+                  metric_eval_fn=None,
                   init_fn=None,
                   sess=None):
   """
@@ -145,7 +145,7 @@ def tf_train_flow(train_once,
       exit(0)
 
     while not coord.should_stop():
-      stop = train_once(sess, step, is_start=(step==start))
+      stop = train_once_fn(sess, step, is_start=(step==start))
       if save_model and step:
         #step 0 is also saved! actually train one step and save
         if step % save_interval_steps == 0:
@@ -169,8 +169,8 @@ def tf_train_flow(train_once,
   except tf.errors.OutOfRangeError, e:
     if not (step==start) and save_model and step % save_interval_steps != 0:
       saver.save(sess, checkpoint_path, global_step=step)
-    if metric_eval_function is not None:
-      metric_eval_function()
+    if metric_eval_fn is not None:
+      metric_eval_fn()
     if (num_epochs and step / num_steps_per_epoch >= num_epochs) or (num_steps and (step + 1) == start + num_steps) :
       print('Done training for %d steps.' % (step), file=sys.stderr)
       #FIXME becase coord.join seems not work,  RuntimeError: Coordinator stopped with threads still running: Thread-9

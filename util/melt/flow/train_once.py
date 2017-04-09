@@ -31,13 +31,13 @@ def train_once(sess,
                step, 
                ops, 
                names=None,
-               gen_feed_dict=None, 
-               deal_results=melt.print_results, 
+               gen_feed_dict_fn=None, 
+               deal_results_fn=melt.print_results, 
                interval_steps=100,
                eval_ops=None, 
                eval_names=None, 
-               gen_eval_feed_dict=None, 
-               deal_eval_results=melt.print_results, 
+               gen_eval_feed_dict_fn=None, 
+               deal_eval_results_fn=melt.print_results, 
                eval_interval_steps=100, 
                print_time=True, 
                print_avg_loss=True, 
@@ -45,7 +45,7 @@ def train_once(sess,
                log_dir=None, 
                is_start=False,
                num_steps_per_epoch=None,
-               metric_eval_function=None,
+               metric_eval_fn=None,
                metric_eval_interval_steps=0,
                summary_excls=None):
 
@@ -66,7 +66,7 @@ def train_once(sess,
 
   if is_start or eval_interval_steps and step % eval_interval_steps == 0:
     if eval_ops is not None:
-      eval_feed_dict = {} if gen_eval_feed_dict is None else gen_eval_feed_dict()
+      eval_feed_dict = {} if gen_eval_feed_dict_fn is None else gen_eval_feed_dict_fn()
       #eval_feed_dict.update(feed_dict)
       
       #------show how to perf debug
@@ -77,11 +77,11 @@ def train_once(sess,
       timer_ = gezi.Timer('sess run eval_ops')
       eval_results = sess.run(eval_ops, feed_dict=eval_feed_dict)
       timer_.print()
-      if deal_eval_results is not None:
+      if deal_eval_results_fn is not None:
         #@TODO user print should also use logging as a must ?
         #print(gezi.now_time(), epoch_str, 'eval_step: %d'%step, 'eval_metrics:', end='')
         logging.info2('{} eval_step: {} eval_metrics:'.format(epoch_str, step))
-        eval_stop = deal_eval_results(eval_results)
+        eval_stop = deal_eval_results_fn(eval_results)
 
       eval_loss = gezi.get_singles(eval_results)
       assert len(eval_loss) > 0
@@ -94,15 +94,15 @@ def train_once(sess,
       pass
 
   if ops is not None:
-    if deal_results is None and names is not None:
-      deal_results = lambda x: melt.print_results(x, names)
-    if deal_eval_results is None and eval_names is not None:
-      deal_eval_results = lambda x: melt.print_results(x, eval_names)
+    if deal_results_fn is None and names is not None:
+      deal_results_fn = lambda x: melt.print_results(x, names)
+    if deal_eval_results_fn is None and eval_names is not None:
+      deal_eval_results_fn = lambda x: melt.print_results(x, eval_names)
 
     if eval_names is None:
       eval_names = names 
 
-    feed_dict = {} if gen_feed_dict is None else gen_feed_dict()
+    feed_dict = {} if gen_feed_dict_fn is None else gen_feed_dict_fn()
     
     results = sess.run(ops, feed_dict=feed_dict) 
 
@@ -162,8 +162,8 @@ def train_once(sess,
       #print(gezi.now_time(), epoch_str, 'train_step:%d'%step, info.getvalue(), end=' ') 
       logging.info2('{} {} {}'.format(epoch_str, 'train_step:%d'%step, info.getvalue()))
       
-      if deal_results is not None:
-        stop = deal_results(results)
+      if deal_results_fn is not None:
+        stop = deal_results_fn(results)
   
   metric_evaluate = False
   # if metric_eval_function is not None \
@@ -172,7 +172,7 @@ def train_once(sess,
   #            or (metric_eval_interval_steps \
   #                and step % metric_eval_interval_steps == 0)))):
   #     metric_evaluate = True 
-  if metric_eval_function is not None \
+  if metric_eval_fn is not None \
     and (is_start \
       or (num_steps_per_epoch and step % num_steps_per_epoch == 0) \
            or (metric_eval_interval_steps \
@@ -180,7 +180,7 @@ def train_once(sess,
     metric_evaluate = True
   
   if metric_evaluate:
-     evaluate_results, evaluate_names = metric_eval_function()
+     evaluate_results, evaluate_names = metric_eval_fn()
 
   if is_start or eval_interval_steps and step % eval_interval_steps == 0:
     if ops is not None:

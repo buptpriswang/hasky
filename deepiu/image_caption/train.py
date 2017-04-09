@@ -303,11 +303,11 @@ def train_process(trainer, predictor=None):
       trainer, 
       predictor)
 
-    metric_eval_function = None
+    metric_eval_fn = None
     if FLAGS.metric_eval:
       #generative can do this also but it is slow so just ingore this
       if not algos_factory.is_generative(FLAGS.algo): 
-        metric_eval_function = lambda: evaluator.evaluate_scores(predictor, random=True)
+        metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
 
   init_fn = None
   summary_excls = None
@@ -323,16 +323,16 @@ def train_process(trainer, predictor=None):
 
   melt.print_global_varaiables()
   melt.apps.train_flow(ops, 
-                       gen_feed_dict=gen_feed_dict,
-                       deal_results=deal_results,
+                       gen_feed_dict_fn=gen_feed_dict,
+                       deal_results_fn=deal_results,
                        eval_ops=eval_ops,
-                       gen_eval_feed_dict=gen_eval_feed_dict,
-                       deal_eval_results=deal_eval_results,
+                       gen_eval_feed_dict_fn=gen_eval_feed_dict,
+                       deal_eval_results_fn=deal_eval_results,
                        optimizer=FLAGS.optimizer,
                        learning_rate=FLAGS.learning_rate,
                        num_steps_per_epoch=input_app.num_steps_per_epoch,
                        model_dir=FLAGS.model_dir,
-                       metric_eval_function=metric_eval_function,
+                       metric_eval_fn=metric_eval_fn,
                        summary_excls=summary_excls,
                        init_fn=init_fn,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
