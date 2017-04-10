@@ -28,6 +28,7 @@ import melt
 
 #@TODO should not use conf... change to config file parse instead  @FIXME!! this will cause problem in deepiu package
 from deepiu.image_caption.conf import IMAGE_FEATURE_LEN,TEXT_MAX_WORDS, MAX_EMB_WORDS
+
 from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
 
 class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):

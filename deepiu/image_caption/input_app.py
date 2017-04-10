@@ -198,6 +198,7 @@ class InputApp(object):
     return (image_name, image_feature, text, text_str), trainset
 
   def gen_train_neg_input(self, inputs, decode_neg_fn, trainset):
+    assert FLAGS.num_negs > 0
     neg_text, neg_text_str = inputs(
       trainset, 
       decode_fn=decode_neg_fn,
@@ -377,12 +378,11 @@ class InputApp(object):
       input_results[name] = None
 
     assert FLAGS.shuffle_then_decode, "since use sparse data for text, must shuffle then decode"
+
     inputs, decode_fn, decode_neg_fn = \
-     input.get_decodes(FLAGS.shuffle_then_decode, FLAGS.dynamic_batch_length, use_neg=(FLAGS.num_negs > 0))
+     input.get_decodes(use_neg=(FLAGS.num_negs > 0))
 
     input_results[self.input_train_name], trainset = self.gen_train_input(inputs, decode_fn)
-
-    print('decode_neg_fn', decode_neg_fn)
 
     if decode_neg_fn is not None:
       input_results[self.input_train_neg_name] = self.gen_train_neg_input(inputs, decode_neg_fn, trainset)

@@ -1,5 +1,5 @@
 input_path=/home/gezi/data/image-caption/flickr/
-dir=/home/gezi/temp/image-caption/flickr/seq-with-unk-inceptionV3-seqExample
+dir=/home/gezi/temp/image-caption/flickr/seq-with-unk-inceptionV3
 #dir=/tmp/image-caption/flickr
 
 train_data_path=$input_path/train/inceptionV3
@@ -11,4 +11,3 @@ fixed_valid_output_path=$dir/fixed_valid
 
 resource_dir=/home/gezi/exp/tieba/urate/
 
-write_sequence_example=1

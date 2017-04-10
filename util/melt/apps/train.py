@@ -153,6 +153,7 @@ def train_flow(ops,
     #but here I find without setting to cpu will be faster..
     #https://github.com/tensorflow/tensorflow/issues/4881
     #I've noticed same thing on cirrascale GPU machines - putting parameters on gpu:0 and using gpu->gpu transfer was a bit faster. I suppose this depends on particular details of hardware -- if you don't have p2p connectivity between your video cards then keeping parameters on CPU:0 gives faster training.
+    #err but for my pc no p2p, with PHB connection nvidia-smi topo -m, still hurt by set cpu.. may be should not put cpu here
     #with tf.device('/cpu:0'):
     learning_rate, learning_rate_decay_fn = gen_learning_rate()
     train_op = melt.layers.optimize_loss(

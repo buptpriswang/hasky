@@ -1,9 +1,4 @@
-use run.sh
-here will do all the things before you can train model using train.py/train-evaluate.py 
+cp ./app-conf/bow-inception/* .   
+sh ./run.sh   
 
-@FIXME
-prepare-train.sh will add --out_dir file 
-
-python calc_query_info.py ~/data/image-text-sim/train/train
-2.58573
-
+make sure cp ./app-conf/your-app/* . first  (bow, seq-with-unk, bow-inception..)

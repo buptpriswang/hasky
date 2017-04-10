@@ -9,6 +9,7 @@ python ./gen-records.py \
   --text $valid_data_path/results_20130124.token \
   --threads 12 \
   --ori_text_index -1 \
+  --write_sequence_example=$write_sequence_example \
   --vocab $train_output_path/vocab.bin \
   --out $valid_output_path \
   --name test

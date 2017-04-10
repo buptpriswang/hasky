@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -21,19 +22,25 @@ import six
 from tensorflow.python.framework import constant_op
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import logging_ops
+from tensorflow.python.summary import summary
 from tensorflow.python.ops import random_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import variables as vars_
+from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import optimizer as optimizer_
 from tensorflow.python.training import training as train
 
+
+import tensorflow as tf
+
 """
-copy from tensorflow.contrib.layers.python.layers.optimerzers.py version 0.11
+copy from tensorflow.contrib.layers.python.layers.optimerzers.py version 0.10
 """
+
 """Optimizer ops for use in layers and tf.learn."""
 
 OPTIMIZER_CLS_NAMES = {
@@ -45,18 +52,54 @@ OPTIMIZER_CLS_NAMES = {
     "SGD": train.GradientDescentOptimizer,
 }
 
-OPTIMIZER_SUMMARIES = [
-    "learning_rate",
+OPTIMIZER_SUMMARIES = ["learning_rate",
     "loss",
     "gradients",
-    "gradient_norm",
-]
+    "gradient_norm",]
 
+# from cifar10_multi_gpu_train.py
+def average_gradients(tower_grads):
+  """Calculate the average gradient for each shared variable across all towers.
+
+  Note that this function provides a synchronization point across all towers.
+
+  Args:
+    tower_grads: List of lists of (gradient, variable) tuples. The outer list
+      is over individual gradients. The inner list is over the gradient
+      calculation for each tower.
+  Returns:
+     List of pairs of (gradient, variable) where the gradient has been averaged
+     across all towers.
+  """
+  average_grads = []
+  for grad_and_vars in zip(*tower_grads):
+    # Note that each grad_and_vars looks like the following:
+    #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
+    grads = []
+    for g, _ in grad_and_vars:
+      # Add 0 dimension to the gradients to represent the tower.
+      expanded_g = tf.expand_dims(g, 0)
+
+      # Append on a 'tower' dimension which we will average over below.
+      grads.append(expanded_g)
+
+    # Average over the 'tower' dimension.
+    grad = tf.concat(grads, 0)
+    grad = tf.reduce_mean(grad, 0)
+
+    # Keep in mind that the Variables are redundant because they are shared
+    # across towers. So .. we will just return the first tower's pointer to
+    # the Variable.
+    v = grad_and_vars[0][1]
+    grad_and_var = (grad, v)
+    average_grads.append(grad_and_var)
+  return average_grads
 
 def optimize_loss(losses,
                   global_step,
                   learning_rate,
-                  optimizer,
+                  optimizer, 
+                  num_gpus=1,
                   gradient_noise_scale=None,
                   gradient_multipliers=None,
                   clip_gradients=None,
@@ -66,22 +109,6 @@ def optimize_loss(losses,
                   name=None,
                   summaries=None):
   """Given loss and parameters for optimizer, returns a training op.
-
-  Various ways of passing optimizers, include:
-    - string, name of the optimizer like 'SGD', 'Adam', see OPTIMIZER_CLS_NAMES
-        for full list. E.g. `optimize_loss(..., optimizer='Adam')`.
-    - function, takes learning rate `Tensor` as argument and must return
-        `Optimizer` instance. E.g. `optimize_loss(...,
-        optimizer=lambda lr: tf.train.MomentumOptimizer(lr, momentum=0.5))`.
-      Alternatively, if `learning_rate` is `None`, the function takes no
-      arguments. E.g. `optimize_loss(..., learning_rate=None,
-        optimizer=lambda: tf.train.MomentumOptimizer(0.5, momentum=0.5))`.
-    - class, subclass of `Optimizer` that takes only one required argument -
-        learning rate, such as AdamOptimizer, AdagradOptimizer.
-        E.g. `optimize_loss(..., optimizer=tf.train.AdagradOptimizer)`.
-    - object, instance of subclass of `Optimizer`.
-        E.g., `optimizer_loss(..., optimizer=tf.train.AdagradOptimizer(0.5))`.
-
   Args:
     loss: Tensor, 0 dimensional.
     global_step: Tensor, step counter for each update.
@@ -91,147 +118,138 @@ def optimize_loss(losses,
                  'Adam', 'Adagrad'. Full list in OPTIMIZER_CLS_NAMES constant.
                class should be sub-class of tf.Optimizer that implements
                  `compute_gradients` and `apply_gradients` functions.
-               optimizer instance should be instantion of `tf.Optimizer`
-                 sub-class and have `compute_gradients` and `apply_gradients`
-                 functions.
+               optimizer instance should be instantion of tf.Optimizer sub-class
+                 and have `compute_gradients` and `apply_gradients` functions.
     gradient_noise_scale: float or None, adds 0-mean normal noise scaled by this
                           value.
     gradient_multipliers: dict of variables or variable names to floats.
                           If present, gradients for specified
                           variables will be multiplied by given constant.
     clip_gradients: float or `None`, clips gradients by this value.
+    moving_average_decay: Deprecated. float or None, takes into account previous
+                          loss to make learning smoother due to outliers.
     learning_rate_decay_fn: function, takes `learning_rate` and `global_step`
                             `Tensor`s, returns `Tensor`.
                             Can be used to implement any learning rate decay
                             functions.
                             For example: tf.train.exponential_decay.
     update_ops: list of update `Operation`s to execute at each step. If `None`,
-                uses elements of UPDATE_OPS collection. The order of execution
-                between `update_ops` and `loss` is non-deterministic.
+                uses elements of UPDATE_OPS collection.
     variables: list of variables to optimize or
                `None` to use all trainable variables.
     name: The name for this operation is used to scope operations and summaries.
     summaries: List of internal quantities to visualize on tensorboard. If not
                set only the loss and the learning rate will be reported. The
                complete list is in OPTIMIZER_SUMMARIES.
-
   Returns:
     Training op.
-
   Raises:
     ValueError: if optimizer is wrong type.
   """
-  raise ValueError('tf.11 optimizer not supported yet!')
-  vars = losses + [global_step]
-  with vs.variable_scope(name, "OptimizeLoss", losses):
-    # Update ops take UPDATE_OPS collection if not provided.
-    if update_ops is None:
-      update_ops = set(ops.get_collection(ops.GraphKeys.UPDATE_OPS))
-    # Make sure update ops are ran before computing loss.
-    if update_ops:
-      loss = control_flow_ops.with_dependencies(list(update_ops), loss)
+  with vs.variable_scope(name, "OptimizeLoss", losses + [global_step]):
+    # # Update ops take UPDATE_OPS collection if not provided.
+    # if update_ops is None:
+    #   update_ops = set(ops.get_collection(ops.GraphKeys.UPDATE_OPS))
+    # # Make sure update ops are ran before computing loss.
+    # if update_ops:
+    #   #loss = control_flow_ops.with_dependencies(list(update_ops), loss)
+    #   raise ValueError('update ops not supported yet for multi gpu')
 
     # Learning rate variable, with possible decay.
-    lr = None
-    if learning_rate is not None:
-      if (isinstance(learning_rate, ops.Tensor)
-          and learning_rate.get_shape().ndims == 0):
-        lr = learning_rate
-      elif isinstance(learning_rate, float):
-        lr = vs.get_variable(
-            "learning_rate", [], trainable=False,
-            initializer=init_ops.constant_initializer(learning_rate))
-      else:
-        raise ValueError("Learning rate should be 0d Tensor or float. "
-                         "Got %s of type %s" % (
-                             str(learning_rate), str(type(learning_rate))))
+    if (isinstance(learning_rate, ops.Tensor) and learning_rate.get_shape().ndims == 0):
+      lr = learning_rate
+    elif isinstance(learning_rate, float):
+      lr = vs.get_variable("learning_rate", [], trainable=False,
+          initializer=init_ops.constant_initializer(learning_rate))
+    else:
+      raise ValueError("Learning rate should be 0d Tensor or float. "
+                       "Got %s of type %s" % (str(learning_rate), str(type(learning_rate))))
     if summaries is None:
       summaries = ["loss", "learning_rate"]
-    if learning_rate is not None and learning_rate_decay_fn is not None:
+    if learning_rate_decay_fn is not None:
       lr = learning_rate_decay_fn(lr, global_step)
       if "learning_rate" in summaries:
-        logging_ops.scalar_summary("learning_rate", lr)
+        summary.scalar("learning_rate", lr)
 
     # Create optimizer, given specified parameters.
     if isinstance(optimizer, six.string_types):
-      if lr is None:
-        raise ValueError("Learning rate is None, but should be specified if "
-                         "optimizer is string (%s)." % optimizer)
       if optimizer not in OPTIMIZER_CLS_NAMES:
-        raise ValueError(
-            "Optimizer name should be one of [%s], you provided %s."
-            % (", ".join(OPTIMIZER_CLS_NAMES), optimizer))
+        raise ValueError("Optimizer name should be one of [%s], you provided %s." % (", ".join(OPTIMIZER_CLS_NAMES), optimizer))
       opt = OPTIMIZER_CLS_NAMES[optimizer](learning_rate=lr)
-    elif (isinstance(optimizer, type)
-          and issubclass(optimizer, optimizer_.Optimizer)):
-      if lr is None:
-        raise ValueError("Learning rate is None, but should be specified if "
-                         "optimizer is class (%s)." % optimizer)
+    elif isinstance(optimizer, type) and issubclass(optimizer,
+                                                    optimizer_.Optimizer):
       opt = optimizer(learning_rate=lr)
     elif isinstance(optimizer, optimizer_.Optimizer):
       opt = optimizer
-    elif callable(optimizer):
-      if learning_rate is not None:
-        opt = optimizer(lr)
-      else:
-        opt = optimizer()
-      if not isinstance(opt, optimizer_.Optimizer):
-        raise ValueError("Unrecognized optimizer: function should return "
-                         "subclass of Optimizer. Got %s." % str(opt))
     else:
       raise ValueError("Unrecognized optimizer: should be string, "
-                       "subclass of Optimizer, instance of "
-                       "subclass of Optimizer or function with one argument. "
-                       "Got %s." % str(optimizer))
+                       "subclass of Optimizer or instance of "
+                       "subclass of Optimizer. Got %s." % str(optimizer))
 
-    # All trainable variables, if specific variables are not specified.
-    if variables is None:
-      variables = vars_.trainable_variables()
 
-    # Compute gradients.
-    gradients = opt.compute_gradients(loss, variables)
-
-    # Optionally add gradient noise.
-    if gradient_noise_scale is not None:
-      gradients = _add_scaled_noise_to_gradients(
-          gradients, gradient_noise_scale)
-
-    # Multiply some gradients.
-    if gradient_multipliers is not None:
-      gradients = _multiply_gradients(gradients, gradient_multipliers)
-
-    # Optionally clip gradients by global norm.
-    if clip_gradients is not None:
-      gradients = _clip_gradients_by_norm(gradients, clip_gradients)
-
+    # Calculate the gradients for each model tower.
+    tower_grads = []
+    for i in range(num_gpus):
+      with tf.device('/gpu:%d' % i):
+        with tf.name_scope('%s_%d' % ('tower', i)) as scope:
+          # All trainable variables, if specific variables are not specified.
+          
+          #if variables is None:
+          #  variables = vars_.trainable_variables()
+          # Compute gradients.
+          loss = losses[i]
+          #gradients = opt.compute_gradients(loss, variables)
+          gradients = opt.compute_gradients(loss)
+          
+          # Optionally add gradient noise.
+          if gradient_noise_scale is not None:
+            gradients = _add_scaled_noise_to_gradients(gradients, gradient_noise_scale)
+          # Multiply some gradients.
+          if gradient_multipliers is not None:
+            gradients = _multiply_gradients(gradients, gradient_multipliers)
+          # Optionally clip gradients by global norm.
+          if clip_gradients is not None:
+            gradients = _clip_gradients_by_norm(gradients, clip_gradients)
+          
+          tower_grads.append(gradients)
+      
     # Add scalar summary for loss.
     if "loss" in summaries:
-      logging_ops.scalar_summary("loss", loss)
+      summary.scalar("learning_rate", lr)
 
-    # Add histograms for variables, gradients and gradient norms.
-    for gradient, variable in gradients:
-      if isinstance(gradient, ops.IndexedSlices):
-        grad_values = gradient.values
-      else:
-        grad_values = gradient
+    #@TODO chg now just remove below  TODO FIXME add gradient monitor
+    ## Add histograms for variables, gradients and gradient norms.
+    #for gradient, variable in gradients:
+    #  if isinstance(gradient, ops.IndexedSlices):
+    #    grad_values = gradient.values
+    #  else:
+    #    grad_values = gradient
 
-      if grad_values is not None:
-        if "gradients" in summaries:
-          logging_ops.histogram_summary(variable.name + "/gradients",
-                                        grad_values)
-        if "gradient_norm" in summaries:
-          logging_ops.histogram_summary(variable.name + "/gradient_norm",
-                                        clip_ops.global_norm([grad_values]))
+    #  if grad_values is not None:
+    #    if "gradients" in summaries:
+    #      logging_ops.histogram_summary(variable.name + "/gradients",
+    #                                    grad_values)
+    #    if "gradient_norm" in summaries:
+    #      logging_ops.histogram_summary(variable.name + "/gradient_norm",
+    #                                    clip_ops.global_norm([grad_values]))
+
+    #if FLAGS.monitor_level > 1 and FLAGS.num_gpus == 0:
+    #  melt.monitor_gradients_from_loss(loss)
+
+    gradients = average_gradients(tower_grads)
 
     # Create gradient updates.
     grad_updates = opt.apply_gradients(gradients,
                                        global_step=global_step,
                                        name="train")
+    # # Make sure total_loss is valid.
+    # final_loss = array_ops.check_numerics(loss, "Loss is inf or nan")
 
-    # Ensure the train_tensor computes grad_updates.
-    train_tensor = control_flow_ops.with_dependencies([grad_updates], loss)
+    # # Ensure the train_tensor computes grad_updates.
+    # train_tensor = control_flow_ops.with_dependencies([grad_updates], final_loss)
 
-    return train_tensor
+    #return train_tensor
+    return grad_updates
 
 
 def _clip_gradients_by_norm(grads_and_vars, clip_gradients):
@@ -263,11 +281,9 @@ def _multiply_gradients(grads_and_vars, gradient_multipliers):
   """Multiply specified gradients."""
   multiplied_grads_and_vars = []
   for grad, var in grads_and_vars:
-    if (grad is not None and
-        (var in gradient_multipliers or var.name in gradient_multipliers)):
+    if (grad is not None and (var in gradient_multipliers or var.name in gradient_multipliers)):
       key = var if var in gradient_multipliers else var.name
-      multiplier = constant_op.constant(
-          gradient_multipliers[key], dtype=dtypes.float32)
+      multiplier = constant_op.constant(gradient_multipliers[key], dtype=dtypes.float32)
       if isinstance(grad, ops.IndexedSlices):
         grad_values = grad.values * multiplier
         grad = ops.IndexedSlices(grad_values, grad.indices, grad.dense_shape)

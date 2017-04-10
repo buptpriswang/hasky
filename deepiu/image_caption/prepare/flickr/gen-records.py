@@ -42,7 +42,9 @@ flags.DEFINE_integer('ori_text_index', -2, """defualt assume the last colums as 
                                               text(segged text) so -2, for en corpuse wich do not 
                                               need seg, will only have ori_text so ori_text index will be -1 """)
 
+
 flags.DEFINE_boolean('write_raw_image_bytes', True, '')
+flags.DEFINE_boolean('write_sequence_example', False, '')
 
 #flags.DEFINE_boolean('encode_unk', False, 'encode unk in output word ids')
 #flags.DEFINE_integer('num_reserved_ids', 1, 'reserve one for pad, so to make unk as 1, diff from pad')
@@ -111,17 +113,18 @@ def parse_text_file(text_file):
   for image in text_map:
     text_map[image] = list(text_map[image])
 
+
 images = {}
 def _parse_line(line, writer, thread_index = 0):
   l = line.rstrip().split('\t')
   image_name = l[0]
   image_feature = [float(x) for x in l[1:]]
   if image_name not in text_map:
-    print('image %s ignore'%image_name)
+    print('image ', image_name, 'ignore ', 'name_len ', len(image_name), len(image_name.strip()))
     return
   else:
     image_path =  FLAGS.image_dir + '/' + image_name
-    print(image_path)
+    #print(image_path)
 
     if FLAGS.write_raw_image_bytes:
       with tf.gfile.FastGFile(image_path, "r") as f:
@@ -135,7 +138,6 @@ def _parse_line(line, writer, thread_index = 0):
     #except (tf.errors.InvalidArgumentError, AssertionError):
     #  print("Skipping file with invalid JPEG data: %s" % image_path)
     #  return
-
       
     for text, ori_text in text_map[image_name]:
       word_ids = [vocabulary.id(word) for word in text.split(WORDS_SEP) if vocabulary.has(word) or ENCODE_UNK]
@@ -146,13 +148,27 @@ def _parse_line(line, writer, thread_index = 0):
       if FLAGS.pad:
         word_ids = gezi.pad(word_ids, TEXT_MAX_WORDS)
 
-      example = tf.train.Example(features=tf.train.Features(feature={
-        'image_name': melt.bytes_feature(image_name),
-        'image_data': melt.bytes_feature(encoded_image),
-        'image_feature': melt.float_feature(image_feature),
-        'text': melt.int_feature(word_ids),
-        'text_str': melt.bytes_feature(ori_text),
-        }))
+      if not FLAGS.write_sequence_example:
+        example = tf.train.Example(features=tf.train.Features(feature={
+          'image_name': melt.bytes_feature(image_name),
+          'image_data': melt.bytes_feature(encoded_image),
+          'image_feature': melt.float_feature(image_feature),
+          'text': melt.int64_feature(word_ids),
+          'text_str': melt.bytes_feature(ori_text),
+          }))
+      else:
+        example = tf.train.SequenceExample(
+          context=melt.features(
+            {
+              'image_name': melt.bytes_feature(image_name),
+              'image_data': melt.bytes_feature(encoded_image),
+              'image_feature': melt.float_feature(image_feature),
+              'text_str': melt.bytes_feature(ori_text),
+             }),
+          feature_lists=melt.feature_lists(
+          { 
+            'text': melt.int64_feature_list(word_ids)
+          }))
      
       if FLAGS.np_save:
         gtexts[thread_index].append(word_ids)

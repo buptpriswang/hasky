@@ -40,6 +40,8 @@ def inputs(files, decode_fn, batch_size=64,
            dynamic_pad=False,
            bucket_boundaries=None,
            length_index=None,
+           length_fn=None,
+           keep_fn=None,
            name='input'):
   """Reads input data num_epochs times.
   for sparse input here will do:
@@ -74,8 +76,10 @@ def inputs(files, decode_fn, batch_size=64,
 
   assert len(files) > 0
     
-  if not min_after_dequeue : min_after_dequeue = melt.tfrecords.read.MIN_AFTER_QUEUE
-  if not num_epochs: num_epochs = None
+  if not min_after_dequeue:
+    min_after_dequeue = melt.tfrecords.read.MIN_AFTER_QUEUE
+  if not num_epochs: 
+    num_epochs = None
   
   if fix_random:
     if seed is None:
@@ -127,7 +131,8 @@ def inputs(files, decode_fn, batch_size=64,
     #   determines the maximum we will prefetch.  Recommendation:
     #   min_after_dequeue + (num_threads + a small safety margin) * batch_size
     #@TODO cifa10 always use num_prefetch_batches = 3, 3 * batch_size, check which is better
-    if not num_prefetch_batches: num_prefetch_batches = num_threads + 3
+    if not num_prefetch_batches:
+      num_prefetch_batches = num_threads + 3
 
     capacity = min_after_dequeue + num_prefetch_batches * batch_size
 
@@ -155,13 +160,20 @@ def inputs(files, decode_fn, batch_size=64,
       decoded_example = list(_read_decode(filename_queue, decode_fn))
       num_threads = 1 if fix_random else num_threads
       if bucket_boundaries:
-        assert length_index, ' you must set length_index for bucket'
+        if not isinstance(bucket_boundaries, (list, tuple)):
+          bucket_boundaries = [int(x) for x in bucket_boundaries.split(',') if x]
+        if length_index is not None:
+          input_length=decoded_example[length_index]
+        else:
+          assert length_fn is not None, 'you must set length_index or pass length_fn'
+          input_length = length_fn(decoded_example)
+        keep_input = input_length >= 1 if keep_fn is None else keep_fn(decoded_example)
         _, batch = tf.contrib.training.bucket_by_sequence_length(
-              input_length=tf.to_int32(decoded_example[length_index]),
+              input_length=tf.to_int32(input_length),
               bucket_boundaries=bucket_boundaries,
               tensors=decoded_example,
               batch_size=batch_size,
-              keep_input=decoded_example[length_index] >= 1,
+              keep_input=keep_input,
               num_threads=num_threads,
               dynamic_pad=True,
               capacity=capacity,

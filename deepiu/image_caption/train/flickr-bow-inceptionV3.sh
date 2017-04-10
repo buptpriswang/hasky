@@ -1,9 +1,9 @@
-cp ./prepare/flickr/app-conf/bow/conf.py conf.py
-source ./prepare/flickr/app-conf/bow/config 
+cp ./prepare/flickr/app-conf/bow-inceptionV3/conf.py conf.py
+source ./prepare/flickr/app-conf/bow-inceptionV3/config
 
 #dir=/home/gezi/temp.local/image-caption/ 
 dir=/home/gezi/temp/image-caption/ 
-model_dir=$dir/model.flickr.bow 
+model_dir=$dir/model.flickr.bow.inceptionV3
 mkdir -p $model_dir
 
 python ./train.py \
@@ -14,6 +14,7 @@ python ./train.py \
 	--vocab=$train_output_path/vocab.bin \
   --num_records_file=$train_output_path/num_records.txt \
   --image_url_prefix='D:\data\image-text-sim\flickr\imgs\' \
+  --image_feature_file=$input_path/test/inceptionV3/img2fea.txt \
   --batch_size 16 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 3 \

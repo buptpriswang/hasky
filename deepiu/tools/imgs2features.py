@@ -51,7 +51,7 @@ def imgs2features(imgs):
 def write_features(pics, imgs):
   img_features = imgs2features(imgs)
   for pic, img_feature in zip(pics, img_features):
-    print(pic, '\t', '\t'.join([str(x) for x in img_feature]))
+    print(pic, '\t'.join([str(x) for x in img_feature]), sep='\t')
 
 def run():
   imgs = []

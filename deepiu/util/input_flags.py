@@ -24,7 +24,6 @@ flags.DEFINE_integer('fixed_eval_batch_size', 30, """must >= num_fixed_evaluate_
                                                      if not == can be show different fixed each time
                                                      usefull if you want only show see 2 and 
                                                      be different each time
-
                                                      if you want see 2 by 2 seq
                                                      then num_fixed_evaluate_example = 2
                                                           fixed_eval_batch_size = 2
@@ -39,7 +38,21 @@ flags.DEFINE_integer('num_threads', 12, """threads for reading input tfrecords,
 
 flags.DEFINE_boolean('shuffle_files', True, '')
 flags.DEFINE_boolean('batch_join', True, '')
-flags.DEFINE_boolean('shuffle_then_decode', True, '')
+flags.DEFINE_boolean('shuffle_batch', True, '')
+
+flags.DEFINE_boolean('shuffle_then_decode', True, 
+                     """ actually this is decided by is_sequence_example.. 
+                     if is_sequence_example then False, if just example not sequence then True since is sparse
+                     TODO remove this
+                     """)
+flags.DEFINE_boolean('is_sequence_example', False, '')
+flags.DEFINE_string('buckets', '', 'empty meaning not use, other wise looks like 5,10,15,30')
+
+flags.DEFINE_boolean('dynamic_batch_length', True, 
+                     """very important False means all batch same size! 
+                        otherwise use dynamic batch size
+                        Now only not sequence_example data will support dyanmic_batch_length=False""")
+  
 
 flags.DEFINE_integer('num_negs', 1, '0 means no neg')
 
@@ -55,13 +68,13 @@ flags.DEFINE_integer('min_records', 12, '')
 flags.DEFINE_integer('num_records', 12, '')
 
 
-#---------- inpu reader
+#---------- input reader
 flags.DEFINE_integer('min_after_dequeue', 0, """by deafualt will be 500, 
                                                 set to large number for production training 
                                                 for better randomness""")
 flags.DEFINE_integer('num_prefetch_batches', 0, '')
 
-  
+
 #----------eval
 flags.DEFINE_boolean('show_eval', True, '')
 
@@ -74,14 +87,13 @@ flags.DEFINE_integer('seed', 1024, '')
 flags.DEFINE_boolean('fix_sequence', False, '')
 
 #----------strategy 
-flags.DEFINE_boolean('dynamic_batch_length', True, """very important False means all batch same size! 
-                                      otherwise use dynamic batch size""")
+
 flags.DEFINE_string('seg_method', 'default', '')
 flags.DEFINE_boolean('feed_single', False, '')
 
 flags.DEFINE_boolean('gen_predict', True, '')
 
-#--------for image caption
+#--------for image caption  TODO move to image_caption/input.py ?
 flags.DEFINE_boolean('pre_calc_image_feature', True, '')
 flags.DEFINE_boolean('distort_image', False, '')
 flags.DEFINE_string('image_model_name', 'InceptionV3', '')

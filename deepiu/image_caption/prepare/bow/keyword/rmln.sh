@@ -1,2 +1,0 @@
-rm data 
-rm conf

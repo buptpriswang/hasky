@@ -31,7 +31,8 @@ def inputs(files, decode_fn, batch_size=64,
            num_prefetch_batches=None, 
            dynamic_pad=False,
            bucket_boundaries=None,
-           length_name=None,
+           length_index=None,
+           length_fn=None,
            name='input'):
   """Reads input data num_epochs times.
   for sparse input here will do:
@@ -94,8 +95,10 @@ def inputs(files, decode_fn, batch_size=64,
 
   assert len(files) > 0
 
-  if not min_after_dequeue : min_after_dequeue = melt.tfrecords.read.MIN_AFTER_QUEUE
-  if not num_epochs: num_epochs = None
+  if not min_after_dequeue : 
+    min_after_dequeue = melt.tfrecords.read.MIN_AFTER_QUEUE
+  if not num_epochs: 
+    num_epochs = None
 
   if fix_random:
     if seed is None:
@@ -146,7 +149,8 @@ def inputs(files, decode_fn, batch_size=64,
     #   determines the maximum we will prefetch.  Recommendation:
     #   min_after_dequeue + (num_threads + a small safety margin) * batch_size
     #@TODO cifa10 always use num_prefetch_batches = 3, 3 * batch_size, check which is better
-    if not num_prefetch_batches: num_prefetch_batches = num_threads + 3
+    if not num_prefetch_batches: 
+      num_prefetch_batches = num_threads + 3
     capacity = min_after_dequeue + num_prefetch_batches * batch_size
     #@TODO diff between tf.batch_join and tf.batch, batch_join below means shuffle_batch_join.. TODO
     if batch_join:

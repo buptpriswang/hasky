@@ -21,7 +21,7 @@ python ./train.py \
   --keep_interval 0.5 \
   --monitor_level 2 \
   --num_negs 0 \
-  --num_gpus 0 \
+  --num_gpus 2 \
   --use_neg 0 \
   --debug 0 \
   --feed_dict 0 \

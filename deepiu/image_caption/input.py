@@ -15,6 +15,9 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+
+import functools
+
 import melt
 
 try:
@@ -23,25 +26,20 @@ try:
 except Exception:
   from deepiu.image_caption.conf import IMAGE_FEATURE_LEN, TEXT_MAX_WORDS
 
-def _decode(example, parse, dynamic_batch_length):
+
+def _decode(example, parse):
+  features_dict = {
+     'image_name': tf.FixedLenFeature([], tf.string),
+     'text': tf.VarLenFeature(tf.int64),
+     'text_str': tf.FixedLenFeature([], tf.string),
+    }
+
   if FLAGS.pre_calc_image_feature:
-    features = parse(
-        example,
-        features={
-            'image_name': tf.FixedLenFeature([], tf.string),
-            'image_feature': tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32),
-            'text': tf.VarLenFeature(tf.int64),
-            'text_str': tf.FixedLenFeature([], tf.string),
-        })
+    features_dict['image_feature'] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
   else:
-    features = parse(
-        example,
-        features={
-            'image_name': tf.FixedLenFeature([], tf.string),
-            'image_data': tf.FixedLenFeature([], dtype=tf.string),
-            'text': tf.VarLenFeature(tf.int64),
-            'text_str': tf.FixedLenFeature([], tf.string),
-        })
+    features_dict['image_data'] = tf.FixedLenFeature([], dtype=tf.string)
+
+  features = parse(example, features=features_dict)
 
   image_name = features['image_name']
   if FLAGS.pre_calc_image_feature:
@@ -49,21 +47,50 @@ def _decode(example, parse, dynamic_batch_length):
   else:
     image_feature = features['image_data']
 
-  text = features['text']
-  maxlen = 0 if dynamic_batch_length else TEXT_MAX_WORDS
-  text = melt.sparse_tensor_to_dense(text, maxlen)
   text_str = features['text_str']
+  
+  text = features['text']
+  maxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
+  text = melt.sparse_tensor_to_dense(text, maxlen)
   
   return image_name, image_feature, text, text_str
 
-def decode_examples(serialized_examples, dynamic_batch_length):
-  return _decode(serialized_examples, tf.parse_example, dynamic_batch_length)
+def decode_examples(examples):
+  return _decode(examples, tf.parse_example)
 
-def decode_example(serialized_example, dynamic_batch_length):
-  return _decode(serialized_example, tf.parse_single_example, dynamic_batch_length)
+def decode_example(example):
+  return _decode(example, tf.parse_single_example)
+
+def decode_sequence_example(example):
+  context_features_dict = {
+     'image_name': tf.FixedLenFeature([], tf.string),
+     'text_str': tf.FixedLenFeature([], tf.string),
+    }
+
+  if FLAGS.pre_calc_image_feature:
+    context_features_dict['image_feature'] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
+  else:
+    context_features_dict['image_data'] = tf.FixedLenFeature([], dtype=tf.string)
+
+  features, sequence_features = tf.parse_single_sequence_example(example, 
+                                              context_features=context_features_dict,
+                                              sequence_features={
+                                                'text': tf.FixedLenSequenceFeature([], dtype=tf.int64)
+                                                })
+
+  image_name = features['image_name']
+  if FLAGS.pre_calc_image_feature:
+    image_feature = features['image_feature']
+  else:
+    image_feature = features['image_data']
+  text_str = features['text_str']
+
+  text = sequence_features['text']
+  
+  return image_name, image_feature, text, text_str
 
 #---------------for negative sampling using tfrecords
-def _decode_neg(example, parse, dynamic_batch_length):
+def _decode_neg(example, parse):
   features = parse(
       example,
       features={
@@ -72,28 +99,56 @@ def _decode_neg(example, parse, dynamic_batch_length):
       })
 
   text = features['text']
-  maxlen = 0 if dynamic_batch_length else TEXT_MAX_WORDS
+  maxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
   text = melt.sparse_tensor_to_dense(text, maxlen)
   text_str = features['text_str']
   
   return text, text_str
 
-def decode_neg_examples(serialized_examples, dynamic_batch_length):
-  return _decode_neg(serialized_examples, tf.parse_example, dynamic_batch_length)
+def decode_neg_examples(examples):
+  return _decode_neg(examples, tf.parse_example)
 
-def decode_neg_example(serialized_example):
-  return _decode_neg(serialized_example, tf.parse_single_example, dynamic_batch_length)
+def decode_neg_example(example):
+  return _decode_neg(example, tf.parse_single_example)
+
+def decode_neg_sequence_example(example):
+  features, sequence_features = tf.parse_single_sequence_example(
+      example,
+      context_features={
+          'text_str': tf.FixedLenFeature([], tf.string),
+      },
+      sequence_features={
+          'text': tf.FixedLenSequenceFeature([], dtype=tf.int64),
+        })
+
+  text_str = features['text_str']
+  text = sequence_features['text']
+  
+  return text, text_str
 
 #-----------utils
-def get_decodes(shuffle_then_decode, dynamic_batch_length, use_neg=True):
-  if shuffle_then_decode:
-    inputs = melt.shuffle_then_decode.inputs
-    decode = lambda x: decode_examples(x, dynamic_batch_length)
-    decode_neg = (lambda x: decode_neg_examples(x, dynamic_batch_length)) if use_neg else None
+def get_decodes(use_neg=True):
+  if FLAGS.is_sequence_example:
+    inputs = functools.partial(melt.decode_then_shuffle.inputs,
+                               dynamic_pad=True,
+                               bucket_boundaries=FLAGS.buckets,
+                               length_fn=lambda x: tf.shape(x[-2])[-1])
+    decode = lambda x: decode_sequence_example(x)
+    assert not (use_neg and FLAGS.buckets), 'if use neg, discriminant method do not use buckets'
+    decode_neg = (lambda x: decode_neg_sequence_example(x)) if use_neg else None
   else:
-    inputs = melt.decode_then_shuffle.inputs
-    decode = lambda x: decode_example(x, dynamic_batch_length)
-    decode_neg = (lambda x: decode_neg_example(x, dynamic_batch_length)) if use_neg else None
+    if FLAGS.shuffle_then_decode:
+      inputs = melt.shuffle_then_decode.inputs
+      decode = lambda x: decode_examples(x)
+      decode_neg = (lambda x: decode_neg_examples(x)) if use_neg else None
+      print('decode_neg', decode_neg)
+
+    else:
+      assert False, 'since have sparse data must use shuffle_then_decode'
+      inputs = melt.decode_then_shuffle.inputs
+      decode = lambda x: decode_example(x)
+      decode_neg = (lambda x: decode_neg_example(x)) if use_neg else None
+
   return inputs, decode, decode_neg
 
 def reshape_neg_tensors(neg_ops, batch_size, num_negs):

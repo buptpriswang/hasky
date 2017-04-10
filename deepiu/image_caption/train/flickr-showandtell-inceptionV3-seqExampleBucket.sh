@@ -1,8 +1,9 @@
-cp ./prepare/seq-with-unk/flickr/conf.py conf.py
-source ./prepare/seq-with-unk/flickr/config 
+conf_path=./prepare/flickr/app-conf/seq-with-unk-inceptionV3-seqExample/ 
+cp $conf_path/conf.py conf.py 
+source $conf_path/config 
 
 dir=/home/gezi/temp/image-caption/ 
-model_dir=$dir/model.flickr.showandtell
+model_dir=$dir/model.flickr.showandtell.inceptionV3.seqExampleBucket
 mkdir -p $model_dir
 
 python ./train.py \
@@ -13,6 +14,7 @@ python ./train.py \
   --vocab=$train_output_path/vocab.bin \
   --num_records_file=$train_output_path/num_records.txt \
   --image_url_prefix='D:\data\image-text-sim\flickr\imgs\' \
+  --image_feature_file=$input_path/test/inceptionV3/img2fea.txt \
   --model_dir $model_dir \
   --show_eval 1 \
   --fixed_eval_batch_size 10 \
@@ -26,6 +28,8 @@ python ./train.py \
   --debug 0 \
   --feed_dict 0 \
   --algo show_and_tell \
+  --is_sequence_example 1 \
+  --buckets 5,10,15,20,25,40,50 \
   --interval 100 \
   --eval_interval 1000\
   --seg_method en \
@@ -36,7 +40,7 @@ python ./train.py \
   --shuffle_then_decode 1 \
   --margin 0.5 \
   --learning_rate 0.01 \
-  --batch_size 16 \
+  --batch_size 512 \
   --num_layers 1 \
   --keep_prob 1 \
   --num_sampled 0 \ 

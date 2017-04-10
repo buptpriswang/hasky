@@ -164,6 +164,7 @@ def get_image_names_and_features():
     else:
       lines = open(FLAGS.image_feature_file).readlines()
       image_names = np.array([line.split('\t')[0] for line in lines])
+      print('---------------------', IMAGE_FEATURE_LEN)
       if FLAGS.pre_calc_image_feature:
         image_features = np.array([[float(x) for x in line.split('\t')[1: 1 + IMAGE_FEATURE_LEN]] for line in lines])
       else:
