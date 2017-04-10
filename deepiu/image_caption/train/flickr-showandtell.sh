@@ -1,5 +1,6 @@
-cp ./prepare/seq-with-unk/flickr/conf.py conf.py
-source ./prepare/seq-with-unk/flickr/config 
+conf_dir=./prepare/flickr/app-conf/seq-with-unk/
+cp $conf_dir/conf.py conf.py
+source $conf_dir/config 
 
 dir=/home/gezi/temp/image-caption/ 
 model_dir=$dir/model.flickr.showandtell

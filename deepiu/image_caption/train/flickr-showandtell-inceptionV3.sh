@@ -36,8 +36,8 @@ python ./train.py \
   --shuffle_then_decode 1 \
   --margin 0.5 \
   --learning_rate 0.01 \
-  --batch_size 256 \
-  --num_gpus 2 \
+  --batch_size 16 \
+  --num_gpus 0 \
   --num_layers 1 \
   --keep_prob 1 \
   --num_sampled 0 \ 

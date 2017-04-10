@@ -25,7 +25,7 @@ def _read(filename_queue):
 def inputs(files, decode_fn, batch_size=64,
            num_epochs = None, num_threads=12, 
            shuffle_files=True, batch_join=True, shuffle_batch=True, 
-           min_after_dequeue=None, seed=None, 
+           min_after_dequeue=None, seed=None, enqueue_many=False,
            fix_random=False, no_random=False, fix_sequence=False,
            allow_smaller_final_batch=False, 
            num_prefetch_batches=None, 
@@ -163,6 +163,7 @@ def inputs(files, decode_fn, batch_size=64,
             capacity=capacity,
             min_after_dequeue=min_after_dequeue,
             seed=seed,
+            enqueue_many=enqueue_many,
             allow_smaller_final_batch=allow_smaller_final_batch,
             name='shuffle_batch_join_queue')
       else:
@@ -170,6 +171,7 @@ def inputs(files, decode_fn, batch_size=64,
           batch_list, 
           batch_size=batch_size, 
           capacity=capacity,
+          enqueue_many=enqueue_many,
           allow_smaller_final_batch=allow_smaller_final_batch,
           dynamic_pad=dynamic_pad,
           name='batch_join_queue')
@@ -184,6 +186,7 @@ def inputs(files, decode_fn, batch_size=64,
             capacity=capacity,
             min_after_dequeue=min_after_dequeue,
             seed=seed,
+            enqueue_many=enqueue_many,
             allow_smaller_final_batch=allow_smaller_final_batch,
             name='shuffle_batch_queue')		    
       else:	    
@@ -193,6 +196,7 @@ def inputs(files, decode_fn, batch_size=64,
             #@TODO to make really fxied result use num_threads=1, may be shuffle_batch will be fix random?
             num_threads=num_threads,
             capacity=capacity,
+            enqueue_many=enqueue_many,
             allow_smaller_final_batch=allow_smaller_final_batch,
             dynamic_pad=dynamic_pad,
             name='batch_queue')
