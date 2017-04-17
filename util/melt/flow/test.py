@@ -36,8 +36,8 @@ def test_flow(ops, names=None, gen_feed_dict=None, deal_results=None, model_dir=
 
   if not os.path.isdir(model_dir):
     model_dir = os.path.dirname(model_dir)
-  summary_op = tf.merge_all_summaries()
-  summary_writer = tf.train.SummaryWriter(model_dir, sess.graph)
+  summary_op = tf.summary.merge_all()
+  summary_writer = tf.summary.FileWriter(model_dir, sess.graph)
 
   coord = tf.train.Coordinator()
   threads = tf.train.start_queue_runners(sess=sess, coord=coord)

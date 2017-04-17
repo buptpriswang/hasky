@@ -30,12 +30,12 @@ except Exception:
 def _decode(example, parse):
   features_dict = {
      'image_name': tf.FixedLenFeature([], tf.string),
-     'text': tf.VarLenFeature(tf.int64),
-     'text_str': tf.FixedLenFeature([], tf.string),
+     FLAGS.decode_name: tf.VarLenFeature(tf.int64),
+     FLAGS.decode_str_name: tf.FixedLenFeature([], tf.string),
     }
 
   if FLAGS.pre_calc_image_feature:
-    features_dict['image_feature'] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
+    features_dict[FLAGS.image_feature_name] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
   else:
     features_dict['image_data'] = tf.FixedLenFeature([], dtype=tf.string)
 
@@ -43,13 +43,13 @@ def _decode(example, parse):
 
   image_name = features['image_name']
   if FLAGS.pre_calc_image_feature:
-    image_feature = features['image_feature']
+    image_feature = features[FLAGS.image_feature_name]
   else:
     image_feature = features['image_data']
 
-  text_str = features['text_str']
+  text_str = features[FLAGS.decode_str_name]
   
-  text = features['text']
+  text = features[FLAGS.decode_name]
   maxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
   text = melt.sparse_tensor_to_dense(text, maxlen)
   
@@ -64,28 +64,28 @@ def decode_example(example):
 def decode_sequence_example(example):
   context_features_dict = {
      'image_name': tf.FixedLenFeature([], tf.string),
-     'text_str': tf.FixedLenFeature([], tf.string),
+     FLAGS.decode_str_name: tf.FixedLenFeature([], tf.string),
     }
 
   if FLAGS.pre_calc_image_feature:
-    context_features_dict['image_feature'] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
+    context_features_dict[FLAGS.image_feature_name] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
   else:
     context_features_dict['image_data'] = tf.FixedLenFeature([], dtype=tf.string)
 
   features, sequence_features = tf.parse_single_sequence_example(example, 
                                               context_features=context_features_dict,
                                               sequence_features={
-                                                'text': tf.FixedLenSequenceFeature([], dtype=tf.int64)
+                                                 FLAGS.decode_name: tf.FixedLenSequenceFeature([], dtype=tf.int64)
                                                 })
 
   image_name = features['image_name']
   if FLAGS.pre_calc_image_feature:
-    image_feature = features['image_feature']
+    image_feature = features[FLAGS.image_feature_name]
   else:
     image_feature = features['image_data']
-  text_str = features['text_str']
+  text_str = features[FLAGS.decode_str_name]
 
-  text = sequence_features['text']
+  text = sequence_features[FLAGS.decode_name]
   
   return image_name, image_feature, text, text_str
 
@@ -94,14 +94,14 @@ def _decode_neg(example, parse):
   features = parse(
       example,
       features={
-          'text': tf.VarLenFeature(tf.int64),
-          'text_str': tf.FixedLenFeature([], tf.string),
+          FLAGS.decode_name: tf.VarLenFeature(tf.int64),
+          FLAGS.decode_str_name: tf.FixedLenFeature([], tf.string),
       })
 
-  text = features['text']
+  text = features[FLAGS.decode_name]
   maxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
   text = melt.sparse_tensor_to_dense(text, maxlen)
-  text_str = features['text_str']
+  text_str = features[FLAGS.decode_str_name]
   
   return text, text_str
 
@@ -115,20 +115,21 @@ def decode_neg_sequence_example(example):
   features, sequence_features = tf.parse_single_sequence_example(
       example,
       context_features={
-          'text_str': tf.FixedLenFeature([], tf.string),
+          FLAGS.decode_str_name: tf.FixedLenFeature([], tf.string),
       },
       sequence_features={
-          'text': tf.FixedLenSequenceFeature([], dtype=tf.int64),
+          FLAGS.decode_name: tf.FixedLenSequenceFeature([], dtype=tf.int64),
         })
 
-  text_str = features['text_str']
-  text = sequence_features['text']
+  text_str = features[FLAGS.decode_str_name]
+  text = sequence_features[FLAGS.decode_name]
   
   return text, text_str
 
 #-----------utils
 def get_decodes(use_neg=True):
   if FLAGS.is_sequence_example:
+    assert FLAGS.dynamic_batch_length, 'sequence example must be dyanmic batch length for fixed input'
     inputs = functools.partial(melt.decode_then_shuffle.inputs,
                                dynamic_pad=True,
                                bucket_boundaries=FLAGS.buckets,

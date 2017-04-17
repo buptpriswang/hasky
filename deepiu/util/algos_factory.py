@@ -27,13 +27,15 @@ from deepiu.image_caption.algos.show_and_tell_predictor import ShowAndTellPredic
 
 from deepiu.textsum.algos.seq2seq import Seq2seq, Seq2seqPredictor
 
+from deepiu.imtxt2txt.algos.imtxt2txt import Imtxt2txt, Imtxt2txtPredictor
+
 class Algos:
   bow = 'bow'    #bow encode for text
   rnn = 'rnn'    #rnn encode for text
   cnn = 'cnn'    #cnn encode for text
   show_and_tell = 'show_and_tell'   #lstm decode for text
   seq2seq = 'seq2seq'
-  seq2seq_attention = 'seq2seq_attention'
+  imtxt2txt = 'imtxt2txt'
 
 class AlgosType:
    discriminant = 0
@@ -44,7 +46,7 @@ AlgosTypeMap = {
   Algos.rnn: AlgosType.discriminant,
   Algos.show_and_tell: AlgosType.generative,
   Algos.seq2seq : AlgosType.generative,
-  Algos.seq2seq_attention : AlgosType.generative
+  Algos.imtxt2txt : AlgosType.generative,
 }
 
 def is_discriminant(algo):
@@ -63,6 +65,8 @@ def _gen_predictor(algo):
     return RnnPredictor()
   elif algo == Algos.seq2seq:
     return Seq2seqPredictor()
+  elif algo == Algos.imtxt2txt:
+    return Imtxt2txtPredictor()
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 
@@ -75,6 +79,8 @@ def _gen_trainer(algo):
     return Rnn()
   elif algo == Algos.seq2seq:
     return Seq2seq()
+  elif algo == Algos.imtxt2txt:
+    return Imtxt2txt()
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 

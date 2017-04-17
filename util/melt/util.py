@@ -465,12 +465,12 @@ def print_varaiables(key, sope=None):
 
 def get_global_int(key):
   if key not in os.environ:
-    os.environ[key] = '-1'
+    os.environ[key] = '0'
   return int(os.environ[key])
 
 def get_global_float(key):
   if key not in os.environ:
-    os.environ[key] = '-1'
+    os.environ[key] = '0'
   return float(os.environ[key])
 
 def get_global_str(key):

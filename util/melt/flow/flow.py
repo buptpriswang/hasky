@@ -68,6 +68,12 @@ def _get_model_path(model_dir, save_model):
     #the file exists and we NOTICE we do not check if it is valid model file!
     return model_dir
 
+
+def _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch):
+  if num_steps_per_epoch == 0:
+    return checkpoint_path
+  return '%s-%.1f'%(checkpoint_path, step / num_steps_per_epoch)
+
 def tf_train_flow(train_once_fn, 
                   model_dir='./model', 
                   max_models_keep=1, 
@@ -96,9 +102,10 @@ def tf_train_flow(train_once_fn,
     max_to_keep=max_models_keep, 
     keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0)
   
-  epoch_saver = tf.train.Saver(
-    max_to_keep=max_models_keep,
-    keep_checkpoint_every_n_hours=24) # TODO  
+  #epoch_saver = tf.train.Saver(
+  #  max_to_keep=max_models_keep,
+  #  keep_checkpoint_every_n_hours=24) # TODO  
+  best_epoch_saver = tf.train.Saver() 
   
   #pre_step means the step last saved, train without pretrained,then -1
   pre_step = -1;
@@ -134,29 +141,65 @@ def tf_train_flow(train_once_fn,
   coord = tf.train.Coordinator()
   threads = tf.train.start_queue_runners(sess=sess, coord=coord)
   checkpoint_path = os.path.join(model_dir, 'model.ckpt')
+
   try:
     step = start = pre_step +  1
-
     #hack just for save one model after load
     if num_steps and num_steps < step:
       print('just load and resave then exit', file=sys.stderr)
-      saver.save(sess, checkpoint_path, global_step=step)
+      saver.save(sess, 
+                 _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 
+                 global_step=step)
       sess.close()
       exit(0)
 
+    early_stop = True #TODO allow config
+    num_bad_epochs = 0
+    pre_epoch_eval_loss = 1e20
+    best_epoch_eval_loss = 1e20
+    num_allowed_bad_epochs = 4 #allow 5 non decrease eval loss epochs  before stop
     while not coord.should_stop():
       stop = train_once_fn(sess, step, is_start=(step==start))
       if save_model and step:
         #step 0 is also saved! actually train one step and save
         if step % save_interval_steps == 0:
           timer = gezi.Timer('save model step %d to %s'%(step, checkpoint_path))
-          saver.save(sess, checkpoint_path, global_step=step)
+          saver.save(sess, 
+                     _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 
+                     global_step=step)
           timer.print()
         if save_interval_epochs and num_steps_per_epoch and step % (num_steps_per_epoch * save_interval_epochs) == 0:
-          epoch_saver.save(
-            sess, 
-            os.path.join(epoch_dir,'model.epoch'), 
-            global_step=step)
+          epoch = step // num_steps_per_epoch
+          eval_loss = melt.eval_loss()
+          if eval_loss:
+            #['eval_loss:3.2','eal_accuracy:4.3']
+            eval_loss = float(eval_loss.strip('[]').split(',')[0].strip("'").split(':')[-1])
+            if os.path.exists(os.path.join(epoch_dir, 'best_eval_loss.txt')):
+              with open(os.path.join(epoch_dir, 'best_eval_loss.txt')) as f:
+                best_epoch_eval_loss = float(f.readline().split()[-1].strip())
+            if eval_loss < best_epoch_eval_loss:
+              best_epoch_eval_loss = eval_loss
+              logging.info('Now best eval loss is epoch %d eval_loss:%f' % (epoch, eval_loss))
+              with open(os.path.join(epoch_dir, 'best_eval_loss.txt'), 'w') as f:
+                f.write('%d %d %f\n'%(epoch, step, best_epoch_eval_loss))
+              best_epoch_saver.save(sess, 
+                                    os.path.join(epoch_dir,'model.cpkt-best'))
+
+            with open(os.path.join(epoch_dir, 'eval_loss.txt'), 'a') as f:
+               f.write('%d %d %f\n'%(epoch, step, eval_loss))
+            if eval_loss >= pre_epoch_eval_loss:
+              num_bad_epochs += 1
+              if num_bad_epochs > num_allowed_bad_epochs:
+                logging.warning('Evaluate loss not decrease for last %d epochs'% (num_allowed_bad_epochs + 1))
+                if early_stop:
+                  stop = True 
+            else:
+              num_bad_epochs = 0
+            pre_epoch_eval_loss = eval_loss
+
+          #epoch_saver.save(sess, 
+          #                 os.path.join(epoch_dir,'model.cpkt-%d'%epoch), 
+          #                 global_step=step)
       if stop is True:
         print('Early stop running %d stpes'%(step), file=sys.stderr)
         raise tf.errors.OutOfRangeError(None, None,'Early stop running %d stpes'%(step))
@@ -168,7 +211,9 @@ def tf_train_flow(train_once_fn,
       step += 1
   except tf.errors.OutOfRangeError, e:
     if not (step==start) and save_model and step % save_interval_steps != 0:
-      saver.save(sess, checkpoint_path, global_step=step)
+      saver.save(sess, 
+                 _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 
+                 global_step=step)
     if metric_eval_fn is not None:
       metric_eval_fn()
     if (num_epochs and step / num_steps_per_epoch >= num_epochs) or (num_steps and (step + 1) == start + num_steps) :

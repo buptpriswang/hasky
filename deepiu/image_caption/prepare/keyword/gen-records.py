@@ -44,7 +44,7 @@ import melt
 import gezi
 
 #cp conf.py ../../../ before
-from deepiu.image_caption import text2ids
+from deepiu.util import text2ids
 
 import conf  
 from conf import IMAGE_FEATURE_LEN, TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK

@@ -63,7 +63,8 @@ def gen_eval_generated_texts_ops(input_app, input_results, predictor, eval_score
   #need distinct_texts.npy distinct_text_strs.npy
   evaluator.init()
 
-  evaluate_image_name, evaluate_text, evaluate_text_str, \
+  evaluate_image_name, \
+  evaluate_text, evaluate_text_str, \
   evaluate_input_text, evaluate_input_text_str = input_results[input_app.fixed_input_valid_name]
   num_evaluate_examples = input_app.num_evaluate_examples
 

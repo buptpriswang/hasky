@@ -30,7 +30,7 @@ flags.DEFINE_integer('num_metric_eval_examples', 1000, '')
 flags.DEFINE_integer('metric_eval_batch_size', 1000, '')
 flags.DEFINE_integer('metric_topn', 100, 'only consider topn results when calcing metrics')
 
-flags.DEFINE_integer('max_texts', 200000, '')
+flags.DEFINE_integer('max_texts', 200000, '') 
 
 import sys, os
 import gezi.nowarning
@@ -201,9 +201,9 @@ def print_neareast_texts_from_sorted(scores, indexes, img = None):
     if img:
       init_labels()
       if img in image_labels:
-        predict_result = 'er@%d'%i if all_distinct_text_strs[index] not in image_labels[img] else 'ok@%d'%i
+        predict_result = 'er%d'%i if all_distinct_text_strs[index] not in image_labels[img] else 'ok%d'%i
       else:
-        predict_result = 'un@%d'%i 
+        predict_result = 'un%d'%i 
     #notice may introduce error, offline scores is orinal scores! so need scores[index] but online input is max_scores will need scores[i]
     if len(scores) == len(indexes):
       line = ' '.join([str(x) for x in [predict_result, '[', all_distinct_text_strs[index], ']', "%.6f"%scores[i], len(used_words), '/'.join(used_words)]])
@@ -219,7 +219,7 @@ def print_neareast_words_from_sorted(scores, indexes):
   logging.info(content_html.format(line))
 
 def print_img(img, i):
-  img_url = FLAGS.image_url_prefix + img  
+  img_url = FLAGS.image_url_prefix + img  if not img.startswith("http://") else img
   logging.info(img_html.format(
     img_url, 
     i, 
@@ -244,9 +244,9 @@ def print_img_text_negscore(img, i, text, score, text_ids, neg_text=None, neg_sc
   text_words = ids2text(text_ids)
   if neg_text is not None:
     neg_text_words = ids2text(neg_text_ids)
-  logging.info(content_html.format('pos:[ {} ] {:.6f} {}'.format(text, score, text_words)))
+  logging.info(content_html.format('pos [ {} ] {:.6f} {}'.format(text, score, text_words)))
   if neg_text is not None:
-    logging.info(content_html.format('neg:[ {} ] {:.6f} {}'.format(neg_text, neg_score, neg_text_words)))  
+    logging.info(content_html.format('neg [ {} ] {:.6f} {}'.format(neg_text, neg_score, neg_text_words)))  
 
 #for show and tell 
 def print_generated_text(generated_text, id=-1, name='gen'):
@@ -289,8 +289,8 @@ def print_img_text_generatedtext(img, i, input_text, input_text_ids,
   score = math.exp(-score)
   input_text_words = ids2text(input_text_ids)
   text_words = ids2text(text_ids)
-  logging.info(content_html.format('in_:[ {} ] {}'.format(input_text, input_text_words)))
-  logging.info(content_html.format('pos:[ {} ] {:.6f} {}'.format(text, score, text_words)))
+  logging.info(content_html.format('in_ [ {} ] {}'.format(input_text, input_text_words)))
+  logging.info(content_html.format('pos [ {} ] {:.6f} {}'.format(text, score, text_words)))
   print_generated_text(generated_text)
   if generated_text_beam is not None:
     print_generated_text(generated_text_beam)
@@ -303,8 +303,8 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
   score = math.exp(-score)
   input_text_words = ids2text(input_text_ids)
   text_words = ids2text(text_ids)
-  logging.info(content_html.format('in_:[ {} ] {}'.format(input_text, input_text_words)))
-  logging.info(content_html.format('pos:[ {} ] {:.6f} {}'.format(text, score, text_words)))
+  logging.info(content_html.format('in_ [ {} ] {}'.format(input_text, input_text_words)))
+  logging.info(content_html.format('pos [ {} ] {:.6f} {}'.format(text, score, text_words)))
 
   try:
     print_generated_text_score(generated_text, generated_text_score)
@@ -325,6 +325,7 @@ score_op = None
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell
+  print(img_features.shape, all_distinct_texts.shape)
   score = predictor.bulk_predict(img_features, all_distinct_texts)
   timer.print()
 
@@ -370,7 +371,7 @@ def evaluate_scores(predictor, random=False):
   melt.logging_results(
     rank_metrics.get_metrics(), 
     rank_metrics.get_names(), 
-    tag='evaluate: epoch:{} step:{} loss:{} eval_loss:{}'.format(
+    tag='evaluate: epoch:{} step:{} train:{} eval:{}'.format(
       melt.epoch(), 
       melt.step(),
       melt.train_loss(),

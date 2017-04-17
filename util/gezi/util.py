@@ -15,6 +15,9 @@ import collections
 import sys, os
 import numpy as np
 
+def is_gbk_luanma(text):
+  return len(text) > len(text.decode('gb2312', 'ignore').encode('utf8'))
+
 def gen_sum_list(l):
   l2 = [x for x in l]
   for i in xrange(1, len(l)):

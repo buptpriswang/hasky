@@ -64,7 +64,8 @@ class Seq2seq(object):
       if not FLAGS.use_attention:
         encoder_output = None
     with tf.variable_scope("decode"):
-      loss = self.decoder.sequence_loss(None, text, state, 
+      loss = self.decoder.sequence_loss(text, 
+                                        initial_state=state, 
                                         attention_states=encoder_output,
                                         exact_prob=exact_prob, 
                                         exact_loss=exact_loss)

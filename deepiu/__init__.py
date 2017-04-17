@@ -13,7 +13,10 @@ from __future__ import division
 from __future__ import print_function
 
 import deepiu.util 
+
 import deepiu.image_caption   
 import deepiu.textsum 
-import deepiu.seq2seq
+import deepiu.imtxt2txt
+
+import deepiu.seq2seq 
 import deepiu.textsum_pytorch

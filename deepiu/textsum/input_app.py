@@ -154,8 +154,10 @@ class InputApp(object):
         #-------------shrink fixed image input as input batch might large then what we want to show, only choose top num_fixed_evaluate_examples
         fixed_image_name = melt.first_nrows(fixed_image_name, FLAGS.num_fixed_evaluate_examples)
         fixed_text = melt.first_nrows(fixed_text, FLAGS.num_fixed_evaluate_examples)
+        fixed_text = melt.make_batch_compat(fixed_text)
         fixed_text_str = melt.first_nrows(fixed_text_str, FLAGS.num_fixed_evaluate_examples)
         fixed_input_text = melt.first_nrows(fixed_input_text, FLAGS.num_fixed_evaluate_examples)
+        fixed_input_text = melt.make_batch_compat(fixed_input_text)
         fixed_input_text_str = melt.first_nrows(fixed_input_text_str, FLAGS.num_fixed_evaluate_examples)
 
         #notice read data always be FLAGS.fixed_eval_batch_size, if only 5 tests then will wrapp the data 

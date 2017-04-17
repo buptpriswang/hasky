@@ -132,7 +132,7 @@ class ShowAndTell(object):
   def build_graph(self, image_feature, text, neg_text=None, exact_loss=False):
     image_emb = self.build_image_embeddings(image_feature)
 
-    pos_loss = self.decoder.sequence_loss(image_emb, text, exact_loss=exact_loss)
+    pos_loss = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)
 
     loss = None
     scores = None

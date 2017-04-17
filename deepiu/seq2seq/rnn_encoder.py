@@ -68,7 +68,7 @@ class RnnEncoder(Encoder):
                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
-  def encode(self, sequence, emb=None):
+  def encode(self, sequence, input=None, emb=None):
     if emb is None:
       emb = self.emb 
 
@@ -84,6 +84,11 @@ class RnnEncoder(Encoder):
     #  sequence = tf.slice(sequence, [0,0], [-1, num_steps])   
     
     inputs = tf.nn.embedding_lookup(emb, sequence) 
+
+    if input is not None:
+      inputs = tf.concat([tf.expand_dims(input, 1), inputs], 1)
+      sequence_length += 1
+
     if self.is_training and FLAGS.keep_prob < 1:
       inputs = tf.nn.dropout(inputs, FLAGS.keep_prob)
 

@@ -156,7 +156,7 @@ def train_once(sess,
       if print_avg_loss:
         #info.write('train_avg_metrics:{} '.format(melt.value_name_list_str(train_average_loss, names)))
         names_ = melt.adjust_names(train_average_loss, names)
-        info.write('train_avg_metrics:{} '.format(melt.parse_results(train_average_loss, names_)))
+        info.write('train_avg_metric:{} '.format(melt.parse_results(train_average_loss, names_)))
         #info.write('train_avg_loss: {} '.format(train_average_loss))
       
       #print(gezi.now_time(), epoch_str, 'train_step:%d'%step, info.getvalue(), end=' ') 
@@ -195,7 +195,7 @@ def train_once(sess,
       if print_avg_loss and interval_steps != eval_interval_steps:
         train_average_loss_str = melt.value_name_list_str(train_average_loss, names_)
         melt.set_global('train_loss', train_average_loss_str)
-        train_average_loss_str = 'train_avg_loss:{} '.format(train_average_loss_str)
+        train_average_loss_str = 'train_avg_metric:{} '.format(train_average_loss_str)
 
       if interval_steps != eval_interval_steps:
         #end = '' if eval_ops is None else '\n'

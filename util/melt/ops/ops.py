@@ -272,7 +272,7 @@ def batch_wrapped_embedding_lookup(emb, index, combiner='mean', use_mask=False, 
 def mask2d(emb):
   return tf.concat([tf.zeros([1, 1]), tf.ones([emb.get_shape()[0] - 1, 1])], 0)   
 
-#-------x must >= 0  TODO
+#-------x must >= 0  TODO  tf.not_equal(x, 0) ?
 def length(x, dim=1):
   return tf.reduce_sum(tf.sign(x), dim)
 
@@ -437,6 +437,12 @@ def align_col_padding2d(x, y):
     lambda: (x, y),
     lambda: _align_col_padding2d(x, y))
   return x, y
+
+def make_batch_compat(sequence):
+  sequence_length = length(sequence)
+  num_steps = tf.to_int32(tf.reduce_max(sequence_length))
+  sequence = sequence[:, :num_steps]
+  return sequence
 
 def last_relevant(output, length):
   """

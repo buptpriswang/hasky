@@ -65,7 +65,7 @@ flags.DEFINE_string('valid_input', '', 'if empty will train only')
 flags.DEFINE_string('fixed_valid_input', '', 'if empty wil  not eval fixed images')
 flags.DEFINE_string('num_records_file', '', '')
 flags.DEFINE_integer('min_records', 12, '')
-flags.DEFINE_integer('num_records', 12, '')
+flags.DEFINE_integer('num_records', 0, 'if not 0, will check equal')
 
 
 #---------- input reader
@@ -93,6 +93,10 @@ flags.DEFINE_boolean('feed_single', False, '')
 
 flags.DEFINE_boolean('gen_predict', True, '')
 
+
+flags.DEFINE_string('decode_name', 'text', '')
+flags.DEFINE_string('decode_str_name', 'text_str', '')
+
 #--------for image caption  TODO move to image_caption/input.py ?
 flags.DEFINE_boolean('pre_calc_image_feature', True, '')
 flags.DEFINE_boolean('distort_image', False, '')
@@ -103,3 +107,5 @@ flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/incept
 #---in melt.apps.image_processing.py
 #flags.DEFINE_string('image_model_name', 'InceptionV3', '')
 flags.DEFINE_string('one_image', '/home/gezi/data/flickr/flickr30k-images/1000092795.jpg', '')
+
+flags.DEFINE_string('image_feature_name', 'image_feature', '')

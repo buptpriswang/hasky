@@ -153,7 +153,7 @@ class InputApp(object):
     trainset = list_files(FLAGS.train_input)
     logging.info('trainset:{} {}'.format(len(trainset), trainset[:2]))
     
-    assert len(trainset) >= FLAGS.min_records, len(trainset)
+    assert len(trainset) >= FLAGS.min_records, '%d %d'%(len(trainset), FLAGS.min_records)
     if FLAGS.num_records > 0:
       assert len(trainset) == FLAGS.num_records, len(trainset)
 
@@ -301,6 +301,7 @@ class InputApp(object):
         fixed_image_name = melt.first_nrows(fixed_image_name, FLAGS.num_fixed_evaluate_examples)
         fixed_image_feature = melt.first_nrows(fixed_image_feature, FLAGS.num_fixed_evaluate_examples)
         fixed_text = melt.first_nrows(fixed_text, FLAGS.num_fixed_evaluate_examples)
+        fixed_text = melt.make_batch_compat(fixed_text)
         fixed_text_str = melt.first_nrows(fixed_text_str, FLAGS.num_fixed_evaluate_examples)
 
         #notice read data always be FLAGS.fixed_eval_batch_size, if only 5 tests then will wrapp the data 
@@ -310,6 +311,7 @@ class InputApp(object):
         #melt.align only need if you use dynamic batch/padding
         if FLAGS.dynamic_batch_length:
           fixed_text, eval_text = melt.align_col_padding2d(fixed_text, eval_text)
+
         eval_text = tf.concat([fixed_text, eval_text], 0)
         eval_text_str = tf.concat([fixed_text_str, eval_text_str], 0)
         eval_batch_size = FLAGS.num_fixed_evaluate_examples + FLAGS.eval_batch_size 

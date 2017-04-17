@@ -127,14 +127,16 @@ class RnnDecoder(Decoder):
                                                                                 sample_seed=FLAGS.predict_sample_seed,
                                                                                 vocabulary=vocabulary)
     
-  def sequence_loss(self, input, sequence, 
+  def sequence_loss(self, sequence, 
                     initial_state=None, attention_states=None, 
+                    input=None,
                     exact_prob=False, exact_loss=False,
                     emb=None):
     """
     for general seq2seq input is None, sequence will pad <GO>, inital_state is last state from encoder
     for img2text/showandtell input is image_embedding, inital_state is None/zero set
     TODO since exact_porb and exact_loss same value, may remove exact_prob
+    NOTICE! assume sequence to be padded by zero and must have one instance full length(no zero!)
     """
     if emb is None:
       emb = self.emb
@@ -151,7 +153,7 @@ class RnnDecoder(Decoder):
 
     #[batch_size, num_steps - 1, emb_dim], remove last col
     inputs = tf.nn.embedding_lookup(emb, melt.dynamic_exclude_last_col(sequence))
-    
+
     if is_training and FLAGS.keep_prob < 1:
       inputs = tf.nn.dropout(inputs, FLAGS.keep_prob)
     
@@ -166,9 +168,12 @@ class RnnDecoder(Decoder):
     
     if self.is_predict:
       #---only need when predict, since train input already dynamic length, NOTICE this will improve speed a lot
-      num_steps = tf.cast(tf.reduce_max(sequence_length), dtype=tf.int32)
-      sequence = sequence[:, 0:num_steps]
-      inputs = inputs[:, 0:num_steps, :]
+      num_steps = tf.to_int32(tf.reduce_max(sequence_length))
+      sequence = sequence[:, :num_steps]
+      inputs = inputs[:, :num_steps, :]
+
+    tf.add_to_collection('sequence', sequence)
+    tf.add_to_collection('sequence_length', sequence_length)
 
     if attention_states is None:
       outputs, state = tf.nn.dynamic_rnn(self.cell, inputs, 
@@ -190,12 +195,15 @@ class RnnDecoder(Decoder):
                         cell=self.cell,
                         decoder_fn=decoder_fn_train,
                         inputs=inputs,
-                        sequence_length=tf.cast(sequence_length, tf.int32),
+                        sequence_length=tf.to_int32(sequence_length),
                         scope=self.scope)
       outputs = decoder_outputs_train
 
       self.final_state = decoder_state_train
     
+
+    tf.add_to_collection('outputs', outputs)
+
     #TODO: hack here add FLAGS.predict_no_sample just for Seq2seqPredictor exact_predict
     softmax_loss_function = self.softmax_loss_function
     if self.is_predict and (exact_prob or exact_loss):

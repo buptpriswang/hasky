@@ -18,8 +18,8 @@ python ./train.py \
   --num_sampled 256 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
-  --num_fixed_evaluate_examples 10 \
-  --num_evaluate_examples 100 \
+  --num_fixed_evaluate_examples 1 \
+  --num_evaluate_examples 10 \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
@@ -29,6 +29,7 @@ python ./train.py \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
+  --eval_batch_size 100 \
   --num_gpus 0 \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
