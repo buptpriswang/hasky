@@ -6,10 +6,10 @@ model_dir=/home/gezi/new/temp/imtxt_keyword/model/imtxt2txt
 mkdir -p $model_dir
 
 #valid_output_path=/home/gezi/new/temp/image-caption/keyword/tfrecord/seq-basic/valid.lijiaoshou/
+#--fixed_valid_input $fixed_valid_output_path/'test-*' \
 python ./train.py \
 	--train_input $train_output_path/'train-*' \
   --valid_input $valid_output_path/'test-*' \
-  --fixed_valid_input $fixed_valid_output_path/'test-*' \
 	--valid_resource_dir $valid_output_path \
 	--vocab $dir/vocab.txt \
   --num_records_file  $train_output_path/num_records.txt \
@@ -26,8 +26,8 @@ python ./train.py \
   --monitor_level 2 \
   --no_log 0 \
   -eval_batch_size 1000 \
-  --batch_size 128 \
-  --num_gpus 2 \
+  --batch_size 256 \
+  --num_gpus 0 \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \

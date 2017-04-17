@@ -58,12 +58,12 @@ def go_id():
   
 def init(vocab_path=None):
   global vocab, vocab_size
-  if vocab_path is None:
-    vocab_path = FLAGS.vocab
   if vocab is None:
+    if vocab_path is None:
+      vocab_path = FLAGS.vocab
     logging.info('vocab:{}'.format(vocab_path))
     logging.info('NUM_RESERVED_IDS:{}'.format(FLAGS.num_reserved_ids))
-    vocab = Vocabulary(FLAGS.vocab, FLAGS.num_reserved_ids)
+    vocab = Vocabulary(vocab_path, FLAGS.num_reserved_ids)
     vocab_size = vocab.size() if not FLAGS.vocab_size else min(vocab.size(), FLAGS.vocab_size)
     logging.info('vocab_size:{}'.format(vocab_size))
     assert vocab_size > FLAGS.num_reserved_ids, 'empty vocab, wrong vocab path? %s'%FLAGS.vocab

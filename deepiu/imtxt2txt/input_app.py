@@ -178,9 +178,9 @@ class InputApp(object):
         eval_input_text_str = tf.concat([fixed_input_text_str, eval_input_text_str], axis=0)
         eval_batch_size = FLAGS.num_fixed_evaluate_examples + FLAGS.eval_batch_size 
       
-      tf.add_to_collection('fixed_input_text', fixed_input_text)
-      tf.add_to_collection('fixed_text', fixed_text)
-      tf.add_to_collection('eval_text', eval_text)
+        tf.add_to_collection('fixed_input_text', fixed_input_text)
+        tf.add_to_collection('fixed_text', fixed_text)
+        tf.add_to_collection('eval_text', eval_text)
 
       #should aways be FLAGS.num_fixed_evaluate_examples + FLAGS.num_evaluate_examples
       num_evaluate_examples = min(eval_batch_size, FLAGS.num_fixed_evaluate_examples + FLAGS.num_evaluate_examples)

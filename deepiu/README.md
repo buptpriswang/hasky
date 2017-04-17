@@ -3,6 +3,6 @@ now actually similary like google/seq2seq maybe renmae to seq2seq is better
 mainly application code for seq2seq, image caption, text sumarization, keyword extraction using deep learning tech
 
 currently 3 applications:  
-image_caption    image -> text  
-textsum          text -> text  
-imtxt2keyword   image + text -> text 
+image_caption(im2txt)    image -> text  
+textsum(txt2txt)         text -> text  
+imtxt2txt                image + text -> text 

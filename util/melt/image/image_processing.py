@@ -124,7 +124,7 @@ def decode_image(contents, channels=None, name=None):
     substr = string_ops.substr(contents, 0, 1)
 
     def _gif():
-      #raise ValueError('not jpeg or png')
+      raise ValueError('not jpeg or png')
       # Create assert op to check that bytes are GIF decodable
       #is_gif = math_ops.equal(substr, b'\x47\x49\x46\x38', name='is_gif')
       is_gif = math_ops.equal(substr, b'\x47', name='is_gif')
@@ -198,7 +198,8 @@ def process_image(encoded_image,
     else:
       #raise ValueError("Invalid image format: %s" % image_format) 
       #https://github.com/tensorflow/tensorflow/issues/8551 return no shape.., reesize_images will fail 
-      image = decode_image(encoded_image, channels=3)
+      #image = decode_image(encoded_image, channels=3)
+      image = tf.image.decode_image(encoded_image, channels=3)
 
   image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
