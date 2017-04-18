@@ -247,7 +247,7 @@ def gen_validate(input_app, input_results, trainer, predictor):
             eval_neg_text,
             eval_neg_text_str)
     else:
-      deal_eval_results = lambda x: melt.print_results(x, ['loss'])
+      deal_eval_results = lambda x: melt.print_results(x, ['eval_batch_loss'])
 
   return eval_ops, gen_eval_feed_dict, deal_eval_results
 

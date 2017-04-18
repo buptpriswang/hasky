@@ -117,6 +117,7 @@
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate-sim.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\evaluate.py" />
     <Compile Include="deepiu\image_caption\evaluate\flickr\predict.py" />
+    <Compile Include="deepiu\image_caption\evaluate\lijiaoshou\showandtell\inference-score.py" />
     <Compile Include="deepiu\image_caption\evaluator.py" />
     <Compile Include="deepiu\image_caption\eval_show.py" />
     <Compile Include="deepiu\image_caption\inference\inference.py" />
@@ -461,6 +462,8 @@
     <Folder Include="deepiu\image_caption\evaluate\flickr\data\wordseg\worddict.bak\stopdict\allinvisible_gb\" />
     <Folder Include="deepiu\image_caption\evaluate\flickr\data\wordseg\worddict\" />
     <Folder Include="deepiu\image_caption\evaluate\flickr\data\wordseg\worddict\chinese_gbk\" />
+    <Folder Include="deepiu\image_caption\evaluate\lijiaoshou\" />
+    <Folder Include="deepiu\image_caption\evaluate\lijiaoshou\showandtell\" />
     <Folder Include="deepiu\image_caption\inference\" />
     <Folder Include="deepiu\image_caption\prepare\" />
     <Folder Include="deepiu\image_caption\prepare\bow\" />

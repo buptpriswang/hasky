@@ -97,7 +97,7 @@ def predicts(predictor, input_texts, texts):
   print(word_ids_list)
 
   timer = gezi.Timer()
-  score = predictor.inference(['score'], 
+  score = predictor.inference('score', 
                               feed_dict= {
                                       FLAGS.input_text_name: input_word_ids_list,
                                       FLAGS.text_name: word_ids_list
@@ -107,7 +107,7 @@ def predicts(predictor, input_texts, texts):
   print('calc score time(ms):', timer.elapsed_ms())
 
   timer = gezi.Timer()
-  exact_score = predictor.inference(['exact_score'], 
+  exact_score = predictor.inference('exact_score', 
                                     feed_dict= {
                                       FLAGS.input_text_name: input_word_ids_list,
                                       FLAGS.text_name: word_ids_list

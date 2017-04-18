@@ -248,6 +248,7 @@ class RnnDecoder(Decoder):
 
     if self.is_predict:
       loss = self.normalize_length(loss, sequence_length, exact_prob)
+      #loss = tf.squeeze(loss)  TODO: later will uncomment this with all models rerun 
     return loss
 
   def generate_sequence_greedy(self, input, max_words, 

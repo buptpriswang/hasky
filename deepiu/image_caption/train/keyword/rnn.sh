@@ -2,8 +2,7 @@ conf_path=./prepare/default/app-conf/keyword/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-dir=/home/gezi/new/temp/image-caption/keyword/model
-model_dir=$dir/rnn
+model_dir=/home/gezi/new/temp/image-caption/keyword/model/rnn
 mkdir -p $model_dir
 
 valid_output_path=/home/gezi/new/temp/image-caption/keyword/tfrecord/seq-basic/valid.lijiaoshou/
