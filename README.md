@@ -1,4 +1,4 @@
-# tensorflow related work(nlp and image related, text classification, image caption, seq2seq..) 
+# tensorflow related work(nlp and image related, text classification, image caption, seq2seq, pointer-network..) 
 mainly tf work, may do some pytorch related     
 
 ## incase not find dependence, make sure set PYTHONPATH to include hasky/util so we can find gezi and melt  
@@ -15,8 +15,8 @@ reading libsvm format then do text binary classification, evaluate by auc
 ### ./applications/sparse-tensor-classification/ (depreciated)  
 this is self contained mlp classification example showing   
 how to read sparse TFRecord and train a mlp classifier 
-
-Notice some examples like text-classification might move to deepiu
+### ./applications/pointer-network
+this is implmentaion of pointer network, dealing sorting problem 
 
 ## ./deepiu
 right now actually seq2seq related applications root
