@@ -16,22 +16,23 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou/', '')
+#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou/', '')
 #flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/showandtell/', '')
-#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/model/bow/', '')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/model/bow/', '')
 
-flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/vocab.txt', 'vocabulary file')
-#flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/vocab.txt', 'vocabulary file')
+#flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/vocab.txt', 'vocabulary file')
+flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_string('image_feature_name_', 'bow/main/image_feature:0', 'model_init_1 because predictor after trainer init')
 flags.DEFINE_string('text_name', 'bow/main/text:0', 'model_init_1 because predictor after trainer init')
 
 
-flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
-#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/valid/totiao_feature.txt_0', '')
+flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan2.txt', '')
+#flags.DEFINE_string('image_feature_dir', '/home/gezi/data/lijiaoshou/train/', '')
 #flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/valid/part-00000', 'valid data')
-flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/train/part-00010', 'train data')
-flags.DEFINE_integer('batch_size_', 10000, '')
+flags.DEFINE_string('image_feature_dir', '/home/gezi/new/data/keyword/train/', 'train data')
+flags.DEFINE_integer('num_files', 2, '')
+flags.DEFINE_integer('batch_size_', 100000, '')
 
 flags.DEFINE_string('seg_method_', 'full', '')
 flags.DEFINE_bool('feed_single_', False, '')
@@ -43,6 +44,7 @@ import numpy as np
 
 from deepiu.util import text2ids
 
+import glob 
 import conf
 from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK
 
@@ -80,23 +82,29 @@ def top_images(text):
   images = []
   image_features = []
   scores = []
-  for line in open(FLAGS.image_feature_file_):
-    l = line.strip().split('\t')
-    image = l[0].strip()
-    if image in image_set:
-      continue
-    else:
-      image_set.add(image)
-    image_feature = l[-1].split('\x01')
-    image_feature = [float(x) for x in image_feature]
+  num = 0
+  for file in glob.glob(FLAGS.image_feature_dir + '/*'):
+    print(file, file=sys.stderr)
+    for line in open(file):
+      l = line.strip().split('\t')
+      image = l[0].strip()
+      if image in image_set:
+        continue
+      else:
+        image_set.add(image)
+      image_feature = l[-1].split('\x01')
+      image_feature = [float(x) for x in image_feature]
 
-    image_features.append(image_feature)
+      image_features.append(image_feature)
 
-    images.append(image)
+      images.append(image)
     
-    if len(image_features) == FLAGS.batch_size_:
-      scores += predicts(image_features, text)
-      image_features = []
+      if len(image_features) == FLAGS.batch_size_:
+        scores += predicts(image_features, text)
+        image_features = []
+    num += 1
+    if num == FLAGS.num_files:
+      break
 
   if image_features:
     scores += predicts(image_features, text)

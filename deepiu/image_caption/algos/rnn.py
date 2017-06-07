@@ -56,7 +56,7 @@ class Rnn(object):
     self.encoder = RnnEncoder(is_training, is_predict)
 
   def gen_text_feature(self, text, emb):
-    text_feature, _ = self.encoder.encode(text, emb)
+    text_feature, _ = self.encoder.encode(text, emb=emb)
     return text_feature
 
   def build_train_graph(self, image_feature, text, neg_text):

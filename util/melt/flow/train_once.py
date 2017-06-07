@@ -105,7 +105,6 @@ def train_once(sess,
     feed_dict = {} if gen_feed_dict_fn is None else gen_feed_dict_fn()
     
     results = sess.run(ops, feed_dict=feed_dict) 
-
     # #--------trace debug
     # if step == 210:
     #   run_metadata = tf.RunMetadata()
@@ -123,7 +122,7 @@ def train_once(sess,
     
     #reults[0] assume to be train_op
     results = results[1:]
-    
+
     #@TODO should support aver loss and other avg evaluations like test..
     if print_avg_loss:
       if not hasattr(train_once, 'avg_loss'):
@@ -250,7 +249,8 @@ def train_once(sess,
           summary_str = ''
         #all single value results will be add to summary here not using tf.scalar_summary..
         summary.ParseFromString(summary_str)
-        melt.add_summarys(summary, eval_results, eval_names_, suffix='eval')
+        suffix = 'eval' if not eval_names else ''
+        melt.add_summarys(summary, eval_results, eval_names_, suffix=suffix)
 
       melt.add_summarys(summary, train_average_loss, names_, suffix='train_avg%dsteps'%eval_interval_steps) 
 

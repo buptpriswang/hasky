@@ -42,7 +42,10 @@ class Seq2seq(object):
     self.encoder.set_embedding(emb)
 
     #emb2 = embedding.get_embedding('emb2')
-    self.decoder = seq2seq.rnn_decoder.RnnDecoder(is_training, is_predict)
+    if not FLAGS.experiment_rnn_decoder:
+      self.decoder = seq2seq.rnn_decoder.RnnDecoder(is_training, is_predict)
+    else:
+      self.decoder = seq2seq.experiment.rnn_decoder.RnnDecoder(is_training, is_predict)
     self.decoder.set_embedding(emb)
     
     print('start_id', self.decoder.start_id)
@@ -64,7 +67,10 @@ class Seq2seq(object):
       if not FLAGS.use_attention:
         encoder_output = None
     with tf.variable_scope("decode"):
+      #input_text, input_text_length = melt.pad(input_text, end_id=self.encoder.end_id)
+      input_text = self.encoder.sequence
       loss = self.decoder.sequence_loss(text, 
+                                        input_text=input_text,
                                         initial_state=state, 
                                         attention_states=encoder_output,
                                         exact_prob=exact_prob, 
@@ -121,11 +127,13 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
       decoder_input = self.decoder.get_start_embedding_input(batch_size)
       max_words = FLAGS.decode_max_words if FLAGS.decode_max_words else TEXT_MAX_WORDS
       if decode_method == SeqDecodeMethod.greedy:
+        input_text = self.encoder.sequence
         return self.decoder.generate_sequence_greedy(decoder_input, 
                                        max_words=max_words, 
                                        initial_state=state,
                                        attention_states=encoder_output,
-                                       convert_unk=convert_unk)
+                                       convert_unk=convert_unk,
+                                       input_text=input_text)
       else:
         if decode_method == SeqDecodeMethod.beam:
           decode_func = self.decoder.generate_sequence_beam
@@ -135,6 +143,8 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
           raise ValueError('not supported decode_method: %d' % decode_method)
         
         input_text, input_text_length = melt.pad(input_text, end_id=self.encoder.end_id)
+        #input_text = self.encoder.sequence
+        #input_text_length = self.encoder.sequence_length
         return decode_func(decoder_input, 
                            max_words=max_words, 
                            initial_state=state,

@@ -26,7 +26,6 @@ flags.DEFINE_integer("min_count", 0, "if > 0 then cut by min_count")
 flags.DEFINE_boolean("add_unknown", True, "treat ignored words as unknow")
 flags.DEFINE_boolean("save_count_info", True, "save count info to bin")
 flags.DEFINE_string("out_dir", '/tmp/train/', "save count info to bin")
-
 flags.DEFINE_string('seg_method', '', '')
 
 assert FLAGS.most_common > 0 or FLAGS.min_count > 0
@@ -71,6 +70,7 @@ for line in sys.stdin:
       counter.add(word)
     counter.add(END_WORD)
   num += 1
+
  
 print(FLAGS.out_dir, file=sys.stderr)
 counter.save(FLAGS.out_dir + '/vocab.bin', FLAGS.out_dir + '/vocab.txt')

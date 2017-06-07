@@ -20,7 +20,7 @@ python ./train.py \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \
   --fixed_eval_batch_size 10 \
-  --num_fixed_evaluate_examples 10 \
+  --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
   --show_eval 1 \
   --train_only 0 \
@@ -28,6 +28,7 @@ python ./train.py \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
+  --eval_batch_size 1013 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \

@@ -23,7 +23,7 @@ from gezi import TopN
 class BeamSearchState(object):
   """Represents a complete or partial beam search state."""
 
-  def __init__(self, words, state, logprob, score, logprobs, alignments_list, metadata=None):
+  def __init__(self, words, state, logprob, score, logprobs, alignments_list=None, metadata=None):
     """Initializes the Caption.
 
     Args:

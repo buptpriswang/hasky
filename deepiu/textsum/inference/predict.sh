@@ -2,7 +2,7 @@ source ./config
 
 python ./inference/predict.py \
   --algo seq2seq \
-  --model_dir /home/gezi/temp/textsum/model.seq2seq/ \
+  --model_dir /home/gezi/new/temp/textsum/model.seq2seq/ \
   --num_sampled 256 \
   --log_uniform_sample 1 \
   --seg_method $online_seg_method \
@@ -17,6 +17,7 @@ python ./inference/predict.py \
   --decode_max_words 10 \
   --add_text_start 1 \
   --rnn_output_method 3 \
-  --main_scope run \
+  --main_scope main \
   --use_attention 0 \
+  --legacy_rnn_decoder 1 \
   --algo seq2seq

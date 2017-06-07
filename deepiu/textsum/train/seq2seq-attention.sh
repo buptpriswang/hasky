@@ -1,6 +1,8 @@
-source ./config 
+source ./prepare/config 
+cp ./prepare/conf.py .
+cp ./inputs/title-desc-click/input.py .
 
-dir=/home/gezi/temp/textsum/ 
+dir=/home/gezi/new/temp/textsum/ 
 model_dir=$dir/model.seq2seq.attention
 mkdir -p $model_dir
 
@@ -23,9 +25,13 @@ python ./train.py \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
+  --show_beam_search 1 \
   --train_only 0 \
   --metric_eval 0 \
   --gen_predict 1 \
+  --legacy_rnn_decoder 0 \
+  --alignment_history 1 \
+  --attention_option bahdanau \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
@@ -47,7 +53,7 @@ python ./train.py \
   --dynamic_batch_length 1 \
   --rnn_method 0 \
   --emb_dim 1000 \
-  --rnn_hidden_size 1023 \
+  --rnn_hidden_size 1024 \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \

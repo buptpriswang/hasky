@@ -1,6 +1,6 @@
 source ./config 
 
-dir=/home/gezi/temp/textsum/ 
+dir=/home/gezi/new/temp/textsum/ 
 model_dir=$dir/model.seq2seq
 mkdir -p $model_dir
 
@@ -19,10 +19,11 @@ python ./train.py \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 10 \
-  --num_evaluate_examples 100 \
+  --num_evaluate_examples 10 \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
+  --show_beam_search 0 \
   --train_only 0 \
   --metric_eval 1 \
   --monitor_level 2 \
@@ -46,7 +47,7 @@ python ./train.py \
   --rnn_method 0 \
   --add_text_start 1 \
   --rnn_output_method 3 \
-  --main_scope run \
+  --main_scope main \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \

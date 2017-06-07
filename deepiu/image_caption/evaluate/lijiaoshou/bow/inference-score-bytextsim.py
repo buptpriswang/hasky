@@ -77,6 +77,8 @@ def predicts(image_features, input_texts, text):
 def top_images(text):
   image_set = set()
   images = []
+  itexts = []
+
   image_features = []
   input_texts = []
   scores = []
@@ -92,9 +94,9 @@ def top_images(text):
     image_feature = [float(x) for x in image_feature]
 
     image_features.append(image_feature)
-
     images.append(image)
     input_texts.append(input_text)
+    itexts.append(input_text)
 
     
     if len(image_features) == FLAGS.batch_size_:
@@ -105,7 +107,7 @@ def top_images(text):
   if image_features:
     scores += predicts(image_features, input_texts, text)
 
-  image_scores = zip(scores, images, input_texts)
+  image_scores = zip(scores, images, itexts)
   image_scores.sort(reverse=True)
 
   for i, (score, image, input_text) in enumerate(image_scores[:10]):

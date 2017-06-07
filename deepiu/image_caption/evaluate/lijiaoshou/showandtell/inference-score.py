@@ -27,10 +27,10 @@ flags.DEFINE_string('text_name', 'show_and_tell/model_init_1/text:0', 'model_ini
 
 
 #flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
-flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.click.txt', '')
-#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/valid/totiao_feature.txt_0', '')
+flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
+flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/train/shoubai_feature.txt_0', '')
 #flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/valid/part-00000', 'valid data')
-flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/train/part-00010', 'train data')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/train/part-00010', 'train data')
 flags.DEFINE_integer('batch_size_', 10000, '')
 
 flags.DEFINE_string('seg_method_', 'basic', '')

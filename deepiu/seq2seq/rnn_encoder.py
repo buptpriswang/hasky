@@ -75,6 +75,9 @@ class RnnEncoder(Encoder):
     #--for debug
     sequence, sequence_length = self.pad(sequence)
 
+    self.sequence = sequence
+    self.sequence_length = sequence_length
+
     #tf.add_to_collection('debug_seqeuence', sequence)
     #tf.add_to_collection('debug_length', sequence_length)
     

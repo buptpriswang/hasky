@@ -50,7 +50,7 @@ def tf_flow(process_once, num_steps=None, sess=None):
   coord.join(threads)
   sess.close()
   return step
-
+ 
 def _get_model_path(model_dir, save_model):
   if not os.path.exists(model_dir):
     if save_model:
@@ -68,9 +68,8 @@ def _get_model_path(model_dir, save_model):
     #the file exists and we NOTICE we do not check if it is valid model file!
     return model_dir
 
-
 def _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch):
-  if num_steps_per_epoch == 0:
+  if not num_steps_per_epoch:
     return checkpoint_path
   return '%s-%.1f'%(checkpoint_path, step / num_steps_per_epoch)
 

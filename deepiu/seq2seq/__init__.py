@@ -25,4 +25,7 @@ import deepiu.seq2seq.encoder_factory
 
 import deepiu.seq2seq.embedding
 
-import deepiu.seq2seq.rnn_flags
+import deepiu.seq2seq.rnn_flags 
+
+import deepiu.seq2seq.legacy 
+import deepiu.seq2seq.experiment

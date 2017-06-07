@@ -19,7 +19,7 @@ FLAGS = flags.FLAGS
 #FIXME: attention will hang..., no attention works fine
 #flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq.attention/', '')
 flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq/', '')
-flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic.10w/train/vocab.txt', 'vocabulary file')
+flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic/train/vocab.txt', 'vocabulary file')
 flags.DEFINE_boolean('debug', False, '')
 
 import sys, os, math
@@ -95,7 +95,7 @@ def main(_):
   predictor = melt.Predictor(FLAGS.model_dir, debug=FLAGS.debug)
   
   #predict(predictor, "任达华传授刘德华女儿经 赞停工陪太太(图)")
-  #predict(predictor, "王凯整容了吗_王凯整容前后对比照片")
+  predict(predictor, "王凯整容了吗_王凯整容前后对比照片")
   #predict(predictor, "大小通吃汉白玉霸王貔貅摆件 正品开光镇宅招财")
   #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院")
   #predict(predictor, "宝宝太胖怎么办呢")

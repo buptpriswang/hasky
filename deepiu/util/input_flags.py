@@ -76,6 +76,9 @@ flags.DEFINE_integer('num_prefetch_batches', 0, '')
 
 
 #----------eval
+flags.DEFINE_boolean('legacy_rnn_decoder', False, '')
+flags.DEFINE_boolean('experiment_rnn_decoder', False, '')
+
 flags.DEFINE_boolean('show_eval', True, '')
 
 flags.DEFINE_boolean('eval_shuffle_files', True, '')

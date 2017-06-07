@@ -33,7 +33,7 @@ def add_one(d, word):
 def pretty_floats(values):
   if not isinstance(values, (list, tuple)):
     values = [values]
-  return [float('{:.3f}'.format(x)) for x in values]
+  return [float('{:.5f}'.format(x)) for x in values]
   #return ['{}'.format(x) for x in values]
 
 def get_singles(l):
@@ -129,7 +129,7 @@ import os
 import glob
 def list_files(input):
   if os.path.isdir(input):
-    return os.listdir(input)
+    return [os.path.join(input, f) for f in os.listdir(input)]
   elif os.path.isfile(input):
     return [input]
   else:

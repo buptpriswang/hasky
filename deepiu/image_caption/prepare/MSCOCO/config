@@ -1,0 +1,14 @@
+input_path=/home/gezi/data/MSCOCO
+dir=/home/gezi/new/temp/image-caption/MSCOCO
+#dir=/tmp/image-caption/flickr
+
+train_data_path=$input_path/train/inceptionV3
+valid_data_path=$input_path/test/inceptionV3
+
+train_output_path=$dir/train
+valid_output_path=$dir/valid
+fixed_valid_output_path=$dir/fixed_valid
+
+resource_dir=/home/gezi/exp/tieba/urate/
+
+write_sequence_example=1

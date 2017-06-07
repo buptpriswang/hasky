@@ -21,6 +21,8 @@ import melt
 
 from deepiu.image_caption.algos.bow import Bow, BowPredictor 
 from deepiu.image_caption.algos.rnn import Rnn, RnnPredictor
+from deepiu.image_caption.algos.pooling import Pooling, PoolingPredictor
+
 
 from deepiu.image_caption.algos.show_and_tell import ShowAndTell 
 from deepiu.image_caption.algos.show_and_tell_predictor import ShowAndTellPredictor
@@ -33,6 +35,7 @@ class Algos:
   bow = 'bow'    #bow encode for text
   rnn = 'rnn'    #rnn encode for text
   cnn = 'cnn'    #cnn encode for text
+  pooling = 'pooling'
   show_and_tell = 'show_and_tell'   #lstm decode for text
   seq2seq = 'seq2seq'
   imtxt2txt = 'imtxt2txt'
@@ -44,6 +47,7 @@ class AlgosType:
 AlgosTypeMap = {
   Algos.bow: AlgosType.discriminant,
   Algos.rnn: AlgosType.discriminant,
+  Algos.pooling: AlgosType.discriminant,
   Algos.show_and_tell: AlgosType.generative,
   Algos.seq2seq : AlgosType.generative,
   Algos.imtxt2txt : AlgosType.generative,
@@ -63,6 +67,8 @@ def _gen_predictor(algo):
     return ShowAndTellPredictor()
   elif algo == Algos.rnn:
     return RnnPredictor()
+  elif algo == Algos.pooling:
+    return PoolingPredictor()
   elif algo == Algos.seq2seq:
     return Seq2seqPredictor()
   elif algo == Algos.imtxt2txt:
@@ -77,6 +83,8 @@ def _gen_trainer(algo):
     return ShowAndTell()
   elif algo == Algos.rnn:
     return Rnn()
+  elif algo == Algos.pooling:
+    return Pooling()
   elif algo == Algos.seq2seq:
     return Seq2seq()
   elif algo == Algos.imtxt2txt:

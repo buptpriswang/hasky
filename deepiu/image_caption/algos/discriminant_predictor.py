@@ -36,7 +36,7 @@ except Exception:
 from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
 
 class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
-  def __init__(self):
+  def __init__(self, need_embedding=True):
     #super(DiscriminantPredictor, self).__init__()
     melt.PredictorBase.__init__(self)
     DiscriminantTrainer.__init__(self, is_training=False, is_predict=True)

@@ -27,6 +27,8 @@ from tensorflow.python.framework import tensor_util
 from tensorflow.python.framework.constant_op import constant
 from tensorflow.python.ops import gen_array_ops
 from tensorflow.python.ops import gen_math_ops
+from tensorflow.python.ops import nn
+from tensorflow.python.ops import standard_ops
 # go/tf-wildcard-import
 # pylint: disable=wildcard-import
 from tensorflow.python.ops.gen_array_ops import *
@@ -356,7 +358,7 @@ def dynamic_exclude_last_col(x):
     #tf0.12 is ok here
     return x[:,:-1]
   except Exception:
-  	return tf.transpose(tf.gather(tf.transpose(x), tf.range(0, tf.shape(x)[1] - 1)))
+    return tf.transpose(tf.gather(tf.transpose(x), tf.range(0, tf.shape(x)[1] - 1)))
 
 def gather2d(x, idx):
   """
@@ -373,7 +375,11 @@ with tf.Session(''):
   print y.eval()  # [2 4 9]
   """
   #FIXME
-  idx_flattened = tf.cast(tf.range(0, x.shape[0]) * x.shape[1], idx.dtype) + idx
+  try:
+    idx_flattened = tf.cast(tf.range(0, x.shape[0]) * x.shape[1], idx.dtype) + idx
+  except Exception:
+    shape_ = tf.shape(x)
+    idx_flattened = tf.cast(tf.range(0, shape_[0]) * shape_[1], idx.dtype) + idx
   y = tf.gather(tf.reshape(x, [-1]),  # flatten input
                 idx_flattened)  # use flattened indices
   return y
@@ -528,6 +534,7 @@ def gather_cols(params, indices, name=None):
         # Check input
         params = tf.convert_to_tensor(params, name="params")
         indices = tf.convert_to_tensor(indices, name="indices")
+        #indices = tf.to_int32(indices)
         try:
             params.get_shape().assert_has_rank(2)
         except ValueError:
@@ -539,7 +546,7 @@ def gather_cols(params, indices, name=None):
 
         # Define op
         #int64 will cause Tensor conversion requested dtype int64 for Tensor with dtype int32
-        #indices = tf.to_int32(indices) 
+        indices = tf.to_int32(indices) 
 
         p_shape = tf.shape(params)
         p_flat = tf.reshape(params, [-1])
@@ -683,3 +690,36 @@ def first_dimension(x):
 
 def dimension(x, index):
   return x.get_shape()[index].value
+
+def batch_values_to_indices(x):
+  shape_ = tf.shape(x)
+  batch_size = shape_[0]
+  num_cols = shape_[1]
+  d = tf.transpose(tf.expand_dims(tf.range(batch_size),0))
+  d = tf.tile(d, [1, num_cols])
+  d_flatten = tf.reshape(d, [-1, 1])
+  x_flatten = tf.reshape(x, [-1, 1])
+  r_flatten = tf.concat([d_flatten, x_flatten], 1)
+  return tf.reshape(r_flatten, [shape_[0], shape_[1], 2])
+
+
+def dense(inputs, kernel, bias=None, activation=None):
+  #inputs = ops.convert_to_tensor(inputs, dtype=dtype)
+  shape = inputs.get_shape().as_list()
+  output_shape = shape[:-1] + [kernel.get_shape().as_list()[-1]]
+  if len(output_shape) > 2:
+    # Broadcasting is required for the inputs.
+    outputs = standard_ops.tensordot(inputs, kernel, [[len(shape) - 1],
+                                                           [0]])
+    # Reshape the output back to the original ndim of the input.
+    outputs.set_shape(output_shape)
+  else:
+    outputs = standard_ops.matmul(inputs, kernel)
+  if bias is not None:
+    outputs = nn.bias_add(outputs, bias)
+  if activation is not None:
+    return activation(outputs)  # pylint: disable=not-callable
+  return outputs
+
+def sequence_equal(x, y):
+  return tf.reduce_mean(tf.to_int32(tf.equal(x,y)), 1)

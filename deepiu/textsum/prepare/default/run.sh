@@ -1,0 +1,1 @@
+sh ./run-local.sh 

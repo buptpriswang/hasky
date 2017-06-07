@@ -32,7 +32,7 @@ import gezi
 import melt
 logging = melt.logging
 
-from deepiu.image_caption.algos import algos_factory
+from deepiu.util import algos_factory
 from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod
 
 #debug
@@ -82,8 +82,9 @@ def main(_):
                  #'包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网',
                  #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
                  #'宝宝太胖怎么办呢',
-                 '蛋龟缸，目前4虎纹1剃刀',
-                 '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
+                 #'蛋龟缸，目前4虎纹1剃刀',
+                 #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
+                '2015羊年中国风年会晚会签到板设计',
                  ]
 
   for input_text in input_texts:
@@ -97,9 +98,17 @@ def main(_):
     #print(text_[0], text2ids.ids2text(text_[0]), score_[0], 'time(ms):', timer.elapsed_ms())
 
     timer = gezi.Timer()
-    texts, scores = sess.run([beam_text, beam_score], 
-                                            {predictor.input_text_feed : [word_ids]})
+    #texts, scores, preids, paids, seqlens = sess.run([beam_text, beam_score, 
+    #                         tf.get_collection('preids')[-1], 
+    #                         tf.get_collection('paids')[-1],
+    #                         tf.get_collection('seqlens')[-1]],
+    #                                        {predictor.input_text_feed : [word_ids]})
 
+    #print(preids)
+    #print(paids)
+    #print(seqlens)
+    texts, scores = sess.run([beam_text, beam_score],
+                                            {predictor.input_text_feed : [word_ids]})
 
     texts = texts[0]
     scores = scores[0]
@@ -108,27 +117,28 @@ def main(_):
 
     print('beam_search using time(ms):', timer.elapsed_ms())
 
-  input_texts = [
-                 '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                 '包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网',
-                 #'包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶', #same length as lajiao sentence 15
-                 #"宝宝太胖怎么办呢",
-                 #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                 #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                 #'邹红建是阿拉斯加',
-                 ]
+  #input_texts = [
+  #              '2015羊年中国风年会晚会签到板设计',
+  #               #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
+  #               #'包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网',
+  #               #'包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶', #same length as lajiao sentence 15
+  #               #"宝宝太胖怎么办呢",
+  #               #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
+  #               #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
+  #               #'邹红建是阿拉斯加',
+  #               ]
 
-  word_ids_list = [_text2ids(input_text, INPUT_TEXT_MAX_WORDS) for input_text in input_texts]
-  timer = gezi.Timer()
-  texts_list, scores_list = sess.run([beam_text, beam_score], 
-                             feed_dict={predictor.input_text_feed: word_ids_list})
+  #word_ids_list = [_text2ids(input_text, INPUT_TEXT_MAX_WORDS) for input_text in input_texts]
+  #timer = gezi.Timer()
+  #texts_list, scores_list = sess.run([beam_text, beam_score], 
+  #                           feed_dict={predictor.input_text_feed: word_ids_list})
   
 
-  for texts, scores in zip(texts_list, scores_list):
-    for text, score in zip(texts, scores):
-      print(text, text2ids.ids2text(text), score, math.log(score))
+  #for texts, scores in zip(texts_list, scores_list):
+  #  for text, score in zip(texts, scores):
+  #    print(text, text2ids.ids2text(text), score, math.log(score))
 
-  print('beam_search using time(ms):', timer.elapsed_ms())
+  #print('beam_search using time(ms):', timer.elapsed_ms())
 
 
 

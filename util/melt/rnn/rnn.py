@@ -31,6 +31,7 @@ class OutputMethod:
   last = 1
   first = 2
   all = 3
+  mean = 4
 
 def forward_encode(cell, inputs, sequence_length, initial_state=None, dtype=None, output_method=OutputMethod.last):
   outputs, state = tf.nn.dynamic_rnn(
@@ -43,6 +44,8 @@ def forward_encode(cell, inputs, sequence_length, initial_state=None, dtype=None
   #--seems slower convergence and not good result when only using last output, so change to use sum
   if output_method == OutputMethod.sum:
     return tf.reduce_sum(outputs, 1), state
+  elif output_method == OutputMethod.mean:
+    return tf.reduce_sum(outputs, 1) / tf.to_float(tf.expand_dims(sequence_length, 1)), state 
   elif output_method == OutputMethod.last:
     return dynamic_last_relevant(outputs, sequence_length), state
   elif output_method == OutputMethod.first:
@@ -61,6 +64,8 @@ def backward_encode(cell, inputs, sequence_length, initial_state=None, dtype=Non
   #--seems slower convergence and not good result when only using last output, so change to use sum
   if output_method == OutputMethod.sum:
     return tf.reduce_sum(outputs, 1), state
+  elif output_method == OutputMethod.mean:
+    return tf.reduce_sum(outputs, 1) /  tf.to_float(tf.expand_dims(sequence_length, 1)), state
   elif output_method == OutputMethod.last:
     return dynamic_last_relevant(outputs, sequence_length), state
   elif output_method == OutputMethod.first:
@@ -95,6 +100,8 @@ def bidrectional_encode(cell_fw,
 
   if output_method == OutputMethod.sum:
     output_forward = tf.reduce_sum(output_fws, 1) 
+  elif output_method == OutputMethod.mean:
+    output_forward = tf.reduce_sum(output_fws, 1) / tf.to_float(tf.expand_dims(sequence_length, 1))
   elif output_method == OutputMethod.last:
     output_forward = dynamic_last_relevant(output_fws, sequence_length)
   elif output_method == OutputMethod.first:
@@ -104,6 +111,8 @@ def bidrectional_encode(cell_fw,
 
   if output_method == OutputMethod.sum:
     output_backward = tf.reduce_sum(output_bws, 1) 
+  elif output_method == OutputMethod.mean:
+    output_backward = tf.reduce_sum(output_bws, 1) / tf.to_float(tf.expand_dims(sequence_length, 1))
   elif output_method == OutputMethod.last:
     output_backward = dynamic_last_relevant(output_bws, sequence_length)
   elif output_method == OutputMethod.first:

@@ -110,7 +110,7 @@ rnn_cells = {
   'lstm_block' : tf.contrib.rnn.LSTMBlockCell, #LSTMBlockCell is faster then LSTMCell
   }
 
-def create_rnn_cell(num_units, is_training, initializer=None, num_layers=1, keep_prob=1.0, Cell=None, cell_type='lstm', scope=None):
+def create_rnn_cell(num_units, is_training=True, initializer=None, num_layers=1, keep_prob=1.0, Cell=None, cell_type='lstm', scope=None):
   with tf.variable_scope(scope or 'create_rnn_cell') as scope:
     if Cell is None:
       Cell = rnn_cells.get(cell_type.lower(), tf.contrib.rnn.LSTMCell)

@@ -44,6 +44,7 @@ python ./train.py \
   --feed_single $feed_single \
   --dynamic_batch_length 1 \
   --batch_size 256 \
+  --eval_batch_size 1013 \
   --rnn_method 1 \
   --rnn_output_method 0 \
   --emb_dim 256 \

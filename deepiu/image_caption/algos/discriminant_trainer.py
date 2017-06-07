@@ -56,7 +56,6 @@ class DiscriminantTrainer(object):
     #  #NOTICE if using bidirectional rnn then actually emb_dim is emb_dim / 2, because will at last step depth-concatate output fw and bw vectors
     #  self.emb = melt.variable.get_weights_uniform('emb', [vocab_size, emb_dim], -init_width, init_width)
     self.emb = embedding.get_embedding_cpu('emb')
-
     melt.visualize_embedding(self.emb, FLAGS.vocab)
     if is_training and FLAGS.monitor_level > 0:
       melt.monitor_embedding(self.emb, vocabulary.vocab, vocab_size)

@@ -41,7 +41,8 @@ def read_once(sess, step, ops):
     print('steps:', step, ' duration:', duration, 'instance/s:',  FLAGS.batch_size * FLAGS.num_test_steps / duration)
 
     if step == 0:
-      print(X)
+      print('index', X[0])
+      print('value', X[1])
       print(y)
 
 from melt.flow import tf_flow

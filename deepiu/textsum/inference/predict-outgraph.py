@@ -57,7 +57,6 @@ def predict(predictor, input_text):
                                         'beam_search_initial_state', 
                                         'beam_search_initial_ids', 
                                         'beam_search_initial_logprobs',
-                                        'beam_search_initial_alignments',
                                         ], 
                                         feed_dict= {
                                           tf.get_collection('input_text_feed')[0] : [word_ids]
@@ -67,7 +66,6 @@ def predict(predictor, input_text):
                                         'beam_search_state', 
                                         'beam_search_ids', 
                                         'beam_search_logprobs',
-                                        'attention_alignments', #optional
                                         ], 
                                         feed_dict= {
                                           #TODO...attetion still need input_text feed, see rnn_decoder.py  beam_search_step
@@ -113,7 +111,9 @@ def main(_):
   #predict(predictor, "美女佟丽娅")
   #predict(predictor, "宝宝太胖怎么办呢")
   #predict(predictor, "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网")
-  #predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
+  #predict(predictor, "大++棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
+
+  predict(predictor, '2015羊年中国风年会晚会签到板设计')
 
   while True:
     text = raw_input('')

@@ -52,7 +52,7 @@ def _decode(example, parse):
   text = features[FLAGS.decode_name]
   maxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
   text = melt.sparse_tensor_to_dense(text, maxlen)
-  
+
   return image_name, image_feature, text, text_str
 
 def decode_examples(examples):
@@ -143,7 +143,6 @@ def get_decodes(use_neg=True):
       decode = lambda x: decode_examples(x)
       decode_neg = (lambda x: decode_neg_examples(x)) if use_neg else None
       print('decode_neg', decode_neg)
-
     else:
       assert False, 'since have sparse data must use shuffle_then_decode'
       inputs = melt.decode_then_shuffle.inputs

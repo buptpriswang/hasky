@@ -274,6 +274,8 @@ def print_img_text_negscore_generatedtext(img, i, text, score,
     for i, text in enumerate(generated_text):
       print_generated_text_score(text, generated_text_score[i], name='gen__max', id=i)   
   
+  print('-----------------------', generated_text_beam, generated_text_beam.shape)
+  print(generated_text_score_beam, generated_text_score_beam.shape)
   if generated_text_beam is not None:
     try:
       print_generated_text_score(generated_text_beam, generated_text_score_beam)
