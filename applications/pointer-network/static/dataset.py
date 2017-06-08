@@ -47,8 +47,8 @@ class DataGenerator(object):
 
 if __name__ == "__main__":
   dataset = DataGenerator()
-  r, d, w = dataset.next_batch(1, 5)
-  print("Reader: ", r)
-  print("Decoder: ", d)
-  print("Writer: ", w)
+  encoder_inputs, decoder_inputs, target_labels = dataset.next_batch(1, 5)
+  print("EncoderInputs: ", encoder_inputs)
+  print("DecoderInputs: ", decoder_inputs)
+  print("TargetLabels: ", target_labels)
 
