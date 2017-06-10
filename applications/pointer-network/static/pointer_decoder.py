@@ -80,7 +80,6 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
     attn_size = attention_states.get_shape()[2].value
     
     num_units = attn_size
-    attention_vec_size = attn_size
     
     #[batch_size, attn_length, num_units] - > [batch_size, attn_length, num_units] 
     keys = layers.linear(attention_states, num_units, scope="memory_layer")
@@ -99,16 +98,20 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
         #[batch_size, attn_length, num_units] + [batch_size, 1, num_units] -> [batch_size, attn_length, num_units] 
         #reduce_sum -> [batch_size, attn_length]
         scores = math_ops.reduce_sum(v * math_ops.tanh(keys + processed_query), [2])
-        alignments = nn_ops.softmax(scores)
         
-        #-> [batch_size, attn_length, 1]
-        alignments = array_ops.expand_dims(alignments, 2)
-        context_vector = math_ops.reduce_sum(alignments * values, [1])
+        if feed_prev:
+          alignments = nn_ops.softmax(scores)
+          #-> [batch_size, attn_length, 1]
+          alignments = array_ops.expand_dims(alignments, 2)
+        
+          #context_vector = math_ops.reduce_sum(alignments * values, [1])
 
-        return scores, alignments, context_vector
+          #return scores, alignments, context_vector
+          return scores, alignments
+        else:
+          return scores
 
     outputs = []
-    prev = None
     
     batch_attn_size = array_ops.stack([batch_size, num_units])
     attns = array_ops.zeros(batch_attn_size, dtype=dtype)
@@ -130,15 +133,20 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
         inp = tf.stop_gradient(inp)
         inps.append(inp)
        
-      inp = tf.concat([inp, attns], 1)
+      #inp = tf.concat([inp, attns], 1)
 
       # Run the RNN.
       cell_output, new_state = cell(inp, states[-1])
       states.append(new_state)
         
       # Run the attention mechanism.
-      scores, alignments, context_vector = attention(cell_output)
-      attns = layers.linear(tf.concat([cell_output, context_vector], 1), num_units, scope="attention_layer")
+      #scores, alignments, context_vector = attention(cell_output) 
+      if feed_prev:
+        scores, alignments = attention(cell_output)
+      else:
+        scores = attention(cell_output)
+      
+      #attns = layers.linear(tf.concat([cell_output, context_vector], 1), num_units, scope="attention_layer")
 
       output = scores
       
