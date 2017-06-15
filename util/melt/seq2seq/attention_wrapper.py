@@ -293,7 +293,7 @@ class LuongAttention(_BaseAttentionMechanism):
     super(LuongAttention, self).__init__(
         query_layer=None,
         memory_layer=layers_core.Dense(
-            num_units, name="memory_layer", use_bias=False),
+            num_units, name="memory_layer", _scope="memory_layer", use_bias=False),
         memory=memory,
         probability_fn=wrapped_probability_fn,
         memory_sequence_length=memory_sequence_length,
@@ -355,6 +355,7 @@ class LuongAttention(_BaseAttentionMechanism):
         score = g * score
 
     alignments = self._probability_fn(score, previous_alignments)
+    #alignments = self._probability_fn(score)
     return alignments
 
 
@@ -414,7 +415,7 @@ class BahdanauAttention(_BaseAttentionMechanism):
         query_layer=layers_core.Dense(
             num_units, name="query_layer", use_bias=False),
         memory_layer=layers_core.Dense(
-            num_units, name="memory_layer", use_bias=False),
+            num_units, name="memory_layer", _scope="memory_layer", use_bias=False),
         memory=memory,
         probability_fn=wrapped_probability_fn,
         memory_sequence_length=memory_sequence_length,
@@ -528,9 +529,9 @@ def hardmax(logits, name=None):
         math_ops.argmax(logits, -1), depth, dtype=logits.dtype)
 
 #TODO new tf version will be rnn_cell_impl.RNNCell, now temply modify for tf verison 1.1.0-rc2
-from tensorflow.contrib.rnn import core_rnn_cell
-class AttentionWrapper(core_rnn_cell.RNNCell):
-#class AttentionWrapper(rnn_cell_impl.RNNCell):
+#from tensorflow.contrib.rnn import core_rnn_cell
+#class AttentionWrapper(core_rnn_cell.RNNCell):
+class AttentionWrapper(rnn_cell_impl.RNNCell):
   """Wraps another `RNNCell` with attention.
   """
 

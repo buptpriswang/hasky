@@ -22,7 +22,6 @@ from __future__ import print_function
 import tensorflow as tf
 
 from tensorflow.python.ops import variable_scope
-from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
 from tensorflow.python.ops import array_ops
 from tensorflow.python.util import nest
 

@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorflow.contrib.layers.python.layers import layers
-from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
+from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import function
 from tensorflow.python.framework import ops
@@ -423,7 +423,7 @@ def init_attention(encoder_state):
     top_state = encoder_state
 
   # LSTM vs GRU
-  if isinstance(top_state, core_rnn_cell_impl.LSTMStateTuple):
+  if isinstance(top_state, rnn_cell_impl.LSTMStateTuple):
     attn = array_ops.zeros_like(top_state.h)
   else:
     attn = array_ops.zeros_like(top_state)

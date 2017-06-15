@@ -39,7 +39,6 @@ from tensorflow.python.ops import variable_scope as vs
 
 from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.contrib.layers.python.layers import layers
-from tensorflow.python.layers import core as layers_core
 
 
 def pointer_decoder(decoder_inputs, initial_state, attention_states, 
@@ -83,35 +82,9 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
     num_units = attn_size
     
     #[batch_size, attn_length, num_units] - > [batch_size, attn_length, num_units] 
-    keys = layers.linear(attention_states, num_units, scope="memory_layer")
     values = attention_states
     
     states = [initial_state]
-    
-    def attention(query):
-      """Point on hidden using hidden_features and query."""
-      with vs.variable_scope("Attention"):
-        v = vs.get_variable("AttnV", [num_units])
-        #[batch_size, num_units] -> [batch_size, num_units]
-        processed_query =  layers.linear(query, num_units, scope="query_layer")
-        #->[batch_size, 1, num_units]
-        processed_query = tf.expand_dims(processed_query, 1)
-        #[batch_size, attn_length, num_units] + [batch_size, 1, num_units] -> [batch_size, attn_length, num_units] 
-        #reduce_sum -> [batch_size, attn_length]
-        scores = math_ops.reduce_sum(v * math_ops.tanh(keys + processed_query), [2])
-        
-        if feed_prev:
-          alignments = nn_ops.softmax(scores)
-          #-> [batch_size, attn_length, 1]
-          alignments = array_ops.expand_dims(alignments, 2)
-        
-          #context_vector = math_ops.reduce_sum(alignments * values, [1])
-
-          #return scores, alignments, context_vector
-          return scores, alignments
-        else:
-          return scores
-
     outputs = []
     
     batch_attn_size = array_ops.stack([batch_size, num_units])
@@ -130,27 +103,17 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
         #->[batch_size, atten_length, input_size(1 for sort)]
         inp = tf.transpose(inp, perm=[1, 0, 2])
         inp = tf.reshape(inp, [-1, attn_length, input_size])
+        
+        alignments = tf.expand_dims(alignments, 2)
         inp = tf.reduce_sum(inp * alignments, [1])
         inp = tf.stop_gradient(inp)
         inps.append(inp)
        
-      #inp = tf.concat([inp, attns], 1)
-
       # Run the RNN.
       cell_output, new_state = cell(inp, states[-1])
       states.append(new_state)
         
-      # Run the attention mechanism.
-      #scores, alignments, context_vector = attention(cell_output) 
-      if feed_prev:
-        scores, alignments = attention(cell_output)
-      else:
-        scores = attention(cell_output)
-      
-      #attns = layers.linear(tf.concat([cell_output, context_vector], 1), num_units, scope="attention_layer")
-
-      output = scores
-      
-      outputs.append(output)
+      alignments = new_state.alignments 
+      outputs.append(alignments)
 
     return outputs, states, inps
