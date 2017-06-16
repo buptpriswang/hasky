@@ -60,7 +60,7 @@ class Pooling(object):
   def gen_text_feature(self, text, emb):
     inputs = tf.nn.embedding_lookup(emb, text)
     text_feature = self.encoder.encode(inputs, melt.length(text)).final_state
-    print('---------------------', text_feature)
+    #print('---------------------', text_feature)
     return text_feature
 
   def build_train_graph(self, image_feature, text, neg_text):

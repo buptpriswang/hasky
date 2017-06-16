@@ -355,7 +355,6 @@ class LuongAttention(_BaseAttentionMechanism):
         score = g * score
 
     alignments = self._probability_fn(score, previous_alignments)
-    #alignments = self._probability_fn(score)
     return alignments
 
 
@@ -413,7 +412,7 @@ class BahdanauAttention(_BaseAttentionMechanism):
     wrapped_probability_fn = lambda score, _: probability_fn(score)
     super(BahdanauAttention, self).__init__(
         query_layer=layers_core.Dense(
-            num_units, name="query_layer", use_bias=False),
+            num_units, name="query_layer", _scope="query_layer", use_bias=False),
         memory_layer=layers_core.Dense(
             num_units, name="memory_layer", _scope="memory_layer", use_bias=False),
         memory=memory,
@@ -543,6 +542,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
                cell_input_fn=None,
                output_attention=True,
                initial_cell_state=None,
+               no_context=False,
                name=None):
     """Construct the `AttentionWrapper`.
 
@@ -571,6 +571,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         now, and the user uses a `batch_size` argument of `zero_state` which
         does not match the batch size of `initial_cell_state`, proper
         behavior is not guaranteed.
+      no_context: True when use pointer network, when you only want alignments
       name: Name to use when creating ops.
     """
     super(AttentionWrapper, self).__init__(name=name)
@@ -592,7 +593,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
 
     if attention_layer_size is not None:
       self._attention_layer = layers_core.Dense(
-          attention_layer_size, name="attention_layer", use_bias=False)
+          attention_layer_size, name="attention_layer", _scope="attention_layer", use_bias=False)
       self._attention_layer_size = attention_layer_size
     else:
       self._attention_layer = None
@@ -604,6 +605,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     self._cell_input_fn = cell_input_fn
     self._output_attention = output_attention
     self._alignment_history = alignment_history
+    self._no_context = no_context
     with ops.name_scope(name, "AttentionWrapperInit"):
       if initial_cell_state is None:
         self._initial_cell_state = None
@@ -730,26 +732,30 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     alignments = self._attention_mechanism(
         cell_output, previous_alignments=state.alignments)
 
-    # Reshape from [batch_size, memory_time] to [batch_size, 1, memory_time]
-    expanded_alignments = array_ops.expand_dims(alignments, 1)
-    # Context is the inner product of alignments and values along the
-    # memory time dimension.
-    # alignments shape is
-    #   [batch_size, 1, memory_time]
-    # attention_mechanism.values shape is
-    #   [batch_size, memory_time, attention_mechanism.num_units]
-    # the batched matmul is over memory_time, so the output shape is
-    #   [batch_size, 1, attention_mechanism.num_units].
-    # we then squeeze out the singleton dim.
-    attention_mechanism_values = self._attention_mechanism.values
-    context = math_ops.matmul(expanded_alignments, attention_mechanism_values)
-    context = array_ops.squeeze(context, [1])
-
-    if self._attention_layer is not None:
-      attention = self._attention_layer(
-          array_ops.concat([cell_output, context], 1))
+    if self._no_context:
+      attention = cell_output
     else:
-      attention = context
+      # Reshape from [batch_size, memory_time] to [batch_size, 1, memory_time]
+      expanded_alignments = array_ops.expand_dims(alignments, 1)
+      # Context is the inner product of alignments and values along the
+      # memory time dimension.
+      # alignments shape is
+      #   [batch_size, 1, memory_time]
+      # attention_mechanism.values shape is
+      #   [batch_size, memory_time, attention_mechanism.num_units]
+      # the batched matmul is over memory_time, so the output shape is
+      #   [batch_size, 1, attention_mechanism.num_units].
+      # we then squeeze out the singleton dim.
+      attention_mechanism_values = self._attention_mechanism.values
+      context = math_ops.matmul(expanded_alignments, attention_mechanism_values)
+      context = array_ops.squeeze(context, [1])
+
+      if self._attention_layer is not None:
+        attention = self._attention_layer(
+            array_ops.concat([cell_output, context], 1))
+      else:
+        attention = context
+
 
     if self._alignment_history:
       alignment_history = state.alignment_history.write(

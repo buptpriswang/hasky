@@ -36,15 +36,13 @@ from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import rnn
 from tensorflow.python.ops import sparse_ops
 from tensorflow.python.ops import variable_scope as vs
-
 from tensorflow.python.ops import rnn_cell_impl
-from tensorflow.contrib.layers.python.layers import layers
 
 
 def pointer_decoder(decoder_inputs, initial_state, attention_states, 
                     ori_encoder_inputs, cell,
                     feed_prev=False, dtype=dtypes.float32, scope=None):
-  """RNN decoder with pointer net for the sequence-to-sequence model.
+    """RNN decoder with pointer net for the sequence-to-sequence model.
     Args:
       decoder_inputs: a list of 2D Tensors [batch_size x cell.input_size].
       initial_state: 2D Tensor [batch_size x cell.state_size].
@@ -66,55 +64,73 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
       states: The state of each decoder cell in each time-step. This is a list
         with length len(decoder_inputs) -- one item for each time-step.
         Each item is a 2D Tensor of shape [batch_size x cell.state_size].
-  """
-  if not decoder_inputs:
-    raise ValueError("Must provide at least 1 input to attention decoder.")
-  if not attention_states.get_shape()[1:2].is_fully_defined():
-    raise ValueError("Shape[1] and [2] of attention_states must be known: %s"
-                     % attention_states.get_shape())
+    """
+    if not decoder_inputs:
+        raise ValueError("Must provide at least 1 input to attention decoder.")
+    if not attention_states.get_shape()[1:2].is_fully_defined():
+        raise ValueError("Shape[1] and [2] of attention_states must be known: %s"
+                         % attention_states.get_shape())
 
-  with vs.variable_scope(scope or "point_decoder"):
-    batch_size = array_ops.shape(decoder_inputs[0])[0]  # Needed for reshaping.
-    input_size = decoder_inputs[0].get_shape()[1].value
-    attn_length = attention_states.get_shape()[1].value
-    attn_size = attention_states.get_shape()[2].value
-    
-    num_units = attn_size
-    
-    #[batch_size, attn_length, num_units] - > [batch_size, attn_length, num_units] 
-    values = attention_states
-    
-    states = [initial_state]
-    outputs = []
-    
-    batch_attn_size = array_ops.stack([batch_size, num_units])
-    attns = array_ops.zeros(batch_attn_size, dtype=dtype)
-    attns.set_shape([None, num_units])
-    
-    inps = []
-    for i in range(len(decoder_inputs)):
-      if i > 0:
-        vs.get_variable_scope().reuse_variables()
-      inp = decoder_inputs[i]
-      
-      if feed_prev and i > 0:
-        #->[atten_length, batch_size, input_size(1 for sort)]
-        inp = tf.stack(ori_encoder_inputs)
-        #->[batch_size, atten_length, input_size(1 for sort)]
-        inp = tf.transpose(inp, perm=[1, 0, 2])
-        inp = tf.reshape(inp, [-1, attn_length, input_size])
-        
-        alignments = tf.nn.softmax(alignments)
-        alignments = tf.expand_dims(alignments, 2)
-        inp = tf.reduce_sum(inp * alignments, [1])
-        inp = tf.stop_gradient(inp)
-        inps.append(inp)
-       
-      # Run the RNN.
-      cell_output, new_state = cell(inp, states[-1])
-      states.append(new_state)
-        
-      alignments = new_state.alignments 
-      outputs.append(alignments)
+    with vs.variable_scope(scope or "point_decoder"):
+        batch_size = array_ops.shape(decoder_inputs[0])[0]  # Needed for reshaping.
+        input_size = decoder_inputs[0].get_shape()[1].value
+        attn_length = attention_states.get_shape()[1].value
+        attn_size = attention_states.get_shape()[2].value
+
+        # To calculate W1 * h_t we use a 1-by-1 convolution, need to reshape before.
+        hidden = array_ops.reshape(
+            attention_states, [-1, attn_length, 1, attn_size])
+
+        attention_vec_size = attn_size  # Size of query vectors for attention.
+        k = vs.get_variable("AttnW", [1, 1, attn_size, attention_vec_size])
+        hidden_features = nn_ops.conv2d(hidden, k, [1, 1, 1, 1], "SAME")
+        v = vs.get_variable("AttnV", [attention_vec_size])
+
+        states = [initial_state]
+
+        def attention(query):
+            """Point on hidden using hidden_features and query."""
+            with vs.variable_scope("Attention"):
+                y = rnn_cell_impl._linear(query, attention_vec_size, True)
+                y = array_ops.reshape(y, [-1, 1, 1, attention_vec_size])
+                # Attention mask is a softmax of v^T * tanh(...).
+                s = math_ops.reduce_sum(
+                    v * math_ops.tanh(hidden_features + y), [2, 3])
+                return s
+
+        outputs = []
+        prev = None
+        batch_attn_size = array_ops.stack([batch_size, attn_size])
+        attns = array_ops.zeros(batch_attn_size, dtype=dtype)
+
+        attns.set_shape([None, attn_size])
+        inps = []
+        for i in range(len(decoder_inputs)):
+            if i > 0:
+                vs.get_variable_scope().reuse_variables()
+            inp = decoder_inputs[i]
+
+            if feed_prev and i > 0:
+                inp = tf.stack(ori_encoder_inputs)
+                inp = tf.transpose(inp, perm=[1, 0, 2])
+                inp = tf.reshape(inp, [-1, attn_length, input_size])
+                inp = tf.reduce_sum(inp * tf.reshape(tf.nn.softmax(output), [-1, attn_length, 1]), 1)
+                inp = tf.stop_gradient(inp)
+                inps.append(inp)
+
+            # Use the same inputs in inference, order internaly
+
+            # Merge input and previous attentions into one vector of the right size.
+            
+            x = rnn_cell_impl._linear([inp, attns], cell.output_size, True)
+            #x = inp
+
+            # Run the RNN.
+            cell_output, new_state = cell(x, states[-1])
+            states.append(new_state)
+            # Run the attention mechanism.
+            output = attention(new_state)
+
+            outputs.append(output)
 
     return outputs, states, inps
