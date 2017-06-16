@@ -451,7 +451,7 @@ class GreedyEmbeddingHelper(Helper):
   result through an embedding layer to get the next input.
   """
 
-  def __init__(self, embedding, start_tokens, end_token):
+  def __init__(self, embedding, first_input, end_token):
     """Initializer.
 
     Args:
@@ -471,16 +471,10 @@ class GreedyEmbeddingHelper(Helper):
       self._embedding_fn = (
           lambda ids: embedding_ops.embedding_lookup(embedding, ids))
 
-    self._start_tokens = ops.convert_to_tensor(
-        start_tokens, dtype=dtypes.int32, name="start_tokens")
     self._end_token = ops.convert_to_tensor(
         end_token, dtype=dtypes.int32, name="end_token")
-    if self._start_tokens.get_shape().ndims != 1:
-      raise ValueError("start_tokens must be a vector")
-    self._batch_size = array_ops.size(start_tokens)
-    if self._end_token.get_shape().ndims != 0:
-      raise ValueError("end_token must be a scalar")
-    self._start_inputs = self._embedding_fn(self._start_tokens)
+    self._batch_size = array_ops.shape(first_input)[0]
+    self._start_inputs = first_input
 
   @property
   def batch_size(self):

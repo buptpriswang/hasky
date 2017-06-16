@@ -736,7 +736,10 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
       attention = cell_output
     else:
       # Reshape from [batch_size, memory_time] to [batch_size, 1, memory_time]
-      expanded_alignments = array_ops.expand_dims(alignments, 1)
+      
+      #expanded_alignments = array_ops.expand_dims(alignments, 1)
+      expanded_alignments = array_ops.expand_dims(alignments, 2)
+      
       # Context is the inner product of alignments and values along the
       # memory time dimension.
       # alignments shape is
@@ -747,8 +750,11 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
       #   [batch_size, 1, attention_mechanism.num_units].
       # we then squeeze out the singleton dim.
       attention_mechanism_values = self._attention_mechanism.values
-      context = math_ops.matmul(expanded_alignments, attention_mechanism_values)
-      context = array_ops.squeeze(context, [1])
+      
+      #context = math_ops.matmul(expanded_alignments, attention_mechanism_values)
+      #context = array_ops.squeeze(context, [1])
+
+      context = math_ops.reduce_sum(expanded_alignments * attention_mechanism_values, [1])
 
       if self._attention_layer is not None:
         attention = self._attention_layer(

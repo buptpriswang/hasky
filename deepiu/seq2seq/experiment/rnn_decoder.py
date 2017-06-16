@@ -183,28 +183,31 @@ class RnnDecoder(Decoder):
       cell = self.cell 
     else:
       cell = self.prepare_attention(attention_states, initial_state=initial_state)
-      initial_state = cell.initial_cell_state(batch_size, tf.float32, initial_state)
+      initial_state = cell.zero_state(batch_size, tf.float32)
     #TODO different init state as show in ptb_word_lm
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
-    if attention_states is None:
-      outputs, state = tf.nn.dynamic_rnn(cell, inputs, 
+    #if attention_states is None:
+    #-----TODO using attention_wrapper works now with dynamic_rnn but still slower then old attention method...
+    outputs, state = tf.nn.dynamic_rnn(cell, inputs, 
                                          initial_state=state, 
                                          sequence_length=sequence_length,
                                          scope=self.scope,
                                          dtype=tf.float32)
-    else:
-      #---below is also ok but slower, above 16+ ,below only 13,14 batch/s, may be due to sample id 
-      #TODO: can we make below code as fast as tf.nn.dyanmic_rnn if not need smaple id remove it ?
-      #TODO: why tf.nn.dynamic_rnn can not work with AttentionWrapper
-      #FIXME... AttentionWrapper is only 1/2 speed comapred to old function based attention, why?
-      helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
-      my_decoder = tf.contrib.seq2seq.BasicDecoder(
-          cell=cell,
-          helper=helper,
-          initial_state=state)
-      outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
-      outputs = outputs.rnn_output
+    #else:
+    #  #---below is also ok but slower, above 16+ ,below only 13,14 batch/s, may be due to sample id 
+    #  #TODO: can we make below code as fast as tf.nn.dyanmic_rnn if not need smaple id remove it ?
+    #  #FIXME... AttentionWrapper is only 1/2 speed comapred to old function based attention, why?
+    #  #helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+    #  helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+    #  #my_decoder = tf.contrib.seq2seq.BasicDecoder(
+    #  my_decoder = melt.seq2seq.BasicTrainingDecoder(
+    #      cell=cell,
+    #      helper=helper,
+    #      initial_state=state)
+    #  outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+    #  #outputs = outputs.rnn_output
+
     self.final_state = state
 
     tf.add_to_collection('outputs', outputs)
@@ -268,6 +271,7 @@ class RnnDecoder(Decoder):
   def generate_sequence_greedy(self, input, max_words, 
                         initial_state=None, attention_states=None,
                         convert_unk=True, 
+                        input_text=None,
                         emb=None):
     """
     this one is using greedy search method
@@ -281,7 +285,7 @@ class RnnDecoder(Decoder):
       cell = self.cell 
     else:
       cell = self.prepare_attention(attention_states, initial_state=initial_state)
-      initial_state = cell.initial_cell_state(batch_size, tf.float32, initial_state)
+      initial_state = cell.zero_state(batch_size, tf.float32)
     state = self.cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
     
     helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
@@ -545,15 +549,18 @@ class RnnDecoder(Decoder):
     attention_mechanism = create_attention_mechanism(
         num_units=self.num_units,
         memory=attention_states,
-        memory_sequence_length=sequence_length) #since dynamic rnn decoder also consider seq length, no need to mask again?
+        #memory_sequence_length=sequence_length) #since dynamic rnn decoder also consider seq length, no need to mask again?
+        memory_sequence_length=None) #since dynamic rnn decoder also consider seq length, no need to mask again?
 
     #cell = tf.contrib.seq2seq.AttentionWrapper(
     cell = melt.seq2seq.AttentionWrapper(
             self.cell,
             attention_mechanism,
             attention_layer_size=self.num_units,
-            alignment_history=FLAGS.alignment_history,
-            initial_cell_state=initial_state)
+            #alignment_history=FLAGS.alignment_history,
+            alignment_history=False,
+            initial_cell_state=initial_state,
+            no_context=False)
     return cell
 
   def get_start_input(self, batch_size):

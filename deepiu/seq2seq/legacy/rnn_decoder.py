@@ -61,11 +61,13 @@ FLAGS = flags.FLAGS
 #flags.DEFINE_integer('predict_sample_seed', 0, '')
 #
 #flags.DEFINE_boolean('use_attention', False, 'wether to use attention for decoder')
-#flags.DEFINE_string('attention_option', 'luong', 'luong or bahdanau')
+#flags.DEFINE_boolean('alignment_history', False, '')
+#flags.DEFINE_string('attention_option', 'bahdanau', 'luong or bahdanau')
 #
 #flags.DEFINE_integer('beam_size', 10, 'for seq decode beam search size')
 #flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.py otherwise use decode_max_words')
 #flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input words(copy mode)')
+#flags.DEFINE_boolean('decode_use_alignment', False, '')
 #
 #flags.DEFINE_boolean('copy_only', False, 'if True then only copy mode using attention')
 #
@@ -86,6 +88,8 @@ class RnnDecoder(Decoder):
     self.scope = 'rnn'
     self.is_training = is_training 
     self.is_predict = is_predict
+
+    assert not (FLAGS.decode_copy and FLAGS.decode_use_alignment)
 
     vocabulary.init()
     vocab_size = vocabulary.get_vocab_size()
@@ -143,6 +147,9 @@ class RnnDecoder(Decoder):
     """
     if emb is None:
       emb = self.emb
+
+    if not FLAGS.copy_only:
+      input_text = None
     
     is_training = self.is_training
     batch_size = tf.shape(sequence)[0]
@@ -192,8 +199,10 @@ class RnnDecoder(Decoder):
           attention_keys=attention_keys,
           attention_values=attention_values,
           attention_score_fn=attention_score_fn,
-          attention_construct_fn=attention_construct_fn)
-      decoder_outputs_train, decoder_state_train, _ = \
+          attention_construct_fn=attention_construct_fn,
+          input_text=input_text,
+          vocab_size=self.vocab_size)
+      decoder_outputs_train, decoder_state_train, decoder_context_train = \
                     melt.seq2seq.dynamic_rnn_decoder(
                         cell=self.cell,
                         decoder_fn=decoder_fn_train,
@@ -209,48 +218,50 @@ class RnnDecoder(Decoder):
 
     #[batch_size, num_steps]
     targets = sequence
+    #TODO: hack here add FLAGS.predict_no_sample just for Seq2seqPredictor exact_predict
+    softmax_loss_function = self.softmax_loss_function
+    if self.is_predict and (exact_prob or exact_loss):
+      softmax_loss_function = None
     
-    if FLAGS.copy_only:
-      #TODO now not work!
-      attention_scores = tf.get_collection('attention_scores')[-1]
-      indices = melt.batch_values_to_indices(input_text)
-      #logits = ;
+    if input_text is not None:
+      logits = tf.transpose(decoder_context_train.stack(), perm=[1, 0, 2])
+      #targets = tf.reshape(targets, [-1])
+      softmax_loss_function = None
+    elif softmax_loss_function is not None:
+      logits = outputs
     else:
-      #TODO: hack here add FLAGS.predict_no_sample just for Seq2seqPredictor exact_predict
-      softmax_loss_function = self.softmax_loss_function
-      if self.is_predict and (exact_prob or exact_loss):
-        softmax_loss_function = None
+      #[batch_size, num_steps, num_units] * [num_units, vocab_size]
+      # -> logits [batch_size, num_steps, vocab_size] (if use exact_predict_loss)
+      #or [batch_size * num_steps, vocab_size] by default flatten=True
+      keep_dims = exact_prob or exact_loss
+      logits = melt.batch_matmul_embedding(outputs, self.w, keep_dims=keep_dims) + self.v
+      if not keep_dims:
+        targets = tf.reshape(targets, [-1])
+
+    tf.add_to_collection('logits', logits)
     
-      if softmax_loss_function is None:
-        #[batch_size, num_steps, num_units] * [num_units, vocab_size]
-        # -> logits [batch_size, num_steps, vocab_size] (if use exact_predict_loss)
-        #or [batch_size * num_steps, vocab_size] by default flatten=True
-        keep_dims = exact_prob or exact_loss
-        logits = melt.batch_matmul_embedding(outputs, self.w, keep_dims=keep_dims) + self.v
-        if not keep_dims:
-          targets = tf.reshape(targets, [-1])
-      else:
-        logits = outputs
+    #if input_text is not None:
+    #  logits = outputs
 
-      mask = tf.cast(tf.sign(targets), dtype=tf.float32)
+    mask = tf.cast(tf.sign(targets), dtype=tf.float32)
 
-      if self.is_predict and exact_prob:
-        #generate real prob for sequence
-        #for 10w vocab textsum seq2seq 20 -> 4 about 
-        loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, batch_size)
-      elif self.is_predict and exact_loss: 
-        #force no sample softmax loss, the diff with exact_prob is here we just use cross entropy error as result not real prob of seq
-        #NOTICE using time a bit less  55 to 57(prob), same result with exact prob and exact score
-        #but 256 vocab sample will use only about 10ms
-        #TODO check more with softmax loss and sampled somtmax loss, check length normalize
-        loss = melt.seq2seq.sequence_loss_by_example(logits, targets, weights=mask)
-      else:
-        #loss [batch_size,] 
-        loss = melt.seq2seq.sequence_loss_by_example(
-            logits,
-            targets,
-            weights=mask,
-            softmax_loss_function=softmax_loss_function)
+    if self.is_predict and exact_prob:
+      #generate real prob for sequence
+      #for 10w vocab textsum seq2seq 20 -> 4 about 
+      loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, batch_size)
+    elif self.is_predict and exact_loss: 
+      #force no sample softmax loss, the diff with exact_prob is here we just use cross entropy error as result not real prob of seq
+      #NOTICE using time a bit less  55 to 57(prob), same result with exact prob and exact score
+      #but 256 vocab sample will use only about 10ms
+      #TODO check more with softmax loss and sampled somtmax loss, check length normalize
+      loss = melt.seq2seq.sequence_loss_by_example(logits, targets, weights=mask)
+    else:
+      #loss [batch_size,] 
+      loss = melt.seq2seq.sequence_loss_by_example(
+          logits,
+          targets,
+          weights=mask,
+          softmax_loss_function=softmax_loss_function)
     
     #mainly for compat with [bach_size, num_losses]
     loss = tf.reshape(loss, [-1, 1])
@@ -263,6 +274,7 @@ class RnnDecoder(Decoder):
   def generate_sequence_greedy(self, input, max_words, 
                         initial_state=None, attention_states=None,
                         convert_unk=True, 
+                        input_text=None,
                         emb=None):
     """
     this one is using greedy search method
@@ -270,6 +282,9 @@ class RnnDecoder(Decoder):
     """
     if emb is None:
       emb = self.emb
+
+    if not FLAGS.copy_only:
+      input_text = None
 
     batch_size = tf.shape(input)[0]
     state = self.cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
@@ -304,6 +319,7 @@ class RnnDecoder(Decoder):
               end_of_sequence_id=self.end_id,
               maximum_length=max_words,
               num_decoder_symbols=self.vocab_size,
+              input_text=input_text,
               dtype=tf.int32))
 
     decoder_outputs_inference, decoder_state_inference, decoder_context_state_inference = \
@@ -377,18 +393,25 @@ class RnnDecoder(Decoder):
       emb = self.emb
     
     tf.add_to_collection('beam_search_beam_size', tf.constant(beam_size))
-    if input_text is not None and FLAGS.decode_copy:
-      input_text = tf.squeeze(input_text)
-      input_text_length = tf.to_int32(tf.squeeze(input_text_length))
-      input_text = input_text[0:input_text_length]
-      input_text, _ = tf.unique(input_text)
-      input_text_length = tf.shape(input_text)[-1]
-      #sort from small to large
-      #input_text, _ = -tf.nn.top_k(-input_text, input_text_length)
-      #TODO may be need to be input_text_length, so as to do more decode limit out graph like using trie!
-      beam_size = tf.minimum(beam_size, input_text_length)
-    else:
-      input_text = None
+    if input_text is not None:
+      if FLAGS.decode_copy:
+        input_text = tf.squeeze(input_text)
+        input_text_length = tf.to_int32(tf.squeeze(input_text_length))
+        input_text = input_text[0:input_text_length]
+        input_text, _ = tf.unique(input_text)
+        input_text_length = tf.shape(input_text)[-1]
+        #sort from small to large
+        #input_text, _ = -tf.nn.top_k(-input_text, input_text_length)
+        #TODO may be need to be input_text_length, so as to do more decode limit out graph like using trie!
+        beam_size = tf.minimum(beam_size, input_text_length)
+      elif FLAGS.decode_use_alignment:
+        input_text = tf.squeeze(input_text)
+        input_text_length = tf.to_int32(tf.squeeze(input_text_length))
+        input_text = input_text[0:input_text_length]
+        input_text_length = tf.shape(input_text)[-1]
+        beam_size = tf.minimum(beam_size, input_text_length)
+      else:
+        input_text = None
 
     if attention_states is not None:
        attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
@@ -486,13 +509,17 @@ class RnnDecoder(Decoder):
     #can we avoid this? seems not better method, 
     #if enocding is slow may be feed attention_keys, attention_values each step
     if attention_construct_fn is not None:
-      output = attention_construct_fn(output, attention_keys, attention_values)
+      output, scores, alignments = attention_construct_fn(output, attention_keys, attention_values)
     
-    logits = tf.nn.xw_plus_b(output, self.w, self.v)
-    logprobs = tf.nn.log_softmax(logits)
+    if not FLAGS.decode_use_alignment:
+      logits = tf.nn.xw_plus_b(output, self.w, self.v)
+      logprobs = tf.nn.log_softmax(logits)
 
-    if input_text is not None:
-      logprobs = melt.gather_cols(logprobs, tf.to_int32(input_text))
+      if input_text is not None:
+        logprobs = melt.gather_cols(logprobs, tf.to_int32(input_text))
+    else:
+      logits = scores[:,:tf.shape(input_text)[-1]]
+      logprobs = tf.nn.log_softmax(logits)
 
     top_logprobs, top_ids = tf.nn.top_k(logprobs, beam_size)
     #------too slow... for transfering large data between py and c++ cost a lot!

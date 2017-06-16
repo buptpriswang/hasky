@@ -24,7 +24,7 @@ python ./train.py \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
-  --train_only 0 \
+  --train_only 1 \
   --metric_eval 0 \
   --gen_predict 1 \
   --monitor_level 2 \
@@ -49,6 +49,9 @@ python ./train.py \
   --rnn_method 0 \
   --emb_dim 1000 \
   --rnn_hidden_size 1024 \
+  --experiment_rnn_decoder 1 \
+  --show_beam_search 0 \
+  --gen_predict 0 \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \
