@@ -36,6 +36,7 @@ from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import tensor_array_ops
 from tensorflow.python.util import nest
 
+import tensorflow as tf
 
 __all__ = [
     "BeamSearchDecoderOutput",
@@ -116,11 +117,12 @@ class BeamSearchDecoder(decoder.Decoder):
   def __init__(self,
                cell,
                embedding,
-               start_tokens,
+               first_input,
                end_token,
                initial_state,
                beam_width,
-               output_layer=None,
+               vocab_size=None,
+               output_fn=None,
                length_penalty_weight=0.0):
     """Initialize BeamSearchDecoder.
 
@@ -145,12 +147,9 @@ class BeamSearchDecoder(decoder.Decoder):
     """
     if not rnn_cell_impl._like_rnncell(cell):  # pylint: disable=protected-access
       raise TypeError("cell must be an RNNCell, received: %s" % type(cell))
-    if (output_layer is not None
-        and not isinstance(output_layer, layers_base.Layer)):
-      raise TypeError(
-          "output_layer must be a Layer, received: %s" % type(output_layer))
+
     self._cell = cell
-    self._output_layer = output_layer
+    self._output_layer = output_fn
 
     if callable(embedding):
       self._embedding_fn = embedding
@@ -158,48 +157,28 @@ class BeamSearchDecoder(decoder.Decoder):
       self._embedding_fn = (
           lambda ids: embedding_ops.embedding_lookup(embedding, ids))
 
-    self._start_tokens = ops.convert_to_tensor(
-        start_tokens, dtype=dtypes.int32, name="start_tokens")
-    if self._start_tokens.get_shape().ndims != 1:
-      raise ValueError("start_tokens must be a vector")
     self._end_token = ops.convert_to_tensor(
         end_token, dtype=dtypes.int32, name="end_token")
     if self._end_token.get_shape().ndims != 0:
       raise ValueError("end_token must be a scalar")
 
-    self._batch_size = array_ops.size(start_tokens)
+    self._batch_size = first_input.shape[0].value
+    if self._batch_size is None:
+      self._batch_size = array_ops.shape(first_input)[0]
+
     self._beam_width = beam_width
     self._length_penalty_weight = length_penalty_weight
     self._initial_cell_state = nest.map_structure(
         self._maybe_split_batch_beams,
         initial_state, self._cell.state_size)
-    self._start_tokens = array_ops.tile(
-        array_ops.expand_dims(self._start_tokens, 1), [1, self._beam_width])
-    self._start_inputs = self._embedding_fn(self._start_tokens)
+    self._start_inputs = array_ops.tile(
+        array_ops.expand_dims(first_input, 1), [1, self._beam_width, 1])
     self._finished = array_ops.zeros(
         [self._batch_size, self._beam_width], dtype=dtypes.bool)
 
   @property
   def batch_size(self):
     return self._batch_size
-
-  def _rnn_output_size(self):
-    size = self._cell.output_size
-    if self._output_layer is None:
-      return size
-    else:
-      # To use layer's compute_output_shape, we need to convert the
-      # RNNCell's output_size entries into shapes with an unknown
-      # batch size.  We then pass this through the layer's
-      # compute_output_shape and read off all but the first (batch)
-      # dimensions to get the output size of the rnn with the layer
-      # applied to the top.
-      output_shape_with_unknown_batch = nest.map_structure(
-          lambda s: tensor_shape.TensorShape([None]).concatenate(s),
-          size)
-      layer_output_shape = self._output_layer._compute_output_shape(  # pylint: disable=protected-access
-          output_shape_with_unknown_batch)
-      return nest.map_structure(lambda s: s[1:], layer_output_shape)
 
   @property
   def output_size(self):
@@ -216,7 +195,7 @@ class BeamSearchDecoder(decoder.Decoder):
     # Return that structure and int32 (the id)
     dtype = nest.flatten(self._initial_cell_state)[0].dtype
     return BeamSearchDecoderOutput(
-        scores=nest.map_structure(lambda _: dtype, self._rnn_output_size()),
+        scores=dtypes.float32,
         predicted_ids=dtypes.int32,
         parent_ids=dtypes.int32)
 
@@ -282,7 +261,10 @@ class BeamSearchDecoder(decoder.Decoder):
     else:
       s = tensor_shape.TensorShape(s)
     t_shape = array_ops.shape(t)
-    static_batch_size = tensor_util.constant_value(self._batch_size)
+    if isinstance(self._batch_size, tf.Tensor):
+      static_batch_size = tensor_util.constant_value(self._batch_size)
+    else:
+      static_batch_size = self._batch_size
     batch_size_beam_width = (
         None if static_batch_size is None
         else static_batch_size * self._beam_width)
@@ -319,7 +301,10 @@ class BeamSearchDecoder(decoder.Decoder):
     reshaped_t = array_ops.reshape(
         t, array_ops.concat(
             ([self._batch_size, self._beam_width], t_shape[1:]), 0))
-    static_batch_size = tensor_util.constant_value(self._batch_size)
+    if isinstance(self._batch_size, tf.Tensor):
+      static_batch_size = tensor_util.constant_value(self._batch_size)
+    else:
+      static_batch_size = self._batch_size
     expected_reshaped_shape = tensor_shape.TensorShape(
         [static_batch_size, self._beam_width]).concatenate(s)
     if not reshaped_t.shape.is_compatible_with(expected_reshaped_shape):
@@ -464,7 +449,11 @@ def _beam_search_step(time, logits, beam_state, batch_size, beam_width,
   Returns:
     A new beam state.
   """
-  static_batch_size = tensor_util.constant_value(batch_size)
+  #TODO why need constant_value ??
+  if isinstance(batch_size, tf.Tensor):
+    static_batch_size = tensor_util.constant_value(batch_size)
+  else:
+    static_batch_size = batch_size
 
   # Calculate the current lengths of the predictions
   prediction_lengths = beam_state.lengths

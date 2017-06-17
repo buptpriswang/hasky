@@ -406,6 +406,7 @@
     <Compile Include="util\melt\rnn\rnn.py" />
     <Compile Include="util\melt\rnn\__init__.py" />
     <Compile Include="util\melt\seq2seq\attention_decoder_fn.py" />
+    <Compile Include="util\melt\seq2seq\attention_wrapper.py" />
     <Compile Include="util\melt\seq2seq\basic_decoder.py" />
     <Compile Include="util\melt\seq2seq\beam_decoder.py" />
     <Compile Include="util\melt\seq2seq\beam_decoder_fn.py" />

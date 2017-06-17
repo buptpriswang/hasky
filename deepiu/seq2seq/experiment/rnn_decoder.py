@@ -603,4 +603,3 @@ class RnnDecoder(Decoder):
       return self.end_id
 
 
-

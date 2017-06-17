@@ -351,13 +351,45 @@ class RnnDecoder(Decoder):
 
     state = cell.zero_state(batch_size * beam_size, tf.float32) if initial_state is None else initial_state
         
-    #TODO to be safe make topn the same as beam size
+    ##TODO to be safe make topn the same as beam size
     return melt.seq2seq.beam_decode(input, max_words, state, 
                                     cell, loop_function, scope=self.scope,
                                     beam_size=beam_size, done_token=vocabulary.vocab.end_id(), 
                                     output_projection=(self.w, self.v),
                                     length_normalization_factor=length_normalization_factor,
                                     topn=beam_size)
+
+    ##---dynamic beam search decoder can run but seems not correct or good reuslt, maybe bug TODO
+    ##check with one small and simple testcase 
+    #bsd = melt.seq2seq.BeamSearchDecoder(
+    #          cell=cell,
+    #          embedding=emb,
+    #          first_input=input,
+    #          end_token=self.end_id,
+    #          initial_state=state,
+    #          beam_width=beam_size,
+    #          vocab_size=self.vocab_size,
+    #          output_fn=self.output_fn,
+    #          length_penalty_weight=0.0)
+
+    ##max_words = 2
+    #outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(bsd, maximum_iterations=max_words, scope=self.scope)
+
+    ##return outputs.predicted_ids, outputs.beam_search_decoder_output.scores
+    #paths = tf.transpose(outputs.predicted_ids, [0, 2, 1])
+    ##paths = tf.transpose(outputs.beam_search_decoder_output.predicted_ids, [0, 2, 1])
+    ##paths = tf.transpose(outputs.beam_search_decoder_output.parent_ids, [0, 2, 1])
+
+    ##scores = tf.zeros([batch_size, beam_size])
+    #scores = tf.transpose(outputs.beam_search_decoder_output.scores, [0, 2, 1])
+    #scores = tf.exp(scores)
+    #scores = scores[:, :, -1]
+
+    #tf.add_to_collection('preids', outputs.beam_search_decoder_output.predicted_ids)
+    #tf.add_to_collection('paids', outputs.beam_search_decoder_output.parent_ids)
+
+    #return paths, scores
+
 
   def generate_sequence_beam_search(self, input, max_words=None, 
                                   initial_state=None, attention_states=None,
