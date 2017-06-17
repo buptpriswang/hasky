@@ -333,33 +333,31 @@ class RnnDecoder(Decoder):
       emb = self.emb
 
     def loop_function(i, prev, state, decoder):
-      prev, state, attention = decoder.take_step(i, prev, state)
+      prev, state = decoder.take_step(i, prev, state)
+      next_input = tf.nn.embedding_lookup(emb, prev)
+      return next_input, state
 
-      logit_symbols = tf.nn.embedding_lookup(emb, prev)
-      if attention is not None:
-        logit_symbols = tf.concat([logit_symbols, attention], 1)
-
-      #logit_symbols is next input
-      return logit_symbols, state
-
-    state = self.cell.zero_state(tf.shape(input)[0], tf.float32) if initial_state is None else initial_state
+    batch_size = melt.get_batch_size(input)
     
-    attention_keys, attention_values, attention_score_fn, attention_construct_fn = None, None, None, None
-    if attention_states is not None:
-      attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
-        self.prepare_attention(attention_states)
+    if initial_state is not None:
+      initial_state = nest.map_structure(lambda x: tf.contrib.seq2seq.tile_batch(x, beam_size), initial_state)
+    if attention_states is None:
+      cell = self.cell 
+    else:
+      attention_states = tf.contrib.seq2seq.tile_batch(attention_states, beam_size)
+      print('tiled_attention_states', attention_states, 'tiled_initial_state', initial_state)
+      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      initial_state = None
+
+    state = cell.zero_state(batch_size * beam_size, tf.float32) if initial_state is None else initial_state
         
     #TODO to be safe make topn the same as beam size
     return melt.seq2seq.beam_decode(input, max_words, state, 
-                                    self.cell, loop_function, scope=self.scope,
+                                    cell, loop_function, scope=self.scope,
                                     beam_size=beam_size, done_token=vocabulary.vocab.end_id(), 
                                     output_projection=(self.w, self.v),
                                     length_normalization_factor=length_normalization_factor,
-                                    topn=beam_size, 
-                                    #topn=1,
-                                    attention_construct_fn=attention_construct_fn,
-                                    attention_keys=attention_keys,
-                                    attention_values=attention_values)    
+                                    topn=beam_size)
 
   def generate_sequence_beam_search(self, input, max_words=None, 
                                   initial_state=None, attention_states=None,

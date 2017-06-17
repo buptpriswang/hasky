@@ -25,9 +25,6 @@ from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import array_ops
 from tensorflow.python.util import nest
 
-from melt.seq2seq.beam_decoder_fn import beam_decoder_fn_inference
-from melt.seq2seq.attention_decoder_fn import init_attention
-
 def rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None,
                 scope=None):
   """RNN decoder for the sequence-to-sequence model.
@@ -75,8 +72,7 @@ def rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None,
 def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None,
                 beam_size=7, done_token=0, 
                 output_projection=None,  length_normalization_factor=0.,
-                prob_as_score=True, topn=1, 
-                attention_construct_fn=None, attention_keys=None, attention_values=None):
+                prob_as_score=True, topn=1):
     """
     Beam search decoder
     copy from https://gist.github.com/igormq/000add00702f09029ea4c30eba976e0a
@@ -122,10 +118,7 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
                           done_token=done_token, 
                           output_projection=output_projection,
                           length_normalization_factor=length_normalization_factor,
-                          topn=topn, 
-                          attention_construct_fn=attention_construct_fn,
-                          attention_keys=attention_keys, 
-                          attention_values=attention_values)
+                          topn=topn)
     
     _ = rnn_decoder(
         decoder.decoder_inputs,
@@ -154,8 +147,7 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
 class BeamDecoder():
   def __init__(self, input, max_steps, initial_state, beam_size=7, done_token=0,
               batch_size=None, num_classes=None, output_projection=None, 
-              length_normalization_factor=0., topn=1,
-              attention_construct_fn=None, attention_keys=None, attention_values=None):
+              length_normalization_factor=0., topn=1):
     self.length_normalization_factor = length_normalization_factor
     self.topn = topn
     self.beam_size = beam_size
@@ -179,101 +171,11 @@ class BeamDecoder():
       self.logprobs_list = []
 
     self.decoder_inputs = [None] * self.max_len
-    #->[batch_size * beam_size, emb_dim]
-    if attention_construct_fn is not None:
-      input = tf.concat([input, init_attention(initial_state)], 1)
+    self.decoder_inputs[0] = tf.contrib.seq2seq.tile_batch(input, beam_size)
 
-    self.decoder_inputs[0] = self.tile_along_beam(input)
+    self.initial_state = initial_state
 
-    self.initial_state = nest.map_structure(self.tile_along_beam, initial_state)
-
-    self.attention_construct_fn = attention_construct_fn
-    self.attention_keys = self.tile_along_beam_attention(attention_keys) \
-      if attention_keys is not None else None
-    self.attention_values = self.tile_along_beam_attention(attention_values) \
-     if attention_values is not None else None
-
-    #---for debug
-    if self.attention_construct_fn:
-      tf.add_to_collection('attention_keys', self.attention_keys)
-      print('attention_keys', self.attention_keys)
-      tf.add_to_collection('attention_values', self.attention_values)
-      print('attention_values', self.attention_values)
                       
-  def tile_along_beam(self, tensor):
-    """
-    Helps tile tensors for each beam.
-    for beam size 5
-    x = tf.constant([[1.3, 2.4, 1.6], 
-                    [3.2, 0.2, 1.5]])
-    tile_along_beam(x).eval()
-    array([
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ]
-       ], dtype=float32)
-    Args:
-      tensor: a 2-D tensor, [batch_size x T]
-    Return:
-      An [batch_size*beam_size x T] tensor, where each row of the input
-      tensor is copied beam_size times in a row in the output
-    """
-    res = tf.tile(tensor, [1, self.beam_size])
-    res = tf.reshape(res, [-1, tf.shape(tensor)[1]])
-    #TODO: why below not work
-    #res = tf.reshape(res, [-1, tensor.get_shape()[1]]) 
-    try:
-      new_first_dim = tensor.get_shape()[0] * self.beam_size
-    except Exception:
-      new_first_dim = None
-    res.set_shape((new_first_dim, tensor.get_shape()[1]))
-    return res
-
-  #TODO: merge with title_along_beam?
-  def tile_along_beam_attention(self, tensor):
-    """
-    Helps tile tensors for each beam.
-    for beam size 5
-    x = tf.constant([[1.3, 2.4, 1.6], 
-                    [3.2, 0.2, 1.5]])
-    tile_along_beam(x).eval()
-    array([
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 1.29999995,  2.4000001 ,  1.60000002],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ],
-       [ 3.20000005,  0.2       ,  1.5       ]
-       ], dtype=float32)
-    Args:
-      tensor: a 3-D tensor, [batch_size, N,  T]
-    Return:
-      An [batch_size*beam_size, N, T] tensor, where each row of the input
-      tensor is copied beam_size times in a row in the output
-    """
-    res = tf.tile(tensor, [1, self.beam_size, 1])
-    tensor_shape = tf.shape(tensor)
-    res = tf.reshape(res, [-1, tensor_shape[1], tensor_shape[2]])
-    #TODO: why below not work
-    #res = tf.reshape(res, [-1, tensor.get_shape()[1]]) 
-    try:
-      new_first_dim = tensor.get_shape()[0] * self.beam_size
-    except Exception:
-      new_first_dim = None
-    res.set_shape((new_first_dim, tensor.get_shape()[1], tensor.get_shape()[2]))
-    return res
-
   def calc_topn(self):
     #[batch_size, beam_size * (max_len-2)]
     logprobs = tf.concat(self.logprobs_list, 1)
@@ -304,18 +206,7 @@ class BeamDecoder():
         
   def take_step(self, i, prev, state):
     output_projection = self.output_projection
-    if self.attention_construct_fn is not None:
-      #prev is as cell_output, see contrib\seq2seq\python\ops\attention_decoder_fn.py
-      #NOTICE unlike dyanmic version, here it will be called many max_len times when buidling graph
-      #TODO here will face seq2seq/main/decode/attention_construct/weights problem not setting scope reuse, for the sencod time, i=2
-      #so now need to hack see like  self.generate_sequence_greedy(input, max_words, initial_state, attention_states, convert_unk, emb)
-      #in rnn_decoder.py before beam decode 
-      #when ever you use loop, not dynamic while_loop like static rnn loop, you must always care about scope reuse problem!!
-      #make it safe for any env
-      attention, scores, alignments = self.attention_construct_fn(prev, self.attention_keys, self.attention_values)
-      prev = attention
-    else:
-      attention = None
+
     if output_projection is not None:
       #[batch_size * beam_size, num_units] -> [batch_size * beam_size, num_classes]
       output = tf.nn.xw_plus_b(prev, output_projection[0], output_projection[1])
@@ -397,11 +288,13 @@ class BeamDecoder():
       
       #we must also choose corresponding past state as new start
       past_indices = tf.reshape(past_indices, [-1])
-      state = nest.map_structure(lambda x: tf.gather(x, past_indices), state)
 
-      if attention is not None:
-        #attenion must also choose corresponding past attention
-        attention = tf.gather(attention, past_indices)
+      def try_gather(x, indices):
+        if x.shape.ndims >= 2:
+          return tf.gather(x, indices)
+        else:
+          return x
+      state = nest.map_structure(lambda x: try_gather(x, past_indices), state)
 
       if self.topn > 1:
         #[batch_size, beam_size, max_len]
@@ -453,4 +346,5 @@ class BeamDecoder():
     #->[batch_size * beam_size,]
     symbols_flat = tf.reshape(symbols, [-1])
 
-    return symbols_flat, state, attention
+    return symbols_flat, state 
+

@@ -44,13 +44,13 @@ python ./train.py \
   --feed_single $feed_single \
   --seq_decode_method 0 \
   --beam_size 10 \
-  --decode_max_words 10 \
+  --decode_max_words 20 \
   --dynamic_batch_length 1 \
   --rnn_method 0 \
   --emb_dim 1000 \
   --rnn_hidden_size 1024 \
   --experiment_rnn_decoder 0 \
-  --show_beam_search 0 \
+  --show_beam_search 1 \
   --gen_predict 0 \
   --add_text_start 1 \
   --rnn_output_method 3 \

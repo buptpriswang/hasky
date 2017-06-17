@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import collections
 
-from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.contrib.seq2seq.python.ops import beam_search_ops
 from tensorflow.contrib.seq2seq.python.ops import decoder
 from tensorflow.python.framework import dtypes
@@ -33,6 +32,7 @@ from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
+from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import tensor_array_ops
 from tensorflow.python.util import nest
 
@@ -116,12 +116,11 @@ class BeamSearchDecoder(decoder.Decoder):
   def __init__(self,
                cell,
                embedding,
-               first_input,
+               start_tokens,
                end_token,
                initial_state,
                beam_width,
-               vocab_size=None,
-               output_fn=None,
+               output_layer=None,
                length_penalty_weight=0.0):
     """Initialize BeamSearchDecoder.
 
@@ -133,22 +132,25 @@ class BeamSearchDecoder(decoder.Decoder):
       end_token: `int32` scalar, the token that marks end of decoding.
       initial_state: A (possibly nested tuple of...) tensors and TensorArrays.
       beam_width:  Python integer, the number of beams.
-      output_fn: (Optional) An instance of `tf.layers.Layer`, i.e.,
+      output_layer: (Optional) An instance of `tf.layers.Layer`, i.e.,
         `tf.layers.Dense`.  Optional layer to apply to the RNN output prior
         to storing the result or sampling.
       length_penalty_weight: Float weight to penalize length. Disabled with 0.0.
 
     Raises:
       TypeError: if `cell` is not an instance of `RNNCell`,
-        or `output_fn` is not an instance of `tf.layers.Layer`.
+        or `output_layer` is not an instance of `tf.layers.Layer`.
       ValueError: If `start_tokens` is not a vector or
         `end_token` is not a scalar.
     """
     if not rnn_cell_impl._like_rnncell(cell):  # pylint: disable=protected-access
       raise TypeError("cell must be an RNNCell, received: %s" % type(cell))
-
+    if (output_layer is not None
+        and not isinstance(output_layer, layers_base.Layer)):
+      raise TypeError(
+          "output_layer must be a Layer, received: %s" % type(output_layer))
     self._cell = cell
-    self._output_fn = output_fn
+    self._output_layer = output_layer
 
     if callable(embedding):
       self._embedding_fn = embedding
@@ -156,45 +158,48 @@ class BeamSearchDecoder(decoder.Decoder):
       self._embedding_fn = (
           lambda ids: embedding_ops.embedding_lookup(embedding, ids))
 
+    self._start_tokens = ops.convert_to_tensor(
+        start_tokens, dtype=dtypes.int32, name="start_tokens")
+    if self._start_tokens.get_shape().ndims != 1:
+      raise ValueError("start_tokens must be a vector")
     self._end_token = ops.convert_to_tensor(
         end_token, dtype=dtypes.int32, name="end_token")
     if self._end_token.get_shape().ndims != 0:
       raise ValueError("end_token must be a scalar")
 
-    if vocab_size is not None:
-      if output_fn is not None:
-        self._output_fn = output_fn
-      else:
-        self._output_fn = lambda cell_output: tf.contrib.layers.fully_connected(
-          inputs=cell_output, 
-          num_outputs=vocab_size, 
-          activation_fn=None)
-
-    self._vocab_size = vocab_size
-
-    self._output_size = self._vocab_size if self._vocab_size is not None else self._cell.output_size
-
-    #--TODO
-    #try:
-      #self._batch_size = ops.convert_to_tensor(first_input.get_shape().as_list()[0])
-    self._batch_size = first_input.shape[0].value
-    #except Exception:
-    if self._batch_size is None:
-      self._batch_size = array_ops.shape(first_input)[0]
-
+    self._batch_size = array_ops.size(start_tokens)
     self._beam_width = beam_width
     self._length_penalty_weight = length_penalty_weight
     self._initial_cell_state = nest.map_structure(
         self._maybe_split_batch_beams,
         initial_state, self._cell.state_size)
-    self._start_inputs = array_ops.tile(
-        array_ops.expand_dims(first_input, 1), [1, self._beam_width, 1])
+    self._start_tokens = array_ops.tile(
+        array_ops.expand_dims(self._start_tokens, 1), [1, self._beam_width])
+    self._start_inputs = self._embedding_fn(self._start_tokens)
     self._finished = array_ops.zeros(
         [self._batch_size, self._beam_width], dtype=dtypes.bool)
 
   @property
   def batch_size(self):
     return self._batch_size
+
+  def _rnn_output_size(self):
+    size = self._cell.output_size
+    if self._output_layer is None:
+      return size
+    else:
+      # To use layer's compute_output_shape, we need to convert the
+      # RNNCell's output_size entries into shapes with an unknown
+      # batch size.  We then pass this through the layer's
+      # compute_output_shape and read off all but the first (batch)
+      # dimensions to get the output size of the rnn with the layer
+      # applied to the top.
+      output_shape_with_unknown_batch = nest.map_structure(
+          lambda s: tensor_shape.TensorShape([None]).concatenate(s),
+          size)
+      layer_output_shape = self._output_layer._compute_output_shape(  # pylint: disable=protected-access
+          output_shape_with_unknown_batch)
+      return nest.map_structure(lambda s: s[1:], layer_output_shape)
 
   @property
   def output_size(self):
@@ -209,8 +214,9 @@ class BeamSearchDecoder(decoder.Decoder):
     # Assume the dtype of the cell is the output_size structure
     # containing the input_state's first component's dtype.
     # Return that structure and int32 (the id)
+    dtype = nest.flatten(self._initial_cell_state)[0].dtype
     return BeamSearchDecoderOutput(
-        scores=dtypes.float32,
+        scores=nest.map_structure(lambda _: dtype, self._rnn_output_size()),
         predicted_ids=dtypes.int32,
         parent_ids=dtypes.int32)
 
@@ -254,12 +260,6 @@ class BeamSearchDecoder(decoder.Decoder):
     predicted_ids = beam_search_ops.gather_tree(
         outputs.predicted_ids, outputs.parent_ids,
         sequence_length=sequence_lengths)
-        #sequence_length=[[2,3]])
-        #sequence_length=final_state.lengths)
-
-    import tensorflow as tf
-    tf.add_to_collection('seqlens', sequence_lengths)
-
     outputs = FinalBeamSearchDecoderOutput(
         beam_search_decoder_output=outputs, predicted_ids=predicted_ids)
     return outputs, final_state
@@ -424,13 +424,12 @@ class BeamSearchDecoder(decoder.Decoder):
           self._maybe_split_batch_beams,
           next_cell_state, self._cell.state_size)
 
-      if self._output_fn is not None:
-        cell_outputs = self._output_fn(cell_outputs)
+      if self._output_layer is not None:
+        cell_outputs = self._output_layer(cell_outputs)
 
       beam_search_output, beam_search_state = _beam_search_step(
           time=time,
           logits=cell_outputs,
-          next_cell_state=next_cell_state,
           beam_state=state,
           batch_size=batch_size,
           beam_width=beam_width,
@@ -445,7 +444,7 @@ class BeamSearchDecoder(decoder.Decoder):
     return (beam_search_output, beam_search_state, next_inputs, finished)
 
 
-def _beam_search_step(time, logits, next_cell_state, beam_state, batch_size, beam_width,
+def _beam_search_step(time, logits, beam_state, batch_size, beam_width,
                       end_token, length_penalty_weight):
   """Performs a single step of Beam Search Decoding.
 
@@ -453,10 +452,12 @@ def _beam_search_step(time, logits, next_cell_state, beam_state, batch_size, bea
     time: Beam search time step, should start at 0. At time 0 we assume
       that all beams are equal and consider only the first beam for
       continuations.
-    logits: Logits at the current time step. A tensor of shape `[B, vocab_size]`
-    beam_state: Current state of the beam search. An instance of `BeamState`
+    logits: Logits at the current time step. A tensor of shape
+      `[batch_size, beam_width, vocab_size]`
+    beam_state: Current state of the beam search.
+      An instance of `BeamSearchDecoderState`.
     batch_size: The batch size for this input.
-    beam_width: The size of the beams.
+    beam_width: Python int.  The size of the beams.
     end_token: The int32 end token.
     length_penalty_weight: Float weight to penalize length. Disabled with 0.0.
 
@@ -471,20 +472,22 @@ def _beam_search_step(time, logits, next_cell_state, beam_state, batch_size, bea
 
   # Calculate the total log probs for the new hypotheses
   # Final Shape: [batch_size, beam_width, vocab_size]
-  probs = nn_ops.log_softmax(logits)
-  probs = _mask_probs(probs, end_token, previously_finished)
-  total_probs = array_ops.expand_dims(beam_state.log_probs, 2) + probs
+  step_log_probs = nn_ops.log_softmax(logits)
+  step_log_probs = _mask_probs(step_log_probs, end_token, previously_finished)
+  total_probs = array_ops.expand_dims(beam_state.log_probs, 2) + step_log_probs
 
   # Calculate the continuation lengths by adding to all continuing beams.
-  vocab_size = logits.get_shape().as_list()[-1]
+  vocab_size = logits.shape[-1].value
   lengths_to_add = array_ops.one_hot(
-      array_ops.tile(
+      indices=array_ops.tile(
           array_ops.reshape(end_token, [1, 1]), [batch_size, beam_width]),
-      vocab_size, 0, 1)
+      depth=vocab_size,
+      on_value=0,
+      off_value=1)
   add_mask = (1 - math_ops.to_int32(previously_finished))
   lengths_to_add = array_ops.expand_dims(add_mask, 2) * lengths_to_add
-  new_prediction_lengths = array_ops.expand_dims(prediction_lengths,
-                                                 2) + lengths_to_add
+  new_prediction_lengths = (
+      lengths_to_add + array_ops.expand_dims(prediction_lengths, 2))
 
   # Calculate the scores for each beam
   scores = _get_scores(
@@ -492,16 +495,22 @@ def _beam_search_step(time, logits, next_cell_state, beam_state, batch_size, bea
       sequence_lengths=new_prediction_lengths,
       length_penalty_weight=length_penalty_weight)
 
-  scores_flat = array_ops.reshape(scores, [batch_size, -1])
+  time = ops.convert_to_tensor(time, name="time")
   # During the first time step we only consider the initial beam
+  scores_shape = array_ops.shape(scores)
   scores_flat = control_flow_ops.cond(
-      ops.convert_to_tensor(time) > 0, lambda: scores_flat,
+      time > 0,
+      lambda: array_ops.reshape(scores, [batch_size, -1]),
       lambda: scores[:, 0])
+  num_available_beam = control_flow_ops.cond(
+      time > 0, lambda: math_ops.reduce_prod(scores_shape[1:]),
+      lambda: math_ops.reduce_prod(scores_shape[2:]))
 
   # Pick the next beams according to the specified successors function
-  next_beam_scores, word_indices = nn_ops.top_k(scores_flat, k=beam_width)
-  #next_beam_size = min(beam_width, scores_flat.shape[-1].value)
-  #next_beam_scores, word_indices = nn_ops.top_k(scores_flat, k=next_beam_size)
+  next_beam_size = math_ops.minimum(
+      ops.convert_to_tensor(beam_width, dtype=dtypes.int32, name="beam_width"),
+      num_available_beam)
+  next_beam_scores, word_indices = nn_ops.top_k(scores_flat, k=next_beam_size)
   next_beam_scores.set_shape([static_batch_size, beam_width])
   word_indices.set_shape([static_batch_size, beam_width])
 
@@ -533,7 +542,6 @@ def _beam_search_step(time, logits, next_cell_state, beam_state, batch_size, bea
   lengths_to_add = math_ops.to_int32(
       math_ops.not_equal(next_word_ids, end_token))
   lengths_to_add = (1 - math_ops.to_int32(next_finished)) * lengths_to_add
-  #lengths_to_add = (1 - math_ops.to_int32(previously_finished)) * lengths_to_add
   next_prediction_len = _tensor_gather_helper(
       gather_indices=next_beam_ids,
       gather_from=beam_state.lengths,
@@ -542,16 +550,8 @@ def _beam_search_step(time, logits, next_cell_state, beam_state, batch_size, bea
       final_shape=[static_batch_size, beam_width])
   next_prediction_len += lengths_to_add
 
-  next_cell_state = nest.map_structure(lambda x:  _tensor_gather_helper2(
-      gather_indices=next_beam_ids,
-      gather_from=x,
-      range_input=batch_size,
-      range_size=beam_width,
-      final_shape=[static_batch_size, beam_width, x.shape[-1].value]), next_cell_state)
-
   next_state = BeamSearchDecoderState(
-      #cell_state=beam_state.cell_state,
-      cell_state=next_cell_state,
+      cell_state=beam_state.cell_state,
       log_probs=next_beam_probs,
       lengths=next_prediction_len,
       finished=next_finished)
@@ -568,7 +568,8 @@ def _get_scores(log_probs, sequence_lengths, length_penalty_weight):
   """Calculates scores for beam search hypotheses.
 
   Args:
-    log_probs: The log probabilities with shape [batch_size, beam_width].
+    log_probs: The log probabilities with shape
+      `[batch_size, beam_width, vocab_size]`.
     sequence_lengths: The array of sequence lengths.
     length_penalty_weight: Float weight to penalize length. Disabled with 0.0.
 
@@ -591,7 +592,11 @@ def _length_penalty(sequence_lengths, penalty_factor):
   Returns:
     The length penalty factor, a tensor fo shape [beam_size].
   """
-  # TODO(ebrevdo): cleanup based on constant-value of penalty_factor.
+  penalty_factor = ops.convert_to_tensor(penalty_factor, name="penalty_factor")
+  penalty_factor.set_shape(())  # penalty should be a scalar.
+  static_penalty = tensor_util.constant_value(penalty_factor)
+  if static_penalty is not None and static_penalty == 0:
+    return 1.0
   return math_ops.div((5. + math_ops.to_float(sequence_lengths))
                       **penalty_factor, (5. + 1.)**penalty_factor)
 
@@ -625,9 +630,9 @@ def _mask_probs(probs, eos_token, finished):
   finished_row = array_ops.one_hot(
       eos_token,
       vocab_size,
-      dtype=dtypes.float32,
+      dtype=probs.dtype,
       on_value=0.,
-      off_value=dtypes.float32.min)
+      off_value=probs.dtype.min)
   finished_examples = (1. - finished_mask) * finished_row
   return finished_examples + non_finished_examples
 
@@ -638,26 +643,6 @@ def _tensor_gather_helper(gather_indices, gather_from, range_input, range_size,
   gather_indices = array_ops.reshape(gather_indices + range_, [-1])
   output = array_ops.gather(
       array_ops.reshape(gather_from, [-1]), gather_indices)
-  if final_shape[0] is None:
-    final_shape[0] = -1
   output = array_ops.reshape(output, final_shape)
-  if final_shape[0] == -1:
-    final_shape[0] = None
   output.set_shape(final_shape)
   return output
-
-def _tensor_gather_helper2(gather_indices, gather_from, range_input, range_size,
-                          final_shape):
-  range_ = array_ops.expand_dims(math_ops.range(range_input) * range_size, 1)
-  gather_indices = array_ops.reshape(gather_indices + range_, [-1])
-  shape_gather_from = array_ops.shape(gather_from)
-  output = array_ops.gather(
-      array_ops.reshape(gather_from, [-1, final_shape[-1]]), gather_indices)
-  if final_shape[0] is None:
-    final_shape[0] = -1
-  output = array_ops.reshape(output, final_shape)
-  if final_shape[0] == -1:
-    final_shape[0] = None
-  output.set_shape(final_shape)
-  return output
-

@@ -736,6 +736,7 @@ def sequence_equal(x, y):
 
 
 def get_batch_size(x):
+  #or .shape.as_list()
   batch_size = x.get_shape()[0].value #need .value otherwise None will be ?  
   if batch_size is None:
     batch_size = tf.shape(x)[0]
