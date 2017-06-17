@@ -123,7 +123,8 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
       if not FLAGS.use_attention:
         encoder_output = None
     with tf.variable_scope("decode"):
-      batch_size = tf.shape(input_text)[0]
+      #---try to use static shape if possible
+      batch_size = melt.get_batch_size(input_text)
       decoder_input = self.decoder.get_start_embedding_input(batch_size)
       max_words = FLAGS.decode_max_words if FLAGS.decode_max_words else TEXT_MAX_WORDS
       if decode_method == SeqDecodeMethod.greedy:

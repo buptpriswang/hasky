@@ -183,8 +183,8 @@ class RnnDecoder(Decoder):
       cell = self.cell 
     else:
       cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      #initial_state = None
       initial_state = cell.zero_state(batch_size, tf.float32)
-    #TODO different init state as show in ptb_word_lm
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
     #if attention_states is None:
@@ -192,8 +192,8 @@ class RnnDecoder(Decoder):
     outputs, state = tf.nn.dynamic_rnn(cell, inputs, 
                                          initial_state=state, 
                                          sequence_length=sequence_length,
-                                         scope=self.scope,
-                                         dtype=tf.float32)
+                                         dtype=tf.float32,
+                                         scope=self.scope)
     #else:
     #  #---below is also ok but slower, above 16+ ,below only 13,14 batch/s, may be due to sample id 
     #  #TODO: can we make below code as fast as tf.nn.dyanmic_rnn if not need smaple id remove it ?
@@ -557,10 +557,8 @@ class RnnDecoder(Decoder):
             self.cell,
             attention_mechanism,
             attention_layer_size=self.num_units,
-            #alignment_history=FLAGS.alignment_history,
-            alignment_history=False,
-            initial_cell_state=initial_state,
-            no_context=False)
+            alignment_history=FLAGS.alignment_history,
+            initial_cell_state=initial_state)
     return cell
 
   def get_start_input(self, batch_size):

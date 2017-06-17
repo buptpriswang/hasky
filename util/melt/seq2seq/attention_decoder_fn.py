@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Attention-based decoder functions."""
+"""Attention-based decoder functions. 
+depreciated using attention_wrapper instead
+"""
 
 from __future__ import absolute_import
 from __future__ import division

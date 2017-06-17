@@ -691,16 +691,26 @@ def first_dimension(x):
 def dimension(x, index):
   return x.get_shape()[index].value
 
-def batch_values_to_indices(x):
-  shape_ = tf.shape(x)
-  batch_size = shape_[0]
-  num_cols = shape_[1]
-  d = tf.transpose(tf.expand_dims(tf.range(batch_size),0))
-  d = tf.tile(d, [1, num_cols])
-  d_flatten = tf.reshape(d, [-1, 1])
-  x_flatten = tf.reshape(x, [-1, 1])
-  r_flatten = tf.concat([d_flatten, x_flatten], 1)
-  return tf.reshape(r_flatten, [shape_[0], shape_[1], 2])
+#def batch_values_to_indices(x):
+#  shape_ = tf.shape(x)
+#  batch_size = shape_[0]
+#  num_cols = shape_[1]
+#  d = tf.transpose(tf.expand_dims(tf.range(batch_size),0))
+#  d = tf.tile(d, [1, num_cols])
+#  d_flatten = tf.reshape(d, [-1, 1])
+#  x_flatten = tf.reshape(x, [-1, 1])
+#  r_flatten = tf.concat([d_flatten, x_flatten], 1)
+#  return tf.reshape(r_flatten, [shape_[0], shape_[1], 2])
+
+#[[0,1,2], [3,4,5]] - > [[[0,0], [0,1], [0,2]], [[1,3], [1,4], [1,5]]]
+def batch_values_to_indices(index_matrix):
+  replicated_first_indices = tf.range(tf.shape(index_matrix)[0])
+  rank = len(index_matrix.get_shape())
+  if rank == 2:
+    replicated_first_indices = tf.tile(
+        tf.expand_dims(replicated_first_indices, dim=1),
+        [1, tf.shape(index_matrix)[1]])
+  return tf.stack([replicated_first_indices, index_matrix], axis=rank)
 
 
 def dense(inputs, kernel, bias=None, activation=None):
@@ -723,3 +733,10 @@ def dense(inputs, kernel, bias=None, activation=None):
 
 def sequence_equal(x, y):
   return tf.reduce_mean(tf.to_int32(tf.equal(x,y)), 1)
+
+
+def get_batch_size(x):
+  batch_size = x.get_shape()[0].value #need .value otherwise None will be ?  
+  if batch_size is None:
+    batch_size = tf.shape(x)[0]
+  return batch_size

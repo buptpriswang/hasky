@@ -66,8 +66,8 @@ class BasicDecoder(decoder.Decoder):
     """
     if not isinstance(cell, rnn_cell_impl.RNNCell):
       raise TypeError("cell must be an RNNCell, received: %s" % type(cell))
-    if not isinstance(helper, helper_py.Helper):
-      raise TypeError("helper must be a Helper, received: %s" % type(helper))
+    #if not isinstance(helper, helper_py.Helper):
+    #  raise TypeError("helper must be a Helper, received: %s" % type(helper))
 
     self._cell = cell
     self._helper = helper

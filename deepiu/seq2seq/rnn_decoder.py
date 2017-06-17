@@ -75,6 +75,7 @@ import functools
 import melt 
 from deepiu.util import vocabulary
 from deepiu.seq2seq.decoder import Decoder
+from tensorflow.python.util import nest
 
 class SeqDecodeMethod:
   greedy = 0
@@ -96,7 +97,10 @@ class RnnDecoder(Decoder):
     self.vocab_size = vocab_size
     
     self.end_id = vocabulary.end_id()
+
+    self.start_id = None
     self.get_start_id()
+
     assert self.end_id != vocabulary.vocab.unk_id(), 'input vocab generated without end id'
 
     self.emb_dim = emb_dim = FLAGS.emb_dim
@@ -132,6 +136,8 @@ class RnnDecoder(Decoder):
                                                                                 is_predict=self.is_predict,
                                                                                 sample_seed=FLAGS.predict_sample_seed,
                                                                                 vocabulary=vocabulary)
+
+    self.output_fn = lambda rnn_output: melt.dense(rnn_output, self.w, self.v)
     
   def sequence_loss(self, sequence, 
                     initial_state=None, attention_states=None, 
@@ -152,7 +158,7 @@ class RnnDecoder(Decoder):
       input_text = None
     
     is_training = self.is_training
-    batch_size = tf.shape(sequence)[0]
+    batch_size = melt.get_batch_size(sequence)
     
     sequence, sequence_length = melt.pad(sequence,
                                      start_id=self.get_start_id(),
@@ -186,33 +192,35 @@ class RnnDecoder(Decoder):
     tf.add_to_collection('sequence_length', sequence_length)
 
     if attention_states is None:
-      outputs, state = tf.nn.dynamic_rnn(self.cell, inputs, 
+      cell = self.cell 
+    else:
+      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      initial_state = None
+    
+    state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
+
+
+    # need this for attention, other wise ValueError: State has tensors of different inferred_dtypes. 
+    # Unable to infer a single representative dtype.  TODO 
+    outputs, state = tf.nn.dynamic_rnn(cell, 
+                                       inputs, 
                                        initial_state=state, 
                                        sequence_length=sequence_length,
+                                       dtype=tf.float32,
                                        scope=self.scope)
-      self.final_state = state
-    else:
-      attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
-        self.prepare_attention(attention_states)
-      decoder_fn_train = melt.seq2seq.attention_decoder_fn_train(
-          encoder_state=state,
-          attention_keys=attention_keys,
-          attention_values=attention_values,
-          attention_score_fn=attention_score_fn,
-          attention_construct_fn=attention_construct_fn,
-          input_text=input_text,
-          vocab_size=self.vocab_size)
-      decoder_outputs_train, decoder_state_train, decoder_context_train = \
-                    melt.seq2seq.dynamic_rnn_decoder(
-                        cell=self.cell,
-                        decoder_fn=decoder_fn_train,
-                        inputs=inputs,
-                        sequence_length=tf.to_int32(sequence_length),
-                        scope=self.scope)
-      outputs = decoder_outputs_train
 
-      self.final_state = decoder_state_train
-    
+    #--------below is ok but slower then dynamic_rnn 3.4batch -> 3.1 batch/s
+    #helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+    ##helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+    #my_decoder = melt.seq2seq.BasicTrainingDecoder(
+    ##my_decoder = tf.contrib.seq2seq.BasicDecoder(
+    ##my_decoder = melt.seq2seq.BasicDecoder(
+    #      cell=cell,
+    #      helper=helper,
+    #      initial_state=state)
+    ##outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+    #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+    ##outputs = outputs.rnn_output
 
     tf.add_to_collection('outputs', outputs)
 
@@ -286,52 +294,29 @@ class RnnDecoder(Decoder):
     if not FLAGS.copy_only:
       input_text = None
 
-    batch_size = tf.shape(input)[0]
-    state = self.cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
-    
-    def output_fn(output):
-      return tf.nn.xw_plus_b(output, self.w, self.v)
+    batch_size = melt.get_batch_size(input)
 
     if attention_states is None:
-      decoder_fn_inference = melt.seq2seq.greedy_decoder_fn_inference(
-                    output_fn=output_fn,
-                    first_input=input,
-                    encoder_state=state,
-                    embeddings=emb,
-                    end_of_sequence_id=self.end_id,
-                    maximum_length=max_words,
-                    num_decoder_symbols=self.vocab_size,
-                    dtype=tf.int32)
+      cell = self.cell 
     else:
-      #dynamic loop do not need to consider scope problem since attention construct will only do once
-      attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
-        self.prepare_attention(attention_states)
-      decoder_fn_inference = (
-          melt.seq2seq.attention_decoder_fn_inference(
-              output_fn=output_fn,
-              first_input=input,
-              encoder_state=state,
-              attention_keys=attention_keys,
-              attention_values=attention_values,
-              attention_score_fn=attention_score_fn,
-              attention_construct_fn=attention_construct_fn,
-              embeddings=emb,
-              end_of_sequence_id=self.end_id,
-              maximum_length=max_words,
-              num_decoder_symbols=self.vocab_size,
-              input_text=input_text,
-              dtype=tf.int32))
+      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      initial_state = None
+    state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
-    decoder_outputs_inference, decoder_state_inference, decoder_context_state_inference = \
-      melt.seq2seq.dynamic_rnn_decoder(
-               cell=self.cell,
-               decoder_fn=decoder_fn_inference,
-               scope=self.scope)
-    
-    generated_sequence = tf.transpose(decoder_context_state_inference.stack(), [1, 0])
+    helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
+ 
+    my_decoder = melt.seq2seq.BasicDecoder(
+          cell=cell,
+          helper=helper,
+          initial_state=state,
+          vocab_size=self.vocab_size,
+          output_fn=self.output_fn)
 
+    outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, maximum_iterations=max_words, scope=self.scope)
+    generated_sequence = outputs.sample_id
     #------like beam search return sequence, score
     return generated_sequence, tf.zeros([batch_size,])
+
 
   def generate_sequence_beam(self, input, max_words, 
                              initial_state=None, attention_states=None,
@@ -530,14 +515,29 @@ class RnnDecoder(Decoder):
 
     return output, state, top_logprobs, top_ids
 
-  def prepare_attention(self, attention_states):
-    decoder_hidden_size = self.num_units
+  def prepare_attention(self, attention_states, initial_state=None, sequence_length=None):
     attention_option = FLAGS.attention_option  # can be "bahdanau"
     print('attention_option:', attention_option)
-    #assert attention_option is "luong" or attention_option is "bahdanau"
-    attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
-       melt.seq2seq.prepare_attention(attention_states, attention_option, self.num_units)
-    return attention_keys, attention_values, attention_score_fn, attention_construct_fn
+    assert attention_option is "bahdanau" or attention_option is "luong", attention_option
+    if attention_option is "bahdanau":
+      create_attention_mechanism = melt.seq2seq.BahdanauAttention
+    else:
+      create_attention_mechanism = melt.seq2seq.LuongAttention
+ 
+    #since dynamic rnn decoder also consider seq length, no need to mask again
+    #memory_sequence_length can always set None
+    attention_mechanism = create_attention_mechanism(
+        num_units=self.num_units,
+        memory=attention_states,
+        memory_sequence_length=sequence_length) 
+
+    cell = melt.seq2seq.AttentionWrapper(
+            self.cell,
+            attention_mechanism,
+            attention_layer_size=self.num_units,
+            alignment_history=FLAGS.alignment_history,
+            initial_cell_state=initial_state)
+    return cell
 
   def get_start_input(self, batch_size):
     start_input = melt.constants(self.start_id, [batch_size], tf.int32)
@@ -563,6 +563,9 @@ class RnnDecoder(Decoder):
     return loss
 
   def get_start_id(self):
+    if self.start_id is not None:
+      return self.start_id
+
     start_id = None
     if not FLAGS.input_with_start_mark and FLAGS.add_text_start:
       if FLAGS.zero_as_text_start:

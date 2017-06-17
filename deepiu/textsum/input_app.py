@@ -189,7 +189,7 @@ class InputApp(object):
       
       eval_result = eval_image_name, eval_text, eval_text_str, eval_input_text, eval_input_text_str
       eval_show_result = evaluate_image_name, evaluate_text, evaluate_text_str, evaluate_input_text, evaluate_input_text_str
-    
+
     return eval_result, eval_show_result, eval_batch_size
 
   def gen_input(self, train_only=False):
