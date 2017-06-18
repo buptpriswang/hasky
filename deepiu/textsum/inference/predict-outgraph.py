@@ -23,6 +23,8 @@ flags.DEFINE_string('algo', 'seq2seq', 'default algo is bow(cbow), also support 
 
 flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic.10w/train/vocab.txt', 'vocabulary file')
 
+flags.DEFINE_integer('input_text_max_words', 0, '')
+
 import sys, os, math
 import gezi, melt
 import numpy as np
@@ -47,7 +49,7 @@ def _text2ids(text, max_words):
   return word_ids
 
 def predict(predictor, input_text):
-  word_ids = _text2ids(input_text, INPUT_TEXT_MAX_WORDS)
+  word_ids = _text2ids(input_text, FLAGS.input_text_max_words or INPUT_TEXT_MAX_WORDS)
   print('word_ids', word_ids, 'len:', len(word_ids))
   print(text2ids.ids2text(word_ids))
 
@@ -76,7 +78,7 @@ def predict(predictor, input_text):
                                           tf.get_collection('beam_search_state_feed')[0] : state_feed
                                         })
 
-  max_words = FLAGS.decode_max_words if FLAGS.decode_max_words else TEXT_MAX_WORDS
+  max_words = FLAGS.decode_max_words or TEXT_MAX_WORDS
   beams = melt.seq2seq.beam_search(init_states, 
                                    step_func, 
                                    end_id=text2ids.end_id(), 

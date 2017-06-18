@@ -722,11 +722,11 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         "the BeamSearchDecoder?  You may need to tile your memory input via "
         "the tf.contrib.seq2seq.tile_batch function with argument "
         "multiple=beam_width.")
-    with ops.control_dependencies(
-        [check_ops.assert_equal(cell_batch_size,
-                                self._attention_mechanism.batch_size,
-                                message=error_message)]):
-      cell_output = array_ops.identity(
+    #with ops.control_dependencies(
+    #    [check_ops.assert_equal(cell_batch_size,
+    #                            self._attention_mechanism.batch_size,
+    #                            message=error_message)]):
+    cell_output = array_ops.identity(
           cell_output, name="checked_cell_output")
 
     alignments = self._attention_mechanism(

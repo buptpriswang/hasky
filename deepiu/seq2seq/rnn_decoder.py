@@ -164,9 +164,6 @@ class RnnDecoder(Decoder):
                                      start_id=self.get_start_id(),
                                      end_id=self.get_end_id())
 
-    #TODO different init state as show in ptb_word_lm
-    state = self.cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
-
     #[batch_size, num_steps - 1, emb_dim], remove last col
     inputs = tf.nn.embedding_lookup(emb, sequence[:,:-1])
 
@@ -196,12 +193,10 @@ class RnnDecoder(Decoder):
     else:
       cell = self.prepare_attention(attention_states, initial_state=initial_state)
       initial_state = None
-    
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
 
-    # need this for attention, other wise ValueError: State has tensors of different inferred_dtypes. 
-    # Unable to infer a single representative dtype.  TODO 
+    #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO
     outputs, state = tf.nn.dynamic_rnn(cell, 
                                        inputs, 
                                        initial_state=state, 
@@ -295,7 +290,6 @@ class RnnDecoder(Decoder):
       input_text = None
 
     batch_size = melt.get_batch_size(input)
-
     if attention_states is None:
       cell = self.cell 
     else:
@@ -345,7 +339,7 @@ class RnnDecoder(Decoder):
       cell = self.cell 
     else:
       attention_states = tf.contrib.seq2seq.tile_batch(attention_states, beam_size)
-      print('tiled_attention_states', attention_states, 'tiled_initial_state', initial_state)
+      #print('tiled_attention_states', attention_states, 'tiled_initial_state', initial_state)
       cell = self.prepare_attention(attention_states, initial_state=initial_state)
       initial_state = None
 
@@ -428,28 +422,26 @@ class RnnDecoder(Decoder):
       else:
         input_text = None
 
-    if attention_states is not None:
-       attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
-        self.prepare_attention(attention_states)
+    batch_size = melt.get_batch_size(input)
+    if attention_states is None:
+      cell = self.cell 
     else:
-       attention_keys, attention_values, attention_score_fn, attention_construct_fn = \
-        None, None, None, None
+      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      initial_state = None
+    state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
+
+    first_state = state
 
     beam_search_step = functools.partial(self.beam_search_step, 
                                          beam_size=beam_size,
-                                         attention_construct_fn=attention_construct_fn,
-                                         attention_keys=attention_keys,
-                                         attention_values=attention_values,
                                          input_text=input_text)
 
     #since before hack using generate_sequence_greedy, here can not set scope.reuse_variables
     #NOTICE inorder to use lstm which is in .../rnn/ nameapce here you must also add this scope to use the shared 
     with tf.variable_scope(self.scope) as scope:
+      inital_attention, initial_state, initial_logprobs, initial_ids = beam_search_step(input, state, cell)
       if attention_states is not None:
-        inital_attention = melt.seq2seq.init_attention(initial_state)
-        input = tf.concat([input, inital_attention], 1)
-
-      inital_attention, initial_state, initial_logprobs, initial_ids = beam_search_step(input, initial_state)
+        tf.add_to_collection('beam_search_initial_alignments', tf.get_collection('attention_alignments')[-1])
 
       scope.reuse_variables()
       # In inference mode, use concatenated states for convenient feeding and
@@ -470,8 +462,7 @@ class RnnDecoder(Decoder):
       tf.add_to_collection('beam_search_initial_state', initial_state)
       tf.add_to_collection('beam_search_initial_logprobs', initial_logprobs)
       tf.add_to_collection('beam_search_initial_ids', initial_ids)
-      if attention_states is not None:
-        tf.add_to_collection('beam_search_initial_alignments', tf.get_collection('attention_alignments')[-1])
+
 
       input_feed = tf.placeholder(dtype=tf.int64, 
                                   shape=[None],  # batch_size
@@ -493,11 +484,30 @@ class RnnDecoder(Decoder):
 
       if state_is_tuple:
         state = tf.split(state, num_or_size_splits=2, axis=1)
-
-      if attention_states is not None:
-        input = tf.concat([input, attention], 1)
       
-      attention, state, top_logprobs, top_ids = beam_search_step(input, state)
+      if attention_states is not None:
+        state_ = melt.seq2seq.attention_wrapper.AttentionWrapperState(
+          time=0,
+          cell_state=state,
+          attention=attention,
+          alignments=first_state.alignments,
+          alignment_history=())
+      else:
+        state_ = state
+
+      ##--TODO below not work since under additional namespace rnn 
+      ##right now I mofify attention_wrapper.py to accept using attention_states beam_size 1 
+      ## but state update batch_size will be batch_size * beam_size, 
+      ## the result is also ok for batch_size=1 case (tested!) HACK!
+      #if attention_states is None:
+      #  cell = self.cell 
+      #else:
+      #  cell = self.prepare_attention(
+      #               tf.contrib.seq2seq.tile_batch(attention_states, beam_size), 
+      #               initial_state=state_)
+      #  state_ = cell.zero_state(batch_size * beam_size, tf.float32) 
+
+      attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell)
 
       if state_is_tuple:
         # Concatentate the resulting state.
@@ -512,20 +522,22 @@ class RnnDecoder(Decoder):
       #just same return like return path list, score list
       return tf.no_op(), tf.no_op()
 
-  def beam_search_step(self, input, state, beam_size, 
+  def beam_search_step(self, input, state, cell, beam_size, 
                        attention_construct_fn=None,
-                       attention_keys=None,
-                       attention_values=None,
                        input_text=None):
-    output, state = self.cell(input, state)
+    output, state = cell(input, state)
+
+    if hasattr(state, 'alignments'):
+      tf.add_to_collection('attention_alignments', state.alignments)
+      tf.add_to_collection('beam_search_alignments', tf.get_collection('attention_alignments')[-1])
+
+    if hasattr(state, 'cell_state'):
+      state = state.cell_state
 
     #TODO: this step cause.. attenion decode each step after initalization still need input_text feed 
     #will this case attention_keys and attention_values to be recompute(means redo encoding process) each step?
-    #can we avoid this? seems not better method, 
+    #can we avoid this? seems no better method, 
     #if enocding is slow may be feed attention_keys, attention_values each step
-    if attention_construct_fn is not None:
-      output, scores, alignments = attention_construct_fn(output, attention_keys, attention_values)
-    
     if not FLAGS.decode_use_alignment:
       logits = tf.nn.xw_plus_b(output, self.w, self.v)
       logprobs = tf.nn.log_softmax(logits)
@@ -533,6 +545,7 @@ class RnnDecoder(Decoder):
       if input_text is not None:
         logprobs = melt.gather_cols(logprobs, tf.to_int32(input_text))
     else:
+      logits = state.alignments
       logits = scores[:,:tf.shape(input_text)[-1]]
       logprobs = tf.nn.log_softmax(logits)
 

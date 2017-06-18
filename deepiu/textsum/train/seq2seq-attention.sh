@@ -30,8 +30,7 @@ python ./train.py \
   --metric_eval 0 \
   --gen_predict 1 \
   --legacy_rnn_decoder 0 \
-  --alignment_history 1 \
-  --attention_option bahdanau \
+  --alignment_history 0 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \

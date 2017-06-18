@@ -51,7 +51,7 @@ python ./train.py \
   --rnn_hidden_size 1024 \
   --experiment_rnn_decoder 0 \
   --show_beam_search 1 \
-  --gen_predict 0 \
+  --gen_predict 1 \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \
