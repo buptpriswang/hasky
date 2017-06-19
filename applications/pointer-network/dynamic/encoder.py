@@ -23,17 +23,15 @@ class Encoder(object):
     
 
   def encode(self, inputs):
-    # Need for attention
-    encoder_outputs, final_state = tf.contrib.rnn.static_rnn(self.cell, inputs, dtype=tf.float32, scope='pointer_encode')
+    # [32,1] ... [32,1] -> [32, 10, 1]
+    inputs = tf.stack(inputs, 1)
+    encoder_outputs, final_state = tf.nn.dynamic_rnn(self.cell, inputs, dtype=tf.float32, scope='pointer_encode')
 
     # Need a dummy output to point on it. End of decoding.
     batch_size = tf.shape(final_state)[0]
-    encoder_outputs = [tf.zeros([batch_size, self.num_units])] + encoder_outputs
+    encoder_outputs = tf.concat([tf.zeros([batch_size, 1, self.num_units]), encoder_outputs], 1)
     
-    # First calculate a concatenation of encoder outputs to put attention on.
-    top_states = [tf.reshape(e, [-1, 1, self.cell.output_size])
-                  for e in encoder_outputs]
-    attention_states = tf.concat(axis=1, values=top_states)
+    attention_states = encoder_outputs
 
     return attention_states, final_state
   

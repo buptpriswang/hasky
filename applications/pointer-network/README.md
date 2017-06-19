@@ -1,4 +1,4 @@
-try to use train-exp.sh first for experiments 
+try to use train-exp.sh first for experiments if not support feed_prev=True use train-no-feed-prev.sh 
 
 # davenag https://github.com/devnag/tensorflow-pointer-networks this is simple just put here but not suggest to follow
 
@@ -12,4 +12,6 @@ and easy to understand
 
 # static-legacy this is same as static but make smallest change to original work so can be baseline for compare  
 
-# dynamic https://github.com/devsisters/pointer-network-tensorflow  this is great simple example dynamic rnn
+# dynamic https://github.com/devsisters/pointer-network-tensorflow  this is great simple example dynamic rnn  
+here however for simplicity we use sorting prblem as above, this is just dynamic version according to static2  
+now not support feed_prev=True TODO  

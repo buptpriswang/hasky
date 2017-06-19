@@ -3,7 +3,7 @@ cp ./prepare/conf.py .
 cp ./inputs/title-desc-click/input.py .
 
 dir=/home/gezi/new/temp/textsum/ 
-model_dir=$dir/model.seq2seq.attention
+model_dir=$dir/model.seq2seq.attention.luong
 mkdir -p $model_dir
 
 #--train_input $train_output_path/'train_*' \
@@ -56,7 +56,7 @@ python ./train.py \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \
-  --attention_option bahdanau \
+  --attention_option loung \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \

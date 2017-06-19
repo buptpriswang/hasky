@@ -2,7 +2,7 @@ source ./config
 
 python ./inference/predict-outgraph.py \
   --algo seq2seq \
-  --model_dir /home/gezi/new/temp/shangpinming/model/seq2seq.attention/ \
+  --model_dir /home/gezi/new/temp/shangpinming/model/seq2seq.attention.luong/ \
   --vocab /home/gezi/new/temp/shangpinming/tfrecord/seq-basic/vocab.txt \
   --num_sampled 256 \
   --log_uniform_sample 1 \
@@ -17,7 +17,8 @@ python ./inference/predict-outgraph.py \
   --rnn_hidden_size 1024 \
   --add_text_start 1 \
   --rnn_output_method 3 \
-  --input_text_max_words 30 \
+  --input_text_max_words 20 \
   --use_attention 1 \
+  --attention_option luong \
   --cell lstm_block \
   --algo seq2seq

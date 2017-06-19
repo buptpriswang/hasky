@@ -1,5 +1,8 @@
+# current tensorflow version used  
+'1.2.0-rc0' 
+
 # tensorflow related work(nlp and image related, text classification, image caption, seq2seq, pointer-network..) 
-mainly tf work, may do some pytorch related     
+mainly tf work, may do some pytorch related work
 
 ## incase not find dependence, make sure set PYTHONPATH to include hasky/util so we can find gezi and melt  
 ## ./applications/   

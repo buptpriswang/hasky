@@ -19,9 +19,9 @@ from encoder import Encoder
 from decoder import Decoder
 
 class PointerNetwork(object):
-  def __init__(self, max_len, batch_size, num_units=32, input_size=1):
+  def __init__(self, max_len, batch_size, num_units=32, input_size=1, fully_attention=False):
     self.encoder = Encoder(num_units=num_units)
-    self.decoder = Decoder(num_units=num_units)
+    self.decoder = Decoder(num_units=num_units, fully_attention=fully_attention)
     
     self.encoder_inputs = []
     self.decoder_inputs = []
@@ -63,10 +63,9 @@ class PointerNetwork(object):
     encoder_inputs = [tf.zeros([self.batch_size, 1])] + self.encoder_inputs
     encoder_inputs = tf.stack(encoder_inputs, 1)
     
-    decoder_inputs = self.decoder_inputs if not feed_prev else [self.decoder_inputs[0]] * len(self.decoder_inputs)
-    outputs, states, inps = self.decoder.decode(decoder_inputs, final_state, encoder_outputs, encoder_inputs, feed_prev)
+    decoder_inputs = tf.stack(self.decoder_inputs, 1)
+    outputs, states = self.decoder.decode(decoder_inputs, final_state, encoder_outputs, encoder_inputs, feed_prev)
     
-    outputs = tf.stack(outputs, 1)
     targets = tf.concat(self.decoder_targets, 1)
     weights = tf.concat(self.target_weights, 1)
     

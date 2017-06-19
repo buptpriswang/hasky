@@ -74,23 +74,10 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
                      % attention_states.get_shape())
 
   with vs.variable_scope(scope or "point_decoder"):
-    batch_size = array_ops.shape(decoder_inputs[0])[0]  # Needed for reshaping.
-    input_size = decoder_inputs[0].get_shape()[1].value
-    attn_length = attention_states.get_shape()[1].value
-    attn_size = attention_states.get_shape()[2].value
-    
-    num_units = attn_size
-    
     #[batch_size, attn_length, num_units] - > [batch_size, attn_length, num_units] 
     values = attention_states
-    
     states = [initial_state]
     outputs = []
-    
-    batch_attn_size = array_ops.stack([batch_size, num_units])
-    attns = array_ops.zeros(batch_attn_size, dtype=dtype)
-    attns.set_shape([None, num_units])
-    
     inps = []
     for i in range(len(decoder_inputs)):
       if i > 0:
@@ -98,12 +85,7 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
       inp = decoder_inputs[i]
       
       if feed_prev and i > 0:
-        #->[atten_length, batch_size, input_size(1 for sort)]
-        inp = tf.stack(ori_encoder_inputs)
-        #->[batch_size, atten_length, input_size(1 for sort)]
-        inp = tf.transpose(inp, perm=[1, 0, 2])
-        inp = tf.reshape(inp, [-1, attn_length, input_size])
-        
+        inp = ori_encoder_inputs
         alignments = tf.nn.softmax(alignments)
         alignments = tf.expand_dims(alignments, 2)
         inp = tf.reduce_sum(inp * alignments, [1])

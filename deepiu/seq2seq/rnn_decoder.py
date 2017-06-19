@@ -62,7 +62,7 @@ flags.DEFINE_integer('predict_sample_seed', 0, '')
 
 flags.DEFINE_boolean('use_attention', False, 'wether to use attention for decoder')
 flags.DEFINE_boolean('alignment_history', False, '')
-flags.DEFINE_string('attention_option', 'bahdanau', 'luong or bahdanau')
+flags.DEFINE_string('attention_option', 'luong', 'luong or bahdanau, luong seems faster and slightly better when visualizing alignments')
 
 flags.DEFINE_integer('beam_size', 10, 'for seq decode beam search size')
 flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.py otherwise use decode_max_words')
@@ -429,6 +429,11 @@ class RnnDecoder(Decoder):
       cell = self.prepare_attention(attention_states, initial_state=initial_state)
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
+    
+    ##--TODO hard.. since need to reuse to share ValueError: 
+    ##Variable seq2seq/main/decode/memory_layer/kernel already exists, disallowed. Did you mean to set reuse=True in VarScope?
+    ##another way to solve is always using tiled_batch attention_states and state, the first step will choose from only first beam
+    #cell2 = self.prepare_attention(tf.contrib.seq2seq.tile_batch(attention_states, beam_size))
 
     first_state = state
 
@@ -495,18 +500,9 @@ class RnnDecoder(Decoder):
       else:
         state_ = state
 
-      ##--TODO below not work since under additional namespace rnn 
-      ##right now I mofify attention_wrapper.py to accept using attention_states beam_size 1 
-      ## but state update batch_size will be batch_size * beam_size, 
-      ## the result is also ok for batch_size=1 case (tested!) HACK!
-      #if attention_states is None:
-      #  cell = self.cell 
-      #else:
-      #  cell = self.prepare_attention(
-      #               tf.contrib.seq2seq.tile_batch(attention_states, beam_size), 
-      #               initial_state=state_)
-      #  state_ = cell.zero_state(batch_size * beam_size, tf.float32) 
-
+      #--TODO here is not safe if change attention_wrapper, notice batch size of attention states is 1 
+      #--but cell input and state is beam_size
+      #attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell2)
       attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell)
 
       if state_is_tuple:
@@ -558,10 +554,9 @@ class RnnDecoder(Decoder):
 
     return output, state, top_logprobs, top_ids
 
-  def prepare_attention(self, attention_states, initial_state=None, sequence_length=None):
+  def prepare_attention(self, attention_states, initial_state=None,
+                       sequence_length=None, alignment_history=False):
     attention_option = FLAGS.attention_option  # can be "bahdanau"
-    print('attention_option:', attention_option)
-    assert attention_option is "bahdanau" or attention_option is "luong", attention_option
     if attention_option is "bahdanau":
       create_attention_mechanism = melt.seq2seq.BahdanauAttention
     else:
@@ -578,7 +573,7 @@ class RnnDecoder(Decoder):
             self.cell,
             attention_mechanism,
             attention_layer_size=self.num_units,
-            alignment_history=FLAGS.alignment_history,
+            alignment_history=alignment_history,
             initial_cell_state=initial_state)
     return cell
 
@@ -625,6 +620,4 @@ class RnnDecoder(Decoder):
       return None 
     else:
       return self.end_id
-
-
 

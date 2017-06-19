@@ -20,6 +20,7 @@ flags.DEFINE_integer('max_steps', 10, 'Number of numbers to sort.  ')
 flags.DEFINE_integer('rnn_size', 32, 'RNN size.  ')
 flags.DEFINE_boolean('train_feed_prev', True, '')
 flags.DEFINE_boolean('test_feed_prev', True, 'set to False just for experiment purpose')
+flags.DEFINE_boolean('fully_attention', False, '')
 flags.DEFINE_string('model_dir', '/home/gezi/temp/pointer.static.model', '')
 
 import numpy as np
@@ -37,7 +38,10 @@ data_generator = DataGenerator()
 eval_names = ['eval_loss', 'correct_predict_ratio']
 
 with tf.variable_scope('main') as scope:
-  pointer = PointerNetwork(FLAGS.max_steps, FLAGS.batch_size, FLAGS.rnn_size)
+  pointer = PointerNetwork(FLAGS.max_steps, 
+                           FLAGS.batch_size, 
+                           FLAGS.rnn_size,
+                           fully_attention=FLAGS.fully_attention)
   loss, _ , _, _ = pointer.build(feed_prev=FLAGS.train_feed_prev)
   scope.reuse_variables()
   #eval_loss, correct_predict_ratio, predicts, targets = pointer.build(feed_prev=True)

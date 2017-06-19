@@ -332,21 +332,25 @@ class LuongAttention(_BaseAttentionMechanism):
     dtype = query.dtype
 
     with variable_scope.variable_scope(None, "luong_attention", [query]):
-      # Reshape from [batch_size, depth] to [batch_size, 1, depth]
-      # for matmul.
+      ## Reshape from [batch_size, depth] to [batch_size, 1, depth]
+      ## for matmul.
+
       query = array_ops.expand_dims(query, 1)
 
-      # Inner product along the query units dimension.
-      # matmul shapes: query is [batch_size, 1, depth] and
-      #                keys is [batch_size, max_time, depth].
-      # the inner product is asked to **transpose keys' inner shape** to get a
-      # batched matmul on:
-      #   [batch_size, 1, depth] . [batch_size, depth, max_time]
-      # resulting in an output shape of:
-      #   [batch_time, 1, max_time].
-      # we then squeee out the center singleton dimension.
-      score = math_ops.matmul(query, self.keys, transpose_b=True)
-      score = array_ops.squeeze(score, [1])
+      ## Inner product along the query units dimension.
+      ## matmul shapes: query is [batch_size, 1, depth] and
+      ##                keys is [batch_size, max_time, depth].
+      ## the inner product is asked to **transpose keys' inner shape** to get a
+      ## batched matmul on:
+      ##   [batch_size, 1, depth] . [batch_size, depth, max_time]
+      ## resulting in an output shape of:
+      ##   [batch_time, 1, max_time].
+      ## we then squeee out the center singleton dimension.
+      
+      ##score = math_ops.matmul(query, self.keys, transpose_b=True)
+      ##score = array_ops.squeeze(score, [1])
+ 
+      score = math_ops.reduce_sum(self.keys * query, [2])
 
       if self._scale:
         # Scalar used in weight scaling
@@ -543,6 +547,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
                output_attention=True,
                initial_cell_state=None,
                no_context=False,
+               output_alignment=False,
                name=None):
     """Construct the `AttentionWrapper`.
 
@@ -606,6 +611,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     self._output_attention = output_attention
     self._alignment_history = alignment_history
     self._no_context = no_context
+    self._output_alignment = output_alignment
     with ops.name_scope(name, "AttentionWrapperInit"):
       if initial_cell_state is None:
         self._initial_cell_state = None
@@ -631,6 +637,8 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
 
   @property
   def output_size(self):
+    if self._output_alignment:
+      return self._attention_mechanism.alignments_size
     if self._output_attention:
       return self._attention_layer_size
     else:
@@ -722,6 +730,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         "the BeamSearchDecoder?  You may need to tile your memory input via "
         "the tf.contrib.seq2seq.tile_batch function with argument "
         "multiple=beam_width.")
+    ## TODO chg hack just remove for outgraph beam search, since attention states will change
     #with ops.control_dependencies(
     #    [check_ops.assert_equal(cell_batch_size,
     #                            self._attention_mechanism.batch_size,
@@ -775,6 +784,10 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         attention=attention,
         alignments=alignments,
         alignment_history=alignment_history)
+
+    #TODO why use output_alignment will be slower for dyanmic_rnn ?
+    if self._output_alignment:
+      return alignments, next_state
 
     if self._output_attention:
       return attention, next_state
