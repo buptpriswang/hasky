@@ -195,27 +195,42 @@ class RnnDecoder(Decoder):
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
+    if input_text is None:
+      #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO see pointer_network in application seems ok.. why
+      outputs, state = tf.nn.dynamic_rnn(cell, 
+                                         inputs, 
+                                         initial_state=state, 
+                                         sequence_length=sequence_length,
+                                         dtype=tf.float32,
+                                         scope=self.scope)     
 
-    #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO
-    outputs, state = tf.nn.dynamic_rnn(cell, 
-                                       inputs, 
-                                       initial_state=state, 
-                                       sequence_length=sequence_length,
-                                       dtype=tf.float32,
-                                       scope=self.scope)
+      #--------below is ok but slower then dynamic_rnn 3.4batch -> 3.1 batch/s
+      #helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+      ##helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+      #my_decoder = melt.seq2seq.BasicTrainingDecoder(
+      ##my_decoder = tf.contrib.seq2seq.BasicDecoder(
+      ##my_decoder = melt.seq2seq.BasicDecoder(
+      #      cell=cell,
+      #      helper=helper,
+      #      initial_state=state)
+      ##outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+      #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+      ##outputs = outputs.rnn_output
+    else:
+      indices = melt.batch_values_to_indices(tf.to_int32(input_text))
+      def copy_output_fn(cell_output, cell_state):
+        alignments = cell_state.alignments
+        updates = alignments
+        return tf.scatter_nd(indices, updates, shape=[batch_size, self.vocab_size])
 
-    #--------below is ok but slower then dynamic_rnn 3.4batch -> 3.1 batch/s
-    #helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
-    ##helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
-    #my_decoder = melt.seq2seq.BasicTrainingDecoder(
-    ##my_decoder = tf.contrib.seq2seq.BasicDecoder(
-    ##my_decoder = melt.seq2seq.BasicDecoder(
-    #      cell=cell,
-    #      helper=helper,
-    #      initial_state=state)
-    ##outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
-    #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
-    ##outputs = outputs.rnn_output
+      helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+      my_decoder = melt.seq2seq.BasicTrainingDecoder(
+        cell=cell,
+        helper=helper,
+        initial_state=state,
+        vocab_size=self.vocab_size,
+        output_fn=copy_output_fn)
+      outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
 
     tf.add_to_collection('outputs', outputs)
 
@@ -227,8 +242,7 @@ class RnnDecoder(Decoder):
       softmax_loss_function = None
     
     if input_text is not None:
-      logits = tf.transpose(decoder_context_train.stack(), perm=[1, 0, 2])
-      #targets = tf.reshape(targets, [-1])
+      logits = outputs
       softmax_loss_function = None
     elif softmax_loss_function is not None:
       logits = outputs
@@ -255,7 +269,7 @@ class RnnDecoder(Decoder):
     elif self.is_predict and exact_loss: 
       #force no sample softmax loss, the diff with exact_prob is here we just use cross entropy error as result not real prob of seq
       #NOTICE using time a bit less  55 to 57(prob), same result with exact prob and exact score
-      #but 256 vocab sample will use only about 10ms
+      #but 256 vocab sample will use only about 10ms    
       #TODO check more with softmax loss and sampled somtmax loss, check length normalize
       loss = melt.seq2seq.sequence_loss_by_example(logits, targets, weights=mask)
     else:
@@ -299,12 +313,22 @@ class RnnDecoder(Decoder):
 
     helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
  
+    if input_text is None:
+      output_fn = self.output_fn
+    else:
+      indices = melt.batch_values_to_indices(tf.to_int32(input_text))
+      def copy_output_fn(cell_output, cell_state):
+        alignments = cell_state.alignments
+        updates = alignments
+        return tf.scatter_nd(indices, updates, shape=[batch_size, self.vocab_size])
+      output_fn = copy_output_fn
+
     my_decoder = melt.seq2seq.BasicDecoder(
           cell=cell,
           helper=helper,
           initial_state=state,
           vocab_size=self.vocab_size,
-          output_fn=self.output_fn)
+          output_fn=output_fn)
 
     outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, maximum_iterations=max_words, scope=self.scope)
     generated_sequence = outputs.sample_id
@@ -433,7 +457,8 @@ class RnnDecoder(Decoder):
     ##--TODO hard.. since need to reuse to share ValueError: 
     ##Variable seq2seq/main/decode/memory_layer/kernel already exists, disallowed. Did you mean to set reuse=True in VarScope?
     ##another way to solve is always using tiled_batch attention_states and state, the first step will choose from only first beam
-    #cell2 = self.prepare_attention(tf.contrib.seq2seq.tile_batch(attention_states, beam_size))
+    ##will not all solve the problem since feed data might be less than beam size, so attention states always be 1 is safe
+    #cell2 = self.prepare_attention(tf.contrib.seq2seq.tile_batch(attention_states, beam_size), reuse=True)
 
     first_state = state
 
@@ -555,7 +580,8 @@ class RnnDecoder(Decoder):
     return output, state, top_logprobs, top_ids
 
   def prepare_attention(self, attention_states, initial_state=None,
-                       sequence_length=None, alignment_history=False):
+                       sequence_length=None, alignment_history=False, 
+                       reuse=False):
     attention_option = FLAGS.attention_option  # can be "bahdanau"
     if attention_option is "bahdanau":
       create_attention_mechanism = melt.seq2seq.BahdanauAttention
@@ -564,17 +590,22 @@ class RnnDecoder(Decoder):
  
     #since dynamic rnn decoder also consider seq length, no need to mask again
     #memory_sequence_length can always set None
+
+    #TODO better method to make default behavior as share? make_template
+    #with tf.variable_scope('prepare_attention', reuse=reuse) as scope:
     attention_mechanism = create_attention_mechanism(
-        num_units=self.num_units,
-        memory=attention_states,
-        memory_sequence_length=sequence_length) 
+          num_units=self.num_units,
+          memory=attention_states,
+          memory_sequence_length=sequence_length) 
 
     cell = melt.seq2seq.AttentionWrapper(
-            self.cell,
-            attention_mechanism,
-            attention_layer_size=self.num_units,
-            alignment_history=alignment_history,
-            initial_cell_state=initial_state)
+              self.cell,
+              attention_mechanism,
+              attention_layer_size=self.num_units,
+              alignment_history=alignment_history,
+              initial_cell_state=initial_state)
+      #why still need reuse.. below not work?..
+      #scope.reuse_variables()
     return cell
 
   def get_start_input(self, batch_size):

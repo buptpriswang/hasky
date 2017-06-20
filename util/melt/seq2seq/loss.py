@@ -155,6 +155,7 @@ def exact_predict_loss(logits, targets, mask, num_steps, batch_size=None):
     #selected_probs = melt.dynamic_gather2d(step_probs, step_targets)
     #TODO is this ok? or just use tf.nn.log_softmax to replace tf.nn.softmax
     #selected_log_probs = tf.log(tf.maximum(selected_probs, 1e-12))
+    #TODO gather_nd ?
     selected_log_probs = melt.dynamic_gather2d(step_log_probs, step_targets)
     step_mask = mask[:, i]
     masked_log_probs = selected_log_probs * step_mask

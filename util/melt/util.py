@@ -126,7 +126,13 @@ def create_rnn_cell(num_units, is_training=True, initializer=None, num_layers=1,
           input_keep_prob=keep_prob,
           output_keep_prob=keep_prob)
     if num_layers > 1:
-      cell = tf.contrib.rnn.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
+      raise ValueError('multi layer TODO for tf1.2')
+      #cell = tf.contrib.rnn.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
+      #-----------FIXME https://github.com/tensorflow/tensorflow/issues/8191   might not work for multi layer 
+      try:
+        cell = tf.contrib.rnn.MultiRNNCell([Cell(num_units, initializer=initializer) for _ in range(num_layers)], state_is_tuple=True)
+      except Exception:
+        cell = tf.contrib.rnn.MultiRNNCell([Cell(num_units) for _ in range(num_layers)], state_is_tuple=True)
     return cell
 
 #-------for train flow

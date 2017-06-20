@@ -1,4 +1,4 @@
-# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
+    # Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -148,6 +148,8 @@ def attention_decoder_fn_train(encoder_state,
           #with tf.control_dependencies(None):
             ##TODO... must fix batch_size right now
           #  cell_output_ =  tf.Variable(array_ops.zeros([256, vocab_size], dtype=dtypes.float32))
+
+          #actually should use tf.scatter_nd, anyway this attention is deprecated!
           cell_output_ =  tf.get_variable("cell_output_", [256, vocab_size], dtype=dtypes.float32, initializer=tf.zeros_initializer())
           #cell_output_ =  tf.get_variable("cell_output_", [256, vocab_size], dtype=dtypes.float32, initializer=tf.ones_initializer())
           #cell_output_.assign(array_ops.zeros([256, vocab_size]))

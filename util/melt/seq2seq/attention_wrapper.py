@@ -730,7 +730,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         "the BeamSearchDecoder?  You may need to tile your memory input via "
         "the tf.contrib.seq2seq.tile_batch function with argument "
         "multiple=beam_width.")
-    ## TODO chg hack just remove for outgraph beam search, since attention states will change
+    # TODO chg hack just remove for outgraph beam search, since attention states will change
     #with ops.control_dependencies(
     #    [check_ops.assert_equal(cell_batch_size,
     #                            self._attention_mechanism.batch_size,

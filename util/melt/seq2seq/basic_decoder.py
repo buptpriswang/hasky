@@ -129,7 +129,10 @@ class BasicDecoder(decoder.Decoder):
     with ops.name_scope(name, "BasicDecoderStep", (time, inputs, state)):
       cell_outputs, cell_state = self._cell(inputs, state)
       if self._output_fn is not None:
-        cell_outputs = self._output_fn(cell_outputs)
+        try:
+          cell_outputs = self._output_fn(cell_outputs)
+        except Exception:
+          cell_outputs = self._output_fn(cell_outputs, cell_state)
       sample_ids = self._helper.sample(
           time=time, outputs=cell_outputs, state=cell_state)
       (finished, next_inputs, next_state) = self._helper.next_inputs(
@@ -173,10 +176,9 @@ class BasicTrainingDecoder(decoder.Decoder):
       if output_fn is not None:
         self._output_fn = output_fn
       else:
-        self._output_fn = lambda cell_output: tf.contrib.layers.fully_connected(
+        self._output_fn = lambda cell_output: tf.contrib.layers.linear(
           inputs=cell_output, 
-          num_outputs=vocab_size, 
-          activation_fn=None)
+          num_outputs=vocab_size)
 
     self._vocab_size = vocab_size
 
@@ -220,7 +222,10 @@ class BasicTrainingDecoder(decoder.Decoder):
     with ops.name_scope(name, "BasicDecoderStep", (time, inputs, state)):
       cell_outputs, cell_state = self._cell(inputs, state)
       if self._output_fn is not None:
-        cell_outputs = self._output_fn(cell_outputs)
+        try:
+          cell_outputs = self._output_fn(cell_outputs)
+        except Exception:
+          cell_outputs = self._output_fn(cell_outputs, cell_state)
       (finished, next_inputs, next_state) = self._helper.next_inputs(
           time=time,
           outputs=cell_outputs,

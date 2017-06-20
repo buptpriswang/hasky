@@ -80,8 +80,9 @@ def pointer_decoder(decoder_inputs, initial_state, attention_states,
     outputs = []
     inps = []
     for i in range(len(decoder_inputs)):
-      if i > 0:
-        vs.get_variable_scope().reuse_variables()
+      #------------since tf version 1.2 do not need below, share by default
+      #if i > 0:
+      #  vs.get_variable_scope().reuse_variables()
       inp = decoder_inputs[i]
       
       if feed_prev and i > 0:
