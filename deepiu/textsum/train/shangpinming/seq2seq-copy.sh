@@ -24,7 +24,7 @@ python ./train.py \
   --debug 0 \
   --show_eval 1 \
   --show_beam_search 0 \
-  --train_only 1 \
+  --train_only 0 \
   --metric_eval 0 \
   --gen_predict 1 \
   --legacy_rnn_decoder 0 \

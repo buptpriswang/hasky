@@ -191,7 +191,10 @@ class RnnDecoder(Decoder):
     if attention_states is None:
       cell = self.cell 
     else:
-      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      probability_fn = None if input_text is None else lambda score: score 
+      cell = self.prepare_attention(attention_states, 
+                                    initial_state=initial_state, 
+                                    probability_fn=probability_fn)
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
@@ -581,6 +584,7 @@ class RnnDecoder(Decoder):
 
   def prepare_attention(self, attention_states, initial_state=None,
                        sequence_length=None, alignment_history=False, 
+                       output_alignment=False, probability_fn=None,
                        reuse=False):
     attention_option = FLAGS.attention_option  # can be "bahdanau"
     if attention_option is "bahdanau":
@@ -596,14 +600,16 @@ class RnnDecoder(Decoder):
     attention_mechanism = create_attention_mechanism(
           num_units=self.num_units,
           memory=attention_states,
-          memory_sequence_length=sequence_length) 
+          memory_sequence_length=sequence_length,
+          probability_fn=probability_fn) 
 
     cell = melt.seq2seq.AttentionWrapper(
               self.cell,
               attention_mechanism,
               attention_layer_size=self.num_units,
               alignment_history=alignment_history,
-              initial_cell_state=initial_state)
+              initial_cell_state=initial_state,
+              output_alignment=output_alignment)
       #why still need reuse.. below not work?..
       #scope.reuse_variables()
     return cell
