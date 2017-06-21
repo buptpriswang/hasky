@@ -66,10 +66,14 @@ flags.DEFINE_string('attention_option', 'luong', 'luong or bahdanau, luong seems
 
 flags.DEFINE_integer('beam_size', 10, 'for seq decode beam search size')
 flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.py otherwise use decode_max_words')
+#----notice decdoe_copy and decode_use_alignment all means gen_only mode, then restrict decode by copy ! not using copy to train
+#--like copy_only and gen_copy(mix copy and gen)
 flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input words(copy mode)')
 flags.DEFINE_boolean('decode_use_alignment', False, '')
 
-flags.DEFINE_boolean('copy_only', False, 'if True then only copy mode using attention')
+flags.DEFINE_boolean('copy_only', False, 'if True then only copy mode using attention, copy also means pointer')
+flags.DEFINE_boolean('gen_only', True, '')
+flags.DEFINE_boolean('gen_copy', False, 'mix gen and copy')
 
 import functools
 import melt 
@@ -137,7 +141,29 @@ class RnnDecoder(Decoder):
                                                                                 sample_seed=FLAGS.predict_sample_seed,
                                                                                 vocabulary=vocabulary)
 
+
+    if FLAGS.gen_copy or FLAGS.copy_only:
+      FLAGS.gen_only = False
+      if FLAGS.gen_copy:
+        print('-------gen copy mode !')
+        FLAGS.copy_only = False
+      else:
+        print('-------copy only mode !')
+    else:
+      print('--------gen only mode')
+
     self.output_fn = lambda rnn_output: melt.dense(rnn_output, self.w, self.v)
+
+    def copy_output_fn(indices, batch_size, cell_output, cell_state):
+      alignments = cell_state.alignments
+      updates = alignments
+      return tf.scatter_nd(indices, updates, shape=[batch_size, self.vocab_size])
+
+    self.copy_output_fn = copy_output_fn
+
+    #if copy mode use score as alignment(no softmax)
+    self.score_as_alignment = True if FLAGS.copy_only else False 
+
     
   def sequence_loss(self, sequence, 
                     initial_state=None, attention_states=None, 
@@ -154,7 +180,7 @@ class RnnDecoder(Decoder):
     if emb is None:
       emb = self.emb
 
-    if not FLAGS.copy_only:
+    if FLAGS.gen_only:
       input_text = None
     
     is_training = self.is_training
@@ -191,14 +217,14 @@ class RnnDecoder(Decoder):
     if attention_states is None:
       cell = self.cell 
     else:
-      probability_fn = None if input_text is None else lambda score: score 
       cell = self.prepare_attention(attention_states, 
                                     initial_state=initial_state, 
-                                    probability_fn=probability_fn)
+                                    score_as_alignment=self.score_as_alignment)
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
     if input_text is None:
+      #gen only mode
       #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO see pointer_network in application seems ok.. why
       outputs, state = tf.nn.dynamic_rnn(cell, 
                                          inputs, 
@@ -220,13 +246,10 @@ class RnnDecoder(Decoder):
       #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
       ##outputs = outputs.rnn_output
     else:
-      indices = melt.batch_values_to_indices(tf.to_int32(input_text))
-      def copy_output_fn(cell_output, cell_state):
-        alignments = cell_state.alignments
-        updates = alignments
-        return tf.scatter_nd(indices, updates, shape=[batch_size, self.vocab_size])
-
+    	#---copy only
       helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+      indices = melt.batch_values_to_indices(tf.to_int32(input_text))
+      copy_output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
       my_decoder = melt.seq2seq.BasicTrainingDecoder(
         cell=cell,
         helper=helper,
@@ -303,28 +326,26 @@ class RnnDecoder(Decoder):
     if emb is None:
       emb = self.emb
 
-    if not FLAGS.copy_only:
+    if FLAGS.gen_only:
       input_text = None
 
     batch_size = melt.get_batch_size(input)
     if attention_states is None:
       cell = self.cell 
     else:
-      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      cell = self.prepare_attention(attention_states, 
+      															initial_state=initial_state,
+      															score_as_alignment=self.score_as_alignment)
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
     helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
  
-    if input_text is None:
-      output_fn = self.output_fn
+    if FLAGS.gen_only:
+      output_fn = self.output_fn 
     else:
       indices = melt.batch_values_to_indices(tf.to_int32(input_text))
-      def copy_output_fn(cell_output, cell_state):
-        alignments = cell_state.alignments
-        updates = alignments
-        return tf.scatter_nd(indices, updates, shape=[batch_size, self.vocab_size])
-      output_fn = copy_output_fn
+      output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
 
     my_decoder = melt.seq2seq.BasicDecoder(
           cell=cell,
@@ -367,16 +388,27 @@ class RnnDecoder(Decoder):
     else:
       attention_states = tf.contrib.seq2seq.tile_batch(attention_states, beam_size)
       #print('tiled_attention_states', attention_states, 'tiled_initial_state', initial_state)
-      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      cell = self.prepare_attention(attention_states, 
+      	                            initial_state=initial_state,
+      	                            score_as_alignment=self.score_as_alignment)
       initial_state = None
 
     state = cell.zero_state(batch_size * beam_size, tf.float32) if initial_state is None else initial_state
         
+    if FLAGS.gen_only:
+      output_fn = self.output_fn 
+    else:
+      input_text = tf.contrib.seq2seq.tile_batch(input_text, beam_size)
+      indices = melt.batch_values_to_indices(tf.to_int32(input_text))
+      output_fn = lambda cell_output, cell_state: self.copy_output_fn(
+                                                    indices, batch_size * beam_size, 
+                                                    cell_output, cell_state)
+
     ##TODO to be safe make topn the same as beam size
     return melt.seq2seq.beam_decode(input, max_words, state, 
                                     cell, loop_function, scope=self.scope,
                                     beam_size=beam_size, done_token=vocabulary.vocab.end_id(), 
-                                    output_projection=(self.w, self.v),
+                                    output_fn=output_fn,
                                     length_normalization_factor=length_normalization_factor,
                                     topn=beam_size)
 
@@ -423,7 +455,9 @@ class RnnDecoder(Decoder):
     outgraph beam search, input should be one instance only batch_size=1
     max_words actually not used here... for it is determined outgraph..
     return top (path, score)
-    TODO add attention support!
+    TODO this is hacky, first step attention_state, input , state all size 1,
+    then should be attention_state 1, input, state size is beam_size,
+    also might be less then beam_size.. if not possible to find beam_size un done
     """
     if emb is None:
       emb = self.emb
@@ -447,13 +481,16 @@ class RnnDecoder(Decoder):
         input_text_length = tf.shape(input_text)[-1]
         beam_size = tf.minimum(beam_size, input_text_length)
       else:
-        input_text = None
+        if FLAGS.gen_only:
+          input_text = None
 
     batch_size = melt.get_batch_size(input)
     if attention_states is None:
       cell = self.cell 
     else:
-      cell = self.prepare_attention(attention_states, initial_state=initial_state)
+      cell = self.prepare_attention(attention_states, 
+      	                            initial_state=initial_state,
+      	                            score_as_alignment=self.score_as_alignment)
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
     
@@ -466,13 +503,12 @@ class RnnDecoder(Decoder):
     first_state = state
 
     beam_search_step = functools.partial(self.beam_search_step, 
-                                         beam_size=beam_size,
-                                         input_text=input_text)
+                                         beam_size=beam_size)
 
     #since before hack using generate_sequence_greedy, here can not set scope.reuse_variables
     #NOTICE inorder to use lstm which is in .../rnn/ nameapce here you must also add this scope to use the shared 
     with tf.variable_scope(self.scope) as scope:
-      inital_attention, initial_state, initial_logprobs, initial_ids = beam_search_step(input, state, cell)
+      inital_attention, initial_state, initial_logprobs, initial_ids = beam_search_step(input, state, cell, input_text=input_text)
       if attention_states is not None:
         tf.add_to_collection('beam_search_initial_alignments', tf.get_collection('attention_alignments')[-1])
 
@@ -531,7 +567,11 @@ class RnnDecoder(Decoder):
       #--TODO here is not safe if change attention_wrapper, notice batch size of attention states is 1 
       #--but cell input and state is beam_size
       #attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell2)
-      attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell)
+      
+      if input_text is not None and not FLAGS.decode_copy:
+        input_text = tf.contrib.seq2seq.tile_batch(input_text, melt.get_batch_size(input)) 
+  
+      attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell, input_text=input_text)
 
       if state_is_tuple:
         # Concatentate the resulting state.
@@ -555,18 +595,23 @@ class RnnDecoder(Decoder):
       tf.add_to_collection('attention_alignments', state.alignments)
       tf.add_to_collection('beam_search_alignments', tf.get_collection('attention_alignments')[-1])
 
-    if hasattr(state, 'cell_state'):
-      state = state.cell_state
-
     #TODO: this step cause.. attenion decode each step after initalization still need input_text feed 
     #will this case attention_keys and attention_values to be recompute(means redo encoding process) each step?
     #can we avoid this? seems no better method, 
     #if enocding is slow may be feed attention_keys, attention_values each step
     if not FLAGS.decode_use_alignment:
-      logits = tf.nn.xw_plus_b(output, self.w, self.v)
+      if FLAGS.gen_only:
+        output_fn = self.output_fn 
+        logits = output_fn(output)
+      else:
+        indices = melt.batch_values_to_indices(tf.to_int32(input_text))
+        batch_size = melt.get_batch_size(input)
+        output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
+        logits = output_fn(output, state)
+
       logprobs = tf.nn.log_softmax(logits)
 
-      if input_text is not None:
+      if FLAGS.decode_copy:
         logprobs = melt.gather_cols(logprobs, tf.to_int32(input_text))
     else:
       logits = state.alignments
@@ -577,14 +622,17 @@ class RnnDecoder(Decoder):
     #------too slow... for transfering large data between py and c++ cost a lot!
     #top_logprobs, top_ids = tf.nn.top_k(logprobs, self.vocab_size)
 
-    if input_text is not None:
+    if input_text is not None and FLAGS.decode_copy:
       top_ids = tf.nn.embedding_lookup(input_text, top_ids)
+    
+    if hasattr(state, 'cell_state'):
+      state = state.cell_state
 
     return output, state, top_logprobs, top_ids
 
   def prepare_attention(self, attention_states, initial_state=None,
                        sequence_length=None, alignment_history=False, 
-                       output_alignment=False, probability_fn=None,
+                       output_alignment=False, score_as_alignment=False,
                        reuse=False):
     attention_option = FLAGS.attention_option  # can be "bahdanau"
     if attention_option is "bahdanau":
@@ -600,8 +648,7 @@ class RnnDecoder(Decoder):
     attention_mechanism = create_attention_mechanism(
           num_units=self.num_units,
           memory=attention_states,
-          memory_sequence_length=sequence_length,
-          probability_fn=probability_fn) 
+          memory_sequence_length=sequence_length) 
 
     cell = melt.seq2seq.AttentionWrapper(
               self.cell,
@@ -609,7 +656,8 @@ class RnnDecoder(Decoder):
               attention_layer_size=self.num_units,
               alignment_history=alignment_history,
               initial_cell_state=initial_state,
-              output_alignment=output_alignment)
+              output_alignment=output_alignment,
+              score_as_alignment=score_as_alignment)
       #why still need reuse.. below not work?..
       #scope.reuse_variables()
     return cell

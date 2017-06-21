@@ -25,7 +25,7 @@ python ./train.py \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
-  --show_beam_search 0 \
+  --show_beam_search 1 \
   --train_only 0 \
   --metric_eval 0 \
   --gen_predict 1 \

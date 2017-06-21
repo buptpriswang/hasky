@@ -71,7 +71,7 @@ def rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None,
 
 def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None,
                 beam_size=7, done_token=0, 
-                output_projection=None,  length_normalization_factor=0.,
+                output_fn=None,  length_normalization_factor=0.,
                 prob_as_score=True, topn=1):
     """
     Beam search decoder
@@ -116,7 +116,7 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
                           initial_state, 
                           beam_size=beam_size,
                           done_token=done_token, 
-                          output_projection=output_projection,
+                          output_fn=output_fn,
                           length_normalization_factor=length_normalization_factor,
                           topn=topn)
     
@@ -146,7 +146,7 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
 #exp in deepiu/textsum/inference/infenrence.sh
 class BeamDecoder():
   def __init__(self, input, max_steps, initial_state, beam_size=7, done_token=0,
-              batch_size=None, num_classes=None, output_projection=None, 
+              batch_size=None, num_classes=None, output_fn=None, 
               length_normalization_factor=0., topn=1):
     self.length_normalization_factor = length_normalization_factor
     self.topn = topn
@@ -158,7 +158,7 @@ class BeamDecoder():
     self.num_classes = num_classes
     self.done_token = done_token
 
-    self.output_projection = output_projection
+    self.output_fn = output_fn
     
     self.past_logprobs = None
     self.past_symbols = None
@@ -205,11 +205,12 @@ class BeamDecoder():
     return top_paths, top_logprobs
         
   def take_step(self, i, prev, state):
-    output_projection = self.output_projection
-
-    if output_projection is not None:
+    if self.output_fn is not None:
       #[batch_size * beam_size, num_units] -> [batch_size * beam_size, num_classes]
-      output = tf.nn.xw_plus_b(prev, output_projection[0], output_projection[1])
+      try:
+        output = self.output_fn(prev)
+      except Exception:
+        output = self.output_fn(prev, state)
     else:
       output = prev
 

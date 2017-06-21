@@ -358,7 +358,8 @@ class LuongAttention(_BaseAttentionMechanism):
             "attention_g", dtype=dtype, initializer=1.)
         score = g * score
 
-    alignments = self._probability_fn(score, previous_alignments)
+    #alignments = self._probability_fn(score, previous_alignments)
+    alignments = score
     return alignments
 
 
@@ -469,7 +470,8 @@ class BahdanauAttention(_BaseAttentionMechanism):
         score = math_ops.reduce_sum(v * math_ops.tanh(keys + processed_query),
                                     [2])
 
-    alignments = self._probability_fn(score, previous_alignments)
+    #alignments = self._probability_fn(score, previous_alignments)
+    alignments = score
     return alignments
 
 
@@ -548,6 +550,8 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
                initial_cell_state=None,
                no_context=False,
                output_alignment=False,
+               probability_fn=None,
+               score_as_alignment=False,
                name=None):
     """Construct the `AttentionWrapper`.
 
@@ -612,6 +616,8 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     self._alignment_history = alignment_history
     self._no_context = no_context
     self._output_alignment = output_alignment
+    self._probability_fn = nn_ops.softmax if probability_fn is None else probability_fn
+    self._score_as_alignment = score_as_alignment
     with ops.name_scope(name, "AttentionWrapperInit"):
       if initial_cell_state is None:
         self._initial_cell_state = None
@@ -738,9 +744,14 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     cell_output = array_ops.identity(
           cell_output, name="checked_cell_output")
 
-    alignments = self._attention_mechanism(
-        cell_output, previous_alignments=state.alignments)
+    #alignments = self._attention_mechanism(
+    #    cell_output, previous_alignments=state.alignments)
 
+    scores = self._attention_mechanism(
+        cell_output, previous_alignments=state.alignments)
+    
+    alignments = self._probability_fn(scores)
+     
     if self._no_context:
       attention = cell_output
     else:
@@ -771,12 +782,14 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
       else:
         attention = context
 
-
     if self._alignment_history:
       alignment_history = state.alignment_history.write(
           state.time, alignments)
     else:
       alignment_history = ()
+
+    if self._score_as_alignment:
+      alignments = scores
 
     next_state = AttentionWrapperState(
         time=state.time + 1,
