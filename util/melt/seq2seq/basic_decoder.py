@@ -225,7 +225,10 @@ class BasicTrainingDecoder(decoder.Decoder):
         try:
           cell_outputs = self._output_fn(cell_outputs)
         except Exception:
-          cell_outputs = self._output_fn(cell_outputs, cell_state)
+          try:
+            cell_outputs = self._output_fn(cell_outputs, cell_state)
+          except Exception:
+            cell_outputs = self._output_fn(time, cell_outputs, cell_state)
       (finished, next_inputs, next_state) = self._helper.next_inputs(
           time=time,
           outputs=cell_outputs,

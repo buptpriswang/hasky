@@ -74,6 +74,7 @@ flags.DEFINE_boolean('decode_use_alignment', False, '')
 flags.DEFINE_boolean('copy_only', False, 'if True then only copy mode using attention, copy also means pointer')
 flags.DEFINE_boolean('gen_only', True, '')
 flags.DEFINE_boolean('gen_copy', False, 'mix gen and copy')
+flags.DEFINE_boolean('gen_copy_switch', False, '')
 
 #TODO support feed_prev training mode for dynamic rnn decode
 flags.DEFINE_boolean('feed_prev', False, 'wether use feed_prev mode for rnn decode during training also')
@@ -134,16 +135,18 @@ class RnnDecoder(Decoder):
       num_layers=FLAGS.num_layers, 
       cell_type=FLAGS.cell)
 
-    num_sampled = FLAGS.num_sampled if not (is_predict and FLAGS.predict_no_sample) else 0
-    self.softmax_loss_function = melt.seq2seq.gen_sampled_softmax_loss_function(num_sampled, 
-                                                                                self.vocab_size, 
-                                                                                weights=self.w_t,
-                                                                                biases=self.v,
-                                                                                log_uniform_sample=FLAGS.log_uniform_sample,
-                                                                                is_predict=self.is_predict,
-                                                                                sample_seed=FLAGS.predict_sample_seed,
-                                                                                vocabulary=vocabulary)
-
+    self.num_sampled = num_sampled = FLAGS.num_sampled if not (is_predict and FLAGS.predict_no_sample) else 0
+    #self.softmax_loss_function is None means not need sample
+    self.softmax_loss_function = None 
+    if FLAGS.gen_only:
+      self.softmax_loss_function = melt.seq2seq.gen_sampled_softmax_loss_function(num_sampled, 
+                                                                                  self.vocab_size, 
+                                                                                  weights=self.w_t,
+                                                                                  biases=self.v,
+                                                                                  log_uniform_sample=FLAGS.log_uniform_sample,
+                                                                                  is_predict=self.is_predict,
+                                                                                  sample_seed=FLAGS.predict_sample_seed,
+                                                                                  vocabulary=vocabulary)
 
     if FLAGS.gen_copy or FLAGS.copy_only:
       FLAGS.gen_only = False
@@ -155,17 +158,54 @@ class RnnDecoder(Decoder):
     else:
       print('--------gen only mode')
 
-    self.output_fn = lambda rnn_output: melt.dense(rnn_output, self.w, self.v)
+    #if use copy mode use score as alignment(no softmax)
+    self.score_as_alignment = False if FLAGS.gen_only else True
 
-    def copy_output_fn(indices, batch_size, cell_output, cell_state):
+    #gen only output_fn
+    self.output_fn = lambda cell_output: melt.dense(cell_output, self.w, self.v)
+
+    def copy_output(indices, batch_size, cell_output, cell_state):
       alignments = cell_state.alignments
       updates = alignments
       return tf.scatter_nd(indices, updates, shape=[batch_size, self.vocab_size])
 
-    self.copy_output_fn = copy_output_fn
+    self.copy_output_fn = copy_output 
 
-    #if copy mode use score as alignment(no softmax)
-    self.score_as_alignment = True if FLAGS.copy_only else False 
+    def gen_copy_output(indices, batch_size, cell_output, cell_state):
+      copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
+      gen_logits = self.output_fn(cell_output)
+      return copy_logits + gen_logits
+
+    self.gen_copy_output_fn = gen_copy_output
+
+
+    def gen_copy_output_train(time, indices, targets, sampled_values, batch_size, cell_output, cell_state):
+      copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
+
+      if self.softmax_loss_function is not None:
+        labels = tf.slice(targets, [0, time], [-1, 1])
+
+        sampled, true_expected_count, sampled_expected_count = sampled_values
+        sampled_values = \
+          sampled, tf.slice(tf.reshape(true_expected_count, [batch_size, -1]), [0, time], [-1, 1]), sampled_expected_count
+
+        sampled_ids, sampled_logits = melt.nn.compute_sampled_ids_and_logits(
+                                            weights=self.w_t, 
+                                            biases=self.v, 
+                                            labels=labels, 
+                                            inputs=cell_output, 
+                                            num_sampled=self.num_sampled, 
+                                            num_classes=self.vocab_size, 
+                                            sampled_values=sampled_values,
+                                            remove_accidental_hits=False)
+        gen_indices = melt.batch_values_to_indices(tf.to_int32(sampled_ids))
+        gen_logits = tf.scatter_nd(gen_indices, sampled_logits, shape=[batch_size, self.vocab_size])
+      else:
+        gen_logits = self.output_fn(cell_output)
+
+      return copy_logits + gen_logits
+
+    self.gen_copy_output_train_fn = gen_copy_output_train
 
     
   def sequence_loss(self, sequence, 
@@ -217,6 +257,9 @@ class RnnDecoder(Decoder):
     tf.add_to_collection('sequence', sequence)
     tf.add_to_collection('sequence_length', sequence_length)
 
+    #[batch_size, num_steps]
+    targets = sequence
+
     if attention_states is None:
       cell = self.cell 
     else:
@@ -249,22 +292,36 @@ class RnnDecoder(Decoder):
       #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
       ##outputs = outputs.rnn_output
     else:
-    	#---copy only
+    	#---copy only or gen copy
       helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+
       indices = melt.batch_values_to_indices(tf.to_int32(input_text))
-      copy_output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
+      if FLAGS.copy_only:
+        output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
+      else:
+        #gen_copy right now, not use switch
+        sampled_values = None 
+        if self.softmax_loss_function is not None:
+          sampled_values = tf.nn.log_uniform_candidate_sampler(true_classes=tf.reshape(targets, [-1, 1]),
+                                                    num_true=1,
+                                                    num_sampled=self.num_sampled,
+                                                    unique=True,
+                                                    range_max=self.vocab_size)
+
+        output_fn = lambda time, cell_output, cell_state: self.gen_copy_output_train_fn(
+                                         time, indices, targets, sampled_values, batch_size, cell_output, cell_state)
+
+
       my_decoder = melt.seq2seq.BasicTrainingDecoder(
         cell=cell,
         helper=helper,
         initial_state=state,
         vocab_size=self.vocab_size,
-        output_fn=copy_output_fn)
+        output_fn=output_fn)
       outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
 
     tf.add_to_collection('outputs', outputs)
 
-    #[batch_size, num_steps]
-    targets = sequence
     #TODO: hack here add FLAGS.predict_no_sample just for Seq2seqPredictor exact_predict
     softmax_loss_function = self.softmax_loss_function
     if self.is_predict and (exact_prob or exact_loss):
@@ -348,8 +405,11 @@ class RnnDecoder(Decoder):
       output_fn = self.output_fn 
     else:
       indices = melt.batch_values_to_indices(tf.to_int32(input_text))
-      output_fn = lambda cell_output, cell_state: self.copy_output_fn(
-        indices, batch_size, cell_output, cell_state)
+      if FLAGS.copy_only:
+        output_fn_ = self.copy_output_fn
+      else:
+        output_fn_ = self.gen_copy_output_fn
+      output_fn = lambda cell_output, cell_state: output_fn_(indices, batch_size, cell_output, cell_state)
 
     my_decoder = melt.seq2seq.BasicDecoder(
           cell=cell,
@@ -406,10 +466,14 @@ class RnnDecoder(Decoder):
       output_fn = self.output_fn 
     else:
       input_text = tf.contrib.seq2seq.tile_batch(input_text, beam_size)
+      batch_size = batch_size * beam_size
       indices = melt.batch_values_to_indices(tf.to_int32(input_text))
-      output_fn = lambda cell_output, cell_state: self.copy_output_fn(
-                                                    indices, batch_size * beam_size, 
-                                                    cell_output, cell_state)
+      if FLAGS.copy_only:
+        output_fn_ = self.copy_output_fn
+      else:
+        output_fn_ = self.gen_copy_output_fn
+      output_fn = lambda cell_output, cell_state: output_fn_(indices, batch_size, cell_output, cell_state)
+
 
     ##TODO to be safe make topn the same as beam size
     return melt.seq2seq.beam_decode(input, max_words, state, 
@@ -616,8 +680,13 @@ class RnnDecoder(Decoder):
       else:
         indices = melt.batch_values_to_indices(tf.to_int32(input_text))
         batch_size = melt.get_batch_size(input)
-        output_fn = lambda cell_output, cell_state: self.copy_output_fn(
-            indices, batch_size, cell_output, cell_state)
+
+        if FLAGS.copy_only:
+          output_fn_ = self.copy_output_fn
+        else:
+          output_fn_ = self.gen_copy_output_fn
+        output_fn = lambda cell_output, cell_state: output_fn_(indices, batch_size, cell_output, cell_state)
+
         logits = output_fn(output, state)
 
       logprobs = tf.nn.log_softmax(logits)
