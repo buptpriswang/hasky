@@ -124,7 +124,9 @@ def sequence_loss(logits,
 import tensorflow as tf  
 import melt
 
-def exact_predict_loss(logits, targets, mask, num_steps, batch_size=None):
+def exact_predict_loss(logits, targets, mask, num_steps, 
+                        need_softmax=True, need_average=False,
+                        trace_probs=True,  batch_size=None):
   """
   the same as using sparse_softmax_cross_entropy_with_logits 
   here mainly for debug, comparing experimenting purpose!
@@ -140,17 +142,22 @@ def exact_predict_loss(logits, targets, mask, num_steps, batch_size=None):
   if batch_size is None:
     batch_size = tf.shape(logits)[0]
   i = tf.constant(0, dtype=tf.int32)
-  condition = lambda i, log_probs, log_probs_list: tf.less(i, num_steps)
+  condition = lambda i, log_probs, lengths, log_probs_list: tf.less(i, num_steps)
   log_probs = tf.zeros([batch_size,], dtype=tf.float32)
+  lengths = tf.zeros([batch_size], dtype=tf.int32)
   #---log_probs_list is for debug purpose, actually the whole function here is for deubg purpose
   log_probs_list = tf.TensorArray(
             dtype=tf.float32, tensor_array_name="logprobs", size=num_steps, infer_shape=False)
             #dtype=tf.float32, tensor_array_name="log_probs_list", size=0, dynamic_size=True, infer_shape=False)
-  def body(i, log_probs, log_probs_list):
+  def body(i, log_probs, lengths, log_probs_list):
     #@TODO can we not clac softmax for mask==0 ?
     step_logits = logits[:, i, :]
     #step_probs = tf.nn.softmax(step_logits)
-    step_log_probs = tf.nn.log_softmax(step_logits)
+    if need_softmax:
+      step_log_probs = tf.nn.log_softmax(step_logits)
+    else:
+      step_log_probs = tf.log(step_logits)
+
     step_targets = targets[:, i]
     #selected_probs = melt.dynamic_gather2d(step_probs, step_targets)
     #TODO is this ok? or just use tf.nn.log_softmax to replace tf.nn.softmax
@@ -158,16 +165,22 @@ def exact_predict_loss(logits, targets, mask, num_steps, batch_size=None):
     #TODO gather_nd ?
     selected_log_probs = melt.dynamic_gather2d(step_log_probs, step_targets)
     step_mask = mask[:, i]
-    masked_log_probs = selected_log_probs * step_mask
-    log_probs_list = log_probs_list.write(i, masked_log_probs)
+    masked_log_probs = selected_log_probs * step_mask 
     log_probs += masked_log_probs
-    return tf.add(i, 1), tf.reshape(log_probs, [batch_size,]), log_probs_list
-  _, log_probs, log_probs_list = tf.while_loop(condition, body, [i, log_probs, log_probs_list])
+    lengths += tf.to_int32(step_mask)
+    if not trace_probs:
+      masked_log_probs = ()
+    log_probs_list = log_probs_list.write(i, masked_log_probs) 
+    return tf.add(i, 1), tf.reshape(log_probs, [batch_size,]), tf.reshape(lengths, [batch_size,]), log_probs_list
+
+  _, log_probs, lengths, log_probs_list = tf.while_loop(condition, body, [i, log_probs, lengths, log_probs_list])
     
   log_probs_list = tf.transpose(log_probs_list.stack(), [1, 0])
   tf.add_to_collection('seq2seq_logprobs', log_probs_list)
 
   loss = -log_probs
+  if need_average:
+    loss /= tf.to_float(lengths)
   return loss
 
 def gen_sampled_softmax_loss_function(num_sampled, vocab_size, 

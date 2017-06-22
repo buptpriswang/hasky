@@ -150,10 +150,14 @@ class RnnDecoder(Decoder):
 
     if FLAGS.use_attention:
       print('----attention_option:', FLAGS.attention_option)
-    if FLAGS.gen_copy or FLAGS.copy_only:
+    if FLAGS.gen_copy_switch or FLAGS.gen_copy or FLAGS.copy_only:
       assert FLAGS.use_attention is True, 'must use attention if not gen_only mode seq2seq'
       FLAGS.gen_only = False
-      if FLAGS.gen_copy:
+      if FLAGS.gen_copy_switch:
+        print('-------gen copy switch mode!')
+        FLAGS.gen_copy = False
+        FLAGS.copy_only = False
+      elif FLAGS.gen_copy:
         print('-------gen copy mode !')
         FLAGS.copy_only = False
       else:
@@ -175,16 +179,20 @@ class RnnDecoder(Decoder):
     self.copy_output_fn = copy_output 
 
     def gen_copy_output(indices, batch_size, cell_output, cell_state):
-      copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
       gen_logits = self.output_fn(cell_output)
-      return copy_logits + gen_logits
-
+      copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
+      
+      if FLAGS.gen_copy_switch:
+          gen_probability = cell_state.gen_probability 
+          #[batch_size, 1] * [batch_size, vocab_size]
+          return gen_probability * tf.nn.softmax(gen_logits) + (1 - gen_probability) * tf.nn.softmax(copy_logits)
+      else:
+        return gen_logits + copy_logits
+        
     self.gen_copy_output_fn = gen_copy_output
 
 
     def gen_copy_output_train(time, indices, targets, sampled_values, batch_size, cell_output, cell_state):
-      copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
-
       if self.softmax_loss_function is not None:
         labels = tf.slice(targets, [0, time], [-1, 1])
 
@@ -205,8 +213,15 @@ class RnnDecoder(Decoder):
         gen_logits = tf.scatter_nd(gen_indices, sampled_logits, shape=[batch_size, self.vocab_size])
       else:
         gen_logits = self.output_fn(cell_output)
-
-      return copy_logits + gen_logits
+      
+      copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
+      
+      if FLAGS.gen_copy_switch:
+          #gen_copy_switch == True. 
+          gen_probability = cell_state.gen_probability
+          return gen_probability * tf.nn.softmax(gen_logits) + (1 - gen_probability) * tf.nn.softmax(copy_logits)
+      else:
+        return gen_logits + copy_logits
 
     self.gen_copy_output_train_fn = gen_copy_output_train
 
@@ -226,9 +241,6 @@ class RnnDecoder(Decoder):
     if emb is None:
       emb = self.emb
 
-    if FLAGS.gen_only:
-      input_text = None
-    
     is_training = self.is_training
     batch_size = melt.get_batch_size(sequence)
     
@@ -272,7 +284,7 @@ class RnnDecoder(Decoder):
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
-    if input_text is None:
+    if FLAGS.gen_only:
       #gen only mode
       #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO see pointer_network in application seems ok.. why
       outputs, state = tf.nn.dynamic_rnn(cell, 
@@ -310,7 +322,8 @@ class RnnDecoder(Decoder):
                                                     num_sampled=self.num_sampled,
                                                     unique=True,
                                                     range_max=self.vocab_size)
-
+          #TODO since perf of sampled version here is ok not modify now, but actually in addtional to sampled_values
+          #sampled_w, sampled_b can also be pre embedding lookup, may imporve not much
         output_fn = lambda time, cell_output, cell_state: self.gen_copy_output_train_fn(
                                          time, indices, targets, sampled_values, batch_size, cell_output, cell_state)
 
@@ -322,6 +335,7 @@ class RnnDecoder(Decoder):
         vocab_size=self.vocab_size,
         output_fn=output_fn)
       outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+      #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
 
     tf.add_to_collection('outputs', outputs)
 
@@ -351,15 +365,24 @@ class RnnDecoder(Decoder):
 
     mask = tf.cast(tf.sign(targets), dtype=tf.float32)
 
-    if self.is_predict and exact_prob:
+    if FLAGS.gen_copy_switch:
+      #TODO why need more gpu mem ? ...  do not save logits ? just calc loss in output_fn ?
+      #batch size 256
+      #File "/home/gezi/mine/hasky/util/melt/seq2seq/loss.py", line 154, in body
+      #step_logits = logits[:, i, :]
+      #ResourceExhaustedError (see above for traceback): OOM when allocating tensor with shape[256,21,33470]
+      num_steps = tf.shape(targets)[1]
+      loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, 
+                                              need_softmax=False, need_average=True, 
+                                              batch_size=batch_size)
+    elif self.is_predict and exact_prob:
       #generate real prob for sequence
       #for 10w vocab textsum seq2seq 20 -> 4 about 
-      loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, batch_size)
+      loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, batch_size=batch_size)
     elif self.is_predict and exact_loss: 
       #force no sample softmax loss, the diff with exact_prob is here we just use cross entropy error as result not real prob of seq
       #NOTICE using time a bit less  55 to 57(prob), same result with exact prob and exact score
       #but 256 vocab sample will use only about 10ms    
-      #TODO check more with softmax loss and sampled somtmax loss, check length normalize
       loss = melt.seq2seq.sequence_loss_by_example(logits, targets, weights=mask)
     else:
       #loss [batch_size,] 
@@ -388,9 +411,6 @@ class RnnDecoder(Decoder):
     """
     if emb is None:
       emb = self.emb
-
-    if FLAGS.gen_only:
-      input_text = None
 
     batch_size = melt.get_batch_size(input)
     if attention_states is None:
@@ -421,9 +441,9 @@ class RnnDecoder(Decoder):
           vocab_size=self.vocab_size,
           output_fn=output_fn)
 
-    outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, 
-                                                      maximum_iterations=max_words, 
-                                                      scope=self.scope)
+    outputs, _, _ = melt.seq2seq.dynamic_decode(my_decoder, 
+                                                maximum_iterations=max_words, 
+                                                scope=self.scope)
     generated_sequence = outputs.sample_id
     #------like beam search return sequence, score
     return generated_sequence, tf.zeros([batch_size,])
@@ -733,7 +753,10 @@ class RnnDecoder(Decoder):
           memory=attention_states,
           memory_sequence_length=sequence_length) 
 
-    cell = melt.seq2seq.AttentionWrapper(
+    AttentionWrapper = melt.seq2seq.AttentionWrapper 
+    if FLAGS.gen_copy_switch:
+        AttentionWrapper = melt.seq2seq.PointerAttentionWrapper
+    cell = AttentionWrapper(
               self.cell,
               attention_mechanism,
               attention_layer_size=self.num_units,

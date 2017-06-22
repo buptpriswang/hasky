@@ -35,6 +35,7 @@ from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import tensor_array_ops
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.util import nest
+from tensorflow.contrib.layers.python.layers import layers
 
 
 __all__ = [
@@ -44,6 +45,8 @@ __all__ = [
     "LuongAttention",
     "BahdanauAttention",
     "hardmax",
+    "PointerAttentionWrapper",
+    "PointerAttentionWrapperState"
 ]
 
 
@@ -798,6 +801,328 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         attention=attention,
         alignments=alignments,
         alignment_history=alignment_history)
+
+    #TODO why use output_alignment will be slower for dyanmic_rnn ?
+    if self._output_alignment:
+      return alignments, next_state
+
+    if self._output_attention:
+      return attention, next_state
+    else:
+      return cell_output, next_state
+
+class PointerAttentionWrapperState(
+    collections.namedtuple("AttentionWrapperState",
+                           ("cell_state", "attention", "time", "alignments",
+                            "alignment_history", "gen_probability"))):
+  """`namedtuple` storing the state of a `AttentionWrapper`.
+
+  Contains:
+
+    - `cell_state`: The state of the wrapped `RNNCell` at the previous time
+      step.
+    - `attention`: The attention emitted at the previous time step.
+    - `time`: int32 scalar containing the current time step.
+    - `alignments`: The alignment emitted at the previous time step.
+    - `alignment_history`: (if enabled) a `TensorArray` containing alignment
+       matrices from all time steps.  Call `stack()` to convert to a `Tensor`.
+  """
+
+  def clone(self, **kwargs):
+    """Clone this object, overriding components provided by kwargs.
+
+    Example:
+
+    ```python
+    initial_state = attention_wrapper.zero_state(dtype=..., batch_size=...)
+    initial_state = initial_state.clone(cell_state=encoder_state)
+    ```
+
+    Args:
+      **kwargs: Any properties of the state object to replace in the returned
+        `AttentionWrapperState`.
+
+    Returns:
+      A new `AttentionWrapperState` whose properties are the same as
+      this one, except any overridden properties as provided in `kwargs`.
+    """
+    return super(PointerAttentionWrapperState, self)._replace(**kwargs)
+
+class PointerAttentionWrapper(rnn_cell_impl.RNNCell):
+  """Wraps another `RNNCell` with attention.
+  """
+
+  def __init__(self,
+               cell,
+               attention_mechanism,
+               attention_layer_size=None,
+               alignment_history=False,
+               cell_input_fn=None,
+               output_attention=True,
+               initial_cell_state=None,
+               no_context=False,
+               output_alignment=False,
+               probability_fn=None,
+               score_as_alignment=False,
+               name=None):
+    """Construct the `AttentionWrapper`.
+
+    Args:
+      cell: An instance of `RNNCell`.
+      attention_mechanism: An instance of `AttentionMechanism`.
+      attention_layer_size: Python integer, the depth of the attention (output)
+        layer. If None (default), use the context as attention at each time
+        step. Otherwise, feed the context and cell output into the attention
+        layer to generate attention at each time step.
+      alignment_history: Python boolean, whether to store alignment history
+        from all time steps in the final output state (currently stored as a
+        time major `TensorArray` on which you must call `stack()`).
+      cell_input_fn: (optional) A `callable`.  The default is:
+        `lambda inputs, attention: array_ops.concat([inputs, attention], -1)`.
+      output_attention: Python bool.  If `True` (default), the output at each
+        time step is the attention value.  This is the behavior of Luong-style
+        attention mechanisms.  If `False`, the output at each time step is
+        the output of `cell`.  This is the beahvior of Bhadanau-style
+        attention mechanisms.  In both cases, the `attention` tensor is
+        propagated to the next time step via the state and is used there.
+        This flag only controls whether the attention mechanism is propagated
+        up to the next cell in an RNN stack or to the top RNN output.
+      initial_cell_state: The initial state value to use for the cell when
+        the user calls `zero_state()`.  Note that if this value is provided
+        now, and the user uses a `batch_size` argument of `zero_state` which
+        does not match the batch size of `initial_cell_state`, proper
+        behavior is not guaranteed.
+      no_context: True when use pointer network, when you only want alignments
+      name: Name to use when creating ops.
+    """
+    super(PointerAttentionWrapper, self).__init__(name=name)
+    if not rnn_cell_impl._like_rnncell(cell):  # pylint: disable=protected-access
+      raise TypeError(
+          "cell must be an RNNCell, saw type: %s" % type(cell).__name__)
+    if not isinstance(attention_mechanism, AttentionMechanism):
+      raise TypeError(
+          "attention_mechanism must be a AttentionMechanism, saw type: %s"
+          % type(attention_mechanism).__name__)
+    if cell_input_fn is None:
+      cell_input_fn = (
+          lambda inputs, attention: array_ops.concat([inputs, attention], -1))
+    else:
+      if not callable(cell_input_fn):
+        raise TypeError(
+            "cell_input_fn must be callable, saw type: %s"
+            % type(cell_input_fn).__name__)
+
+    if attention_layer_size is not None:
+      self._attention_layer = layers_core.Dense(
+          attention_layer_size, name="attention_layer", _scope="attention_layer", use_bias=False)
+      self._attention_layer_size = attention_layer_size
+    else:
+      self._attention_layer = None
+      self._attention_layer_size = attention_mechanism.values.get_shape()[
+          -1].value
+
+    self._cell = cell
+    self._attention_mechanism = attention_mechanism
+    self._cell_input_fn = cell_input_fn
+    self._output_attention = output_attention
+    self._alignment_history = alignment_history
+    self._no_context = no_context
+    self._output_alignment = output_alignment
+    self._probability_fn = nn_ops.softmax if probability_fn is None else probability_fn
+    self._score_as_alignment = score_as_alignment
+    with ops.name_scope(name, "AttentionWrapperInit"):
+      if initial_cell_state is None:
+        self._initial_cell_state = None
+      else:
+        final_state_tensor = nest.flatten(initial_cell_state)[-1]
+        state_batch_size = (
+            final_state_tensor.shape[0].value
+            or array_ops.shape(final_state_tensor)[0])
+        error_message = (
+            "When constructing AttentionWrapper %s: " % self._base_name +
+            "Non-matching batch sizes between the memory "
+            "(encoder output) and initial_cell_state.  Are you using "
+            "the BeamSearchDecoder?  You may need to tile your initial state "
+            "via the tf.contrib.seq2seq.tile_batch function with argument "
+            "multiple=beam_width.")
+        with ops.control_dependencies(
+            [check_ops.assert_equal(state_batch_size,
+                                    self._attention_mechanism.batch_size,
+                                    message=error_message)]):
+          self._initial_cell_state = nest.map_structure(
+              lambda s: array_ops.identity(s, name="check_initial_cell_state"),
+              initial_cell_state)
+
+  @property
+  def output_size(self):
+    if self._output_alignment:
+      return self._attention_mechanism.alignments_size
+    if self._output_attention:
+      return self._attention_layer_size
+    else:
+      return self._cell.output_size
+
+  @property
+  def state_size(self):
+    return PointerAttentionWrapperState(
+        cell_state=self._cell.state_size,
+        time=tensor_shape.TensorShape([]),
+        attention=self._attention_layer_size,
+        alignments=self._attention_mechanism.alignments_size,
+        alignment_history=(), # alignment_history is sometimes a TensorArray
+        gen_probability=1)  
+
+  def zero_state(self, batch_size, dtype):
+    with ops.name_scope(type(self).__name__ + "ZeroState", values=[batch_size]):
+      if self._initial_cell_state is not None:
+        cell_state = self._initial_cell_state
+      else:
+        cell_state = self._cell.zero_state(batch_size, dtype)
+      error_message = (
+          "When calling zero_state of AttentionWrapper %s: " % self._base_name +
+          "Non-matching batch sizes between the memory "
+          "(encoder output) and the requested batch size.  Are you using "
+          "the BeamSearchDecoder?  If so, make sure your encoder output has "
+          "been tiled to beam_width via tf.contrib.seq2seq.tile_batch, and "
+          "the batch_size= argument passed to zero_state is "
+          "batch_size * beam_width.")
+      with ops.control_dependencies(
+          [check_ops.assert_equal(batch_size,
+                                  self._attention_mechanism.batch_size,
+                                  message=error_message)]):
+        cell_state = nest.map_structure(
+            lambda s: array_ops.identity(s, name="checked_cell_state"),
+            cell_state)
+      if self._alignment_history:
+        alignment_history = tensor_array_ops.TensorArray(
+            dtype=dtype, size=0, dynamic_size=True)
+      else:
+        alignment_history = ()
+      return PointerAttentionWrapperState(
+          cell_state=cell_state,
+          time=array_ops.zeros([], dtype=dtypes.int32),
+          attention=_zero_state_tensors(self._attention_layer_size, batch_size,
+                                        dtype),
+          alignments=self._attention_mechanism.initial_alignments(
+              batch_size, dtype),
+          alignment_history=alignment_history,
+          gen_probability=array_ops.ones([batch_size, 1], dtype=dtypes.float32))
+
+  def call(self, inputs, state):
+    """Perform a step of attention-wrapped RNN.
+
+    - Step 1: Mix the `inputs` and previous step's `attention` output via
+      `cell_input_fn`.
+    - Step 2: Call the wrapped `cell` with this input and its previous state.
+    - Step 3: Score the cell's output with `attention_mechanism`.
+    - Step 4: Calculate the alignments by passing the score through the
+      `normalizer`.
+    - Step 5: Calculate the context vector as the inner product between the
+      alignments and the attention_mechanism's values (memory).
+    - Step 6: Calculate the attention output by concatenating the cell output
+      and context through the attention layer (a linear layer with
+      `attention_layer_size` outputs).
+
+    Args:
+      inputs: (Possibly nested tuple of) Tensor, the input at this time step.
+      state: An instance of `AttentionWrapperState` containing
+        tensors from the previous time step.
+
+    Returns:
+      A tuple `(attention_or_cell_output, next_state)`, where:
+
+      - `attention_or_cell_output` depending on `output_attention`.
+      - `next_state` is an instance of `AttentionWrapperState`
+         containing the state calculated at this time step.
+    """
+    # Step 1: Calculate the true inputs to the cell based on the
+    # previous attention value.
+    cell_inputs = self._cell_input_fn(inputs, state.attention)
+    cell_state = state.cell_state
+    cell_output, next_cell_state = self._cell(cell_inputs, cell_state)
+
+    cell_batch_size = (
+        cell_output.shape[0].value or array_ops.shape(cell_output)[0])
+    error_message = (
+        "When applying AttentionWrapper %s: " % self.name +
+        "Non-matching batch sizes between the memory "
+        "(encoder output) and the query (decoder output).  Are you using "
+        "the BeamSearchDecoder?  You may need to tile your memory input via "
+        "the tf.contrib.seq2seq.tile_batch function with argument "
+        "multiple=beam_width.")
+    # TODO chg hack just remove for outgraph beam search, since attention states will change
+    #with ops.control_dependencies(
+    #    [check_ops.assert_equal(cell_batch_size,
+    #                            self._attention_mechanism.batch_size,
+    #                            message=error_message)]):
+    cell_output = array_ops.identity(
+          cell_output, name="checked_cell_output")
+
+    #alignments = self._attention_mechanism(
+    #    cell_output, previous_alignments=state.alignments)
+
+    scores = self._attention_mechanism(
+        cell_output, previous_alignments=state.alignments)
+    
+    alignments = self._probability_fn(scores)
+     
+    if self._no_context:
+      attention = cell_output
+    else:
+      # Reshape from [batch_size, memory_time] to [batch_size, 1, memory_time]
+      
+      #expanded_alignments = array_ops.expand_dims(alignments, 1)
+      expanded_alignments = array_ops.expand_dims(alignments, 2)
+      
+      # Context is the inner product of alignments and values along the
+      # memory time dimension.
+      # alignments shape is
+      #   [batch_size, 1, memory_time]
+      # attention_mechanism.values shape is
+      #   [batch_size, memory_time, attention_mechanism.num_units]
+      # the batched matmul is over memory_time, so the output shape is
+      #   [batch_size, 1, attention_mechanism.num_units].
+      # we then squeeze out the singleton dim.
+      attention_mechanism_values = self._attention_mechanism.values
+      
+      #context = math_ops.matmul(expanded_alignments, attention_mechanism_values)
+      #context = array_ops.squeeze(context, [1])
+
+      context = math_ops.reduce_sum(expanded_alignments * attention_mechanism_values, [1])
+
+      if self._attention_layer is not None:
+        attention = self._attention_layer(
+            array_ops.concat([cell_output, context], 1))
+      else:
+        attention = context
+
+    if self._alignment_history:
+      alignment_history = state.alignment_history.write(
+          state.time, alignments)
+    else:
+      alignment_history = ()
+
+    if self._score_as_alignment:
+      alignments = scores
+
+      # # Calculate p_gen
+      # if pointer_gen:
+      #   with tf.variable_scope('calculate_pgen'):
+      #     p_gen = linear([context_vector, state.c, state.h, x], 1, True) # a scalar
+      #     p_gen = tf.sigmoid(p_gen)
+      #     p_gens.append(p_gen)
+    gen_probability_logits = layers.linear(array_ops.concat(
+        [context, cell_output, cell_inputs], 1), 1, scope='gen_probability')
+    gen_probability = math_ops.sigmoid(gen_probability_logits)
+
+    #TODO maybe outupt both alignments and scores ?
+    next_state = PointerAttentionWrapperState(
+        time=state.time + 1,
+        cell_state=next_cell_state,
+        attention=attention,
+        alignments=alignments,
+        alignment_history=alignment_history,
+        gen_probability=gen_probability)
 
     #TODO why use output_alignment will be slower for dyanmic_rnn ?
     if self._output_alignment:
