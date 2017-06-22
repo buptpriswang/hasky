@@ -148,7 +148,10 @@ class RnnDecoder(Decoder):
                                                                                   sample_seed=FLAGS.predict_sample_seed,
                                                                                   vocabulary=vocabulary)
 
+    if FLAGS.use_attention:
+      print('----attention_option:', FLAGS.attention_option)
     if FLAGS.gen_copy or FLAGS.copy_only:
+      assert FLAGS.use_attention is True, 'must use attention if not gen_only mode seq2seq'
       FLAGS.gen_only = False
       if FLAGS.gen_copy:
         print('-------gen copy mode !')
