@@ -71,10 +71,15 @@ flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.p
 flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input words(copy mode)')
 flags.DEFINE_boolean('decode_use_alignment', False, '')
 
-flags.DEFINE_boolean('copy_only', False, 'if True then only copy mode using attention, copy also means pointer')
-flags.DEFINE_boolean('gen_only', True, '')
-flags.DEFINE_boolean('gen_copy', False, 'mix gen and copy')
-flags.DEFINE_boolean('gen_copy_switch', False, '')
+flags.DEFINE_boolean('copy_only', False, '''if True then only copy mode using attention, copy also means pointer, this is like 
+                                            <pointer networks> used in seq2seq generation''')
+flags.DEFINE_boolean('gen_only', True, 'nomral seq2seq or seq2seq with attention')
+flags.DEFINE_boolean('gen_copy', False, '''mix gen and copy, just add two logits(competes softmax) this is like 
+                                         <Incorporating Copying Mechanism in Sequence-to-Sequence Learning>''')
+#TODO have not finished copy <unk> words in input_text 
+flags.DEFINE_boolean('gen_copy_switch', False, '''mix gen and copy, using gen or copy switch gen_probablity, 
+                                                  this is like <pointing unknown words>, 
+                                                  <'Get To The Point: Summarization with Pointer-Generator Networks>''')
 
 #TODO support feed_prev training mode for dynamic rnn decode
 flags.DEFINE_boolean('feed_prev', False, 'wether use feed_prev mode for rnn decode during training also')
