@@ -7,6 +7,8 @@
 #   \Description  
 # ==============================================================================
 """
+dyanmic rnn_decoder support seq2seq, attention, pointer_network, generator+pointer/copy 
+
 The diff for this RnnDecoder with google im2txt is im2txt assume a start word after image_embedding
 so by doing this im2text or textsum all be the same input is embedding of <start_id> and inital_state
 the first lstm_cell(image_embedding) outputs is discarded just use output_state as inital_state with <start_id>
@@ -71,9 +73,9 @@ flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.p
 flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input words(copy mode)')
 flags.DEFINE_boolean('decode_use_alignment', False, '')
 
+flags.DEFINE_boolean('gen_only', True, 'nomral seq2seq or seq2seq with attention')
 flags.DEFINE_boolean('copy_only', False, '''if True then only copy mode using attention, copy also means pointer, this is like 
                                             <pointer networks> used in seq2seq generation''')
-flags.DEFINE_boolean('gen_only', True, 'nomral seq2seq or seq2seq with attention')
 flags.DEFINE_boolean('gen_copy', False, '''mix gen and copy, just add two logits(competes softmax) this is like 
                                          <Incorporating Copying Mechanism in Sequence-to-Sequence Learning>''')
 #TODO have not finished copy <unk> words in input_text 
