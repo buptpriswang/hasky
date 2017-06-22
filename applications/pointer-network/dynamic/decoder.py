@@ -43,8 +43,7 @@ class Decoder(object):
     attention_mechanism = create_attention_mechanism(
         num_units=self.num_units,
         memory=enc_states,
-        memory_sequence_length=None,
-        probability_fn=lambda score: score)
+        memory_sequence_length=None)
     
     ##------this is fully attention
     if self.fully_attention:
@@ -54,6 +53,7 @@ class Decoder(object):
               attention_mechanism,
               attention_layer_size=self.num_units,
               initial_cell_state=initial_states, 
+              probability_fn=lambda score: score,
               alignment_history=False)
     else:
       ##---------this way using attention only as point output 
@@ -63,6 +63,7 @@ class Decoder(object):
               cell_input_fn= lambda inputs, attention: inputs,
               attention_layer_size=None,
               initial_cell_state=initial_states, 
+              probability_fn=lambda score: score,
               alignment_history=False,
               no_context=True,
               output_alignment=True)

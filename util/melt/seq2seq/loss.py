@@ -252,7 +252,8 @@ def gen_sampled_softmax_loss_function(num_sampled, vocab_size,
                                         inputs=inputs, 
                                         num_sampled=num_sampled, 
                                         num_classes=vocab_size,
-                                        sampled_values=sampled_values)
+                                        sampled_values=sampled_values,
+                                        partition_strategy="div") 
                                
     return sampled_loss
   else:

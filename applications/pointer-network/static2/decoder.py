@@ -38,8 +38,7 @@ class Decoder(object):
     attention_mechanism = create_attention_mechanism(
         num_units=self.num_units,
         memory=enc_states,
-        memory_sequence_length=None,
-        probability_fn=lambda score: score)
+        memory_sequence_length=None)
     
     cell = melt.seq2seq.AttentionWrapper(
             self.cell,
@@ -47,6 +46,7 @@ class Decoder(object):
             cell_input_fn= lambda inputs, attention: inputs,
             attention_layer_size=None,
             initial_cell_state=initial_states, 
+            probability_fn=lambda score: score,
             alignment_history=False,
             no_context=True)
     

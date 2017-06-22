@@ -75,6 +75,9 @@ flags.DEFINE_boolean('copy_only', False, 'if True then only copy mode using atte
 flags.DEFINE_boolean('gen_only', True, '')
 flags.DEFINE_boolean('gen_copy', False, 'mix gen and copy')
 
+#TODO support feed_prev training mode for dynamic rnn decode
+flags.DEFINE_boolean('feed_prev', False, 'wether use feed_prev mode for rnn decode during training also')
+
 import functools
 import melt 
 from deepiu.util import vocabulary
@@ -134,9 +137,9 @@ class RnnDecoder(Decoder):
     num_sampled = FLAGS.num_sampled if not (is_predict and FLAGS.predict_no_sample) else 0
     self.softmax_loss_function = melt.seq2seq.gen_sampled_softmax_loss_function(num_sampled, 
                                                                                 self.vocab_size, 
-                                                                                self.w_t,
-                                                                                self.v,
-                                                                                FLAGS.log_uniform_sample,
+                                                                                weights=self.w_t,
+                                                                                biases=self.v,
+                                                                                log_uniform_sample=FLAGS.log_uniform_sample,
                                                                                 is_predict=self.is_predict,
                                                                                 sample_seed=FLAGS.predict_sample_seed,
                                                                                 vocabulary=vocabulary)
@@ -345,7 +348,8 @@ class RnnDecoder(Decoder):
       output_fn = self.output_fn 
     else:
       indices = melt.batch_values_to_indices(tf.to_int32(input_text))
-      output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
+      output_fn = lambda cell_output, cell_state: self.copy_output_fn(
+        indices, batch_size, cell_output, cell_state)
 
     my_decoder = melt.seq2seq.BasicDecoder(
           cell=cell,
@@ -354,7 +358,9 @@ class RnnDecoder(Decoder):
           vocab_size=self.vocab_size,
           output_fn=output_fn)
 
-    outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, maximum_iterations=max_words, scope=self.scope)
+    outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, 
+                                                      maximum_iterations=max_words, 
+                                                      scope=self.scope)
     generated_sequence = outputs.sample_id
     #------like beam search return sequence, score
     return generated_sequence, tf.zeros([batch_size,])
@@ -393,7 +399,8 @@ class RnnDecoder(Decoder):
       	                            score_as_alignment=self.score_as_alignment)
       initial_state = None
 
-    state = cell.zero_state(batch_size * beam_size, tf.float32) if initial_state is None else initial_state
+    state = cell.zero_state(batch_size * beam_size, tf.float32) \
+              if initial_state is None else initial_state
         
     if FLAGS.gen_only:
       output_fn = self.output_fn 
@@ -492,7 +499,8 @@ class RnnDecoder(Decoder):
       	                            initial_state=initial_state,
       	                            score_as_alignment=self.score_as_alignment)
       initial_state = None
-    state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
+    state = cell.zero_state(batch_size, tf.float32) \
+        if initial_state is None else initial_state
     
     ##--TODO hard.. since need to reuse to share ValueError: 
     ##Variable seq2seq/main/decode/memory_layer/kernel already exists, disallowed. Did you mean to set reuse=True in VarScope?
@@ -508,7 +516,9 @@ class RnnDecoder(Decoder):
     #since before hack using generate_sequence_greedy, here can not set scope.reuse_variables
     #NOTICE inorder to use lstm which is in .../rnn/ nameapce here you must also add this scope to use the shared 
     with tf.variable_scope(self.scope) as scope:
-      inital_attention, initial_state, initial_logprobs, initial_ids = beam_search_step(input, state, cell, input_text=input_text)
+      inital_attention, initial_state, initial_logprobs, initial_ids = \
+            beam_search_step(input, state, cell, input_text=input_text)
+
       if attention_states is not None:
         tf.add_to_collection('beam_search_initial_alignments', tf.get_collection('attention_alignments')[-1])
 
@@ -547,7 +557,9 @@ class RnnDecoder(Decoder):
       tf.add_to_collection('beam_search_state_feed', state_feed)
 
       if attention_states is not None:
-        state, attention = tf.split(state_feed, [state_size - self.cell.output_size, self.cell.output_size], axis=1)
+        state, attention = tf.split(state_feed, 
+                                    [state_size - self.cell.output_size, self.cell.output_size], 
+                                    axis=1)
       else:
         state = state_feed
 
@@ -555,12 +567,7 @@ class RnnDecoder(Decoder):
         state = tf.split(state, num_or_size_splits=2, axis=1)
       
       if attention_states is not None:
-        state_ = melt.seq2seq.attention_wrapper.AttentionWrapperState(
-          time=0,
-          cell_state=state,
-          attention=attention,
-          alignments=first_state.alignments,
-          alignment_history=())
+        state_ = first_state.clone(cell_state=state, attention=attention)
       else:
         state_ = state
 
@@ -569,9 +576,11 @@ class RnnDecoder(Decoder):
       #attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell2)
       
       if input_text is not None and not FLAGS.decode_copy:
-        input_text = tf.contrib.seq2seq.tile_batch(input_text, melt.get_batch_size(input)) 
+        input_text = tf.contrib.seq2seq.tile_batch(input_text, 
+                                                    melt.get_batch_size(input)) 
   
-      attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell, input_text=input_text)
+      attention, state, top_logprobs, top_ids = beam_search_step(input, state_, cell, 
+                                                                input_text=input_text)
 
       if state_is_tuple:
         # Concatentate the resulting state.
@@ -593,7 +602,8 @@ class RnnDecoder(Decoder):
 
     if hasattr(state, 'alignments'):
       tf.add_to_collection('attention_alignments', state.alignments)
-      tf.add_to_collection('beam_search_alignments', tf.get_collection('attention_alignments')[-1])
+      tf.add_to_collection('beam_search_alignments', 
+                            tf.get_collection('attention_alignments')[-1])
 
     #TODO: this step cause.. attenion decode each step after initalization still need input_text feed 
     #will this case attention_keys and attention_values to be recompute(means redo encoding process) each step?
@@ -606,7 +616,8 @@ class RnnDecoder(Decoder):
       else:
         indices = melt.batch_values_to_indices(tf.to_int32(input_text))
         batch_size = melt.get_batch_size(input)
-        output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
+        output_fn = lambda cell_output, cell_state: self.copy_output_fn(
+            indices, batch_size, cell_output, cell_state)
         logits = output_fn(output, state)
 
       logprobs = tf.nn.log_softmax(logits)
@@ -701,7 +712,8 @@ class RnnDecoder(Decoder):
     return start_id
 
   def get_end_id(self):
-    if (FLAGS.input_with_end_mark or (self.is_predict and not FLAGS.predict_with_end_mark)):
+    if (FLAGS.input_with_end_mark or 
+        (self.is_predict and not FLAGS.predict_with_end_mark)):
       return None 
     else:
       return self.end_id

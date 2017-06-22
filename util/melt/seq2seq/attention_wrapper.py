@@ -791,6 +791,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     if self._score_as_alignment:
       alignments = scores
 
+    #TODO maybe outupt both alignments and scores ?
     next_state = AttentionWrapperState(
         time=state.time + 1,
         cell_state=next_cell_state,
