@@ -31,7 +31,7 @@ python ./train.py --length_norm=1  \
   --alignment_history 0 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 128 \
   --eval_batch_size 100 \
   --num_gpus 0 \
   --min_after_dequeue 500 \

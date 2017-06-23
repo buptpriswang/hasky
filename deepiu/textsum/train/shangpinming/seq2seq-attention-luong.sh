@@ -7,7 +7,7 @@ mkdir -p $model_dir
 
 #--fixed_valid_input $fixed_valid_output_path/'test' \
 #--train_input $train_output_path/'train_*' \
-python ./train.py \
+python ./train.py --clip_gradients 1 \
   --train_input $train_output_path/'train*' \
   --valid_input $valid_output_path/'test*' \
 	--valid_resource_dir $valid_output_path \
@@ -26,7 +26,8 @@ python ./train.py \
   --show_eval 1 \
   --train_only 0 \
   --metric_eval 0 \
-  --gen_predict 1 \
+  --gen_predict 0 \
+  --show_beam_search 1 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
@@ -50,8 +51,6 @@ python ./train.py \
   --emb_dim 1000 \
   --rnn_hidden_size 1024 \
   --experiment_rnn_decoder 0 \
-  --show_beam_search 1 \
-  --gen_predict 1 \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \
@@ -60,6 +59,5 @@ python ./train.py \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \ 
   --work_mode full \
 

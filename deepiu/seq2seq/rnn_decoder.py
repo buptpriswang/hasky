@@ -79,7 +79,7 @@ flags.DEFINE_boolean('copy_only', False, '''if True then only copy mode using at
                                             <pointer networks> used in seq2seq generation''')
 flags.DEFINE_boolean('gen_copy', False, '''mix gen and copy, just add two logits(competes softmax) this is like 
                                          <Incorporating Copying Mechanism in Sequence-to-Sequence Learning>''')
-
+#TODO much slower.. 1.5 vs 2.7 batch/s then gen_copy sparse_softmax_cross_entorpy much faster then sofmtax then sum loss ?
 flags.DEFINE_boolean('gen_copy_switch', False, '''mix gen and copy, using gen or copy switch gen_probablity, 
                                                   this is like <pointing unknown words>, 
                                                   <'Get To The Point: Summarization with Pointer-Generator Networks>''')
@@ -186,6 +186,7 @@ class RnnDecoder(Decoder):
 
     self.copy_output_fn = copy_output 
 
+    #one problem is big memory for large vocabulary
     def gen_copy_output(indices, batch_size, cell_output, cell_state):
       gen_logits = self.output_fn(cell_output)
       copy_logits = copy_output(indices, batch_size, cell_output, cell_state)
@@ -352,7 +353,7 @@ class RnnDecoder(Decoder):
     if self.is_predict and (exact_prob or exact_loss):
       softmax_loss_function = None
     
-    if input_text is not None:
+    if not FLAGS.gen_only:
       logits = outputs
       softmax_loss_function = None
     elif softmax_loss_function is not None:
