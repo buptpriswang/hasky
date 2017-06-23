@@ -6,7 +6,7 @@ model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.gen-copy-switch
 mkdir -p $model_dir
 
 #--train_input $train_output_path/'train_*' \
-python ./train.py \
+python ./train.py --length_norm=1  \
   --train_input $train_output_path/'train*' \
   --valid_input $valid_output_path/'test*' \
 	--valid_resource_dir $valid_output_path \
@@ -31,7 +31,7 @@ python ./train.py \
   --alignment_history 0 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 128 \
+  --batch_size 256 \
   --eval_batch_size 100 \
   --num_gpus 0 \
   --min_after_dequeue 500 \

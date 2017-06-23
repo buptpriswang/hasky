@@ -74,11 +74,12 @@ flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input wo
 flags.DEFINE_boolean('decode_use_alignment', False, '')
 
 flags.DEFINE_boolean('gen_only', True, 'nomral seq2seq or seq2seq with attention')
+#TODO have not finished copy <unk> words in input_text 
 flags.DEFINE_boolean('copy_only', False, '''if True then only copy mode using attention, copy also means pointer, this is like 
                                             <pointer networks> used in seq2seq generation''')
 flags.DEFINE_boolean('gen_copy', False, '''mix gen and copy, just add two logits(competes softmax) this is like 
                                          <Incorporating Copying Mechanism in Sequence-to-Sequence Learning>''')
-#TODO have not finished copy <unk> words in input_text 
+
 flags.DEFINE_boolean('gen_copy_switch', False, '''mix gen and copy, using gen or copy switch gen_probablity, 
                                                   this is like <pointing unknown words>, 
                                                   <'Get To The Point: Summarization with Pointer-Generator Networks>''')
@@ -379,9 +380,15 @@ class RnnDecoder(Decoder):
       #step_logits = logits[:, i, :]
       #ResourceExhaustedError (see above for traceback): OOM when allocating tensor with shape[256,21,33470]
       num_steps = tf.shape(targets)[1]
+
       loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, 
-                                              need_softmax=False, need_average=True, 
-                                              batch_size=batch_size)
+                                             need_softmax=False, need_average=True, 
+                                             batch_size=batch_size)
+
+      # loss = melt.seq2seq.sequence_loss_by_example(
+      #     logits,
+      #     targets,
+      #     weights=mask)
     elif self.is_predict and exact_prob:
       #generate real prob for sequence
       #for 10w vocab textsum seq2seq 20 -> 4 about 

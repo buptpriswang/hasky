@@ -384,6 +384,7 @@ with tf.Session(''):
                 idx_flattened)  # use flattened indices
   return y
 
+#deprecated gpu mem issue, use tf.gather_nd instead
 def dynamic_gather2d(x, idx):
   #FIMXE
   idx_flattened = tf.cast(tf.range(0, tf.shape(x)[0]) * tf.shape(x)[1], idx.dtype) + idx

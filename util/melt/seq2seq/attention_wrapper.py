@@ -1111,9 +1111,12 @@ class PointerAttentionWrapper(rnn_cell_impl.RNNCell):
       #     p_gen = linear([context_vector, state.c, state.h, x], 1, True) # a scalar
       #     p_gen = tf.sigmoid(p_gen)
       #     p_gens.append(p_gen)
+
     gen_probability_logits = layers.linear(array_ops.concat(
-        [context, cell_output, cell_inputs], 1), 1, scope='gen_probability')
+         [context, cell_output, cell_inputs], 1), 1, scope='gen_probability')
     gen_probability = math_ops.sigmoid(gen_probability_logits)
+
+    #gen_probability = array_ops.ones([array_ops.shape(cell_output)[0], 1], dtype=dtypes.float32)
 
     #TODO maybe outupt both alignments and scores ?
     next_state = PointerAttentionWrapperState(

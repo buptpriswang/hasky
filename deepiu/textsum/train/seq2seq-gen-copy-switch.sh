@@ -3,7 +3,7 @@ cp ./prepare/conf.py .
 cp ./inputs/title-desc-click/input.py .
 
 dir=/home/gezi/new/temp/textsum/ 
-model_dir=$dir/model.seq2seq.gen-copy
+model_dir=$dir/model.seq2seq.gen-copy-switch
 mkdir -p $model_dir
 
 #--train_input $train_output_path/'train_*' \
@@ -33,7 +33,7 @@ python ./train.py \
   --alignment_history 0 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 128 \
   --eval_batch_size 100 \
   --num_gpus 0 \
   --min_after_dequeue 500 \
