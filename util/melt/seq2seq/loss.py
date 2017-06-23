@@ -156,7 +156,10 @@ def exact_predict_loss(logits, targets, mask, num_steps,
     if need_softmax:
       step_log_probs = tf.nn.log_softmax(step_logits)
     else:
-      step_log_probs = tf.log(step_logits)
+      #step_log_probs = tf.log(step_logits)
+      #step_log_probs = tf.maximum(step_logits, 1e-12)
+      step_log_probs = tf.log(tf.maximum(step_logits, 1e-12))
+
 
     step_targets = targets[:, i]
     #selected_probs = melt.dynamic_gather2d(step_probs, step_targets)
@@ -164,6 +167,10 @@ def exact_predict_loss(logits, targets, mask, num_steps,
     #selected_log_probs = tf.log(tf.maximum(selected_probs, 1e-12))
     #TODO gather_nd ?
     selected_log_probs = melt.dynamic_gather2d(step_log_probs, step_targets)
+
+    #if not need_softmax:
+    #  selected_log_probs = tf.log(step_log_probs)
+
     step_mask = mask[:, i]
     masked_log_probs = selected_log_probs * step_mask 
     log_probs += masked_log_probs
