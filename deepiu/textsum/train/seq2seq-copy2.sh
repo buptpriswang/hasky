@@ -1,16 +1,18 @@
-source ./prepare/default/config 
-cp ./prepare/default/conf.py  .
-cp ./inputs/default/input.py .
+source ./prepare/config 
+cp ./prepare/conf.py .
+cp ./inputs/title-desc-click/input.py .
 
-model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.gen-copy
+dir=/home/gezi/new/temp/textsum/ 
+model_dir=$dir/model.seq2seq.copy.ba
 mkdir -p $model_dir
 
 #--train_input $train_output_path/'train_*' \
-python ./train.py --length_norm=1 \
-  --train_input $train_output_path/'train*' \
-  --valid_input $valid_output_path/'test*' \
+python ./train.py \
+  --train_input $train_output_path/'train_*' \
+  --valid_input $valid_output_path/'test_*' \
+	--fixed_valid_input $fixed_valid_output_path/'test' \
 	--valid_resource_dir $valid_output_path \
-	--vocab $dir/vocab.txt \
+	--vocab $train_output_path/vocab.txt \
   --num_records_file  $train_output_path/num_records.txt \
   --image_url_prefix '' \
   --model_dir=$model_dir \
@@ -25,8 +27,8 @@ python ./train.py --length_norm=1 \
   --show_eval 1 \
   --show_beam_search 1 \
   --train_only 0 \
-  --gen_predict 1 \
   --metric_eval 0 \
+  --gen_predict 1 \
   --legacy_rnn_decoder 0 \
   --alignment_history 0 \
   --monitor_level 2 \
@@ -54,8 +56,8 @@ python ./train.py --length_norm=1 \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \
-  --attention_option luong \
-  --gen_copy 1 \
+  --attention_option bahdanau \
+  --copy_only 1 \
   --encode_end_mark 1 \
   --cell lstm_block \
   --num_records 0 \

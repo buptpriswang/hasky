@@ -2,11 +2,11 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.gen-copy
+model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.gen-copy-switch2
 mkdir -p $model_dir
 
 #--train_input $train_output_path/'train_*' \
-python ./train.py --length_norm=1 \
+python ./train.py --length_norm=1 --switch_after_softmax 0 --clip_gradients 1 \
   --train_input $train_output_path/'train*' \
   --valid_input $valid_output_path/'test*' \
 	--valid_resource_dir $valid_output_path \
@@ -55,12 +55,11 @@ python ./train.py --length_norm=1 \
   --rnn_output_method 3 \
   --use_attention 1 \
   --attention_option luong \
-  --gen_copy 1 \
+  --gen_copy_switch 1 \
   --encode_end_mark 1 \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \ 
   --work_mode full \
 

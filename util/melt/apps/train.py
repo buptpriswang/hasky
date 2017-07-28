@@ -178,7 +178,10 @@ def train_flow(ops,
   interval_steps=FLAGS.interval_steps
   eval_interval_steps=FLAGS.eval_interval_steps
   metric_eval_interval_steps=FLAGS.metric_eval_interval_steps
-  save_model=FLAGS.save_model
+  save_model=FLAGS.save_model 
+  save_interval_steps = FLAGS.save_interval_steps 
+  if not save_interval_steps:
+    save_interval_steps = 1000000000000
 
   if FLAGS.work_mode == 'train':
     eval_ops = None 
@@ -213,7 +216,7 @@ def train_flow(ops,
              num_epochs=FLAGS.num_epochs,
              num_steps=FLAGS.num_steps,
              save_interval_seconds=save_interval_seconds,
-             save_interval_steps=FLAGS.save_interval_steps,
+             save_interval_steps=save_interval_steps,
              save_model=save_model,
              save_interval_epochs=FLAGS.save_interval_epochs,
              #optimizer=optimizer, 

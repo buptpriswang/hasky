@@ -21,6 +21,8 @@ flags.DEFINE_integer('rnn_size', 32, 'RNN size.  ')
 flags.DEFINE_boolean('train_feed_prev', True, '')
 flags.DEFINE_boolean('test_feed_prev', True, 'set to False just for experiment purpose')
 flags.DEFINE_string('model_dir', '/home/gezi/temp/pointer.static.model', '')
+flags.DEFINE_string('mode_', 'train', '')
+flags.DEFINE_integer('eval_times', 10000, '')
 flags.DEFINE_integer('num_attention_steps', 0, 'use set2seq with num_attention_steps > 0')
 
 import numpy as np
@@ -67,13 +69,23 @@ def main(_):
 
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
 
-  melt.apps.train_flow(ops, 
-                       eval_ops=eval_ops,
-                       eval_names=eval_names,
-                       gen_feed_dict_fn=gen_feed_dict,
-                       gen_eval_feed_dict_fn=gen_feed_dict,
-                       deal_eval_results_fn=deal_eval_results,
-                       model_dir=FLAGS.model_dir)
+  if FLAGS.mode_ == 'train':
+    melt.apps.train_flow(ops, 
+                         eval_ops=eval_ops,
+                         eval_names=eval_names,
+                         gen_feed_dict_fn=gen_feed_dict,
+                         gen_eval_feed_dict_fn=gen_feed_dict,
+                         deal_eval_results_fn=deal_eval_results,
+                         model_dir=FLAGS.model_dir)
+  else:
+    melt.flow.test_flow(
+        eval_ops, 
+        names=eval_names,
+        gen_feed_dict_fn=gen_feed_dict,
+        deal_results_fn=deal_eval_results,
+        model_dir=FLAGS.model_dir, 
+        interval_steps=FLAGS.interval_steps,
+        eval_times=FLAGS.eval_times)
 
 if __name__ == '__main__':
   tf.app.run()

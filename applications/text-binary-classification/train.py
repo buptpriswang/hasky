@@ -49,23 +49,23 @@ def train():
   inputs = melt.shuffle_then_decode.inputs
   X, y = inputs(
     trainset, 
-    decode=decode,
+    decode_fn=decode,
     batch_size=FLAGS.batch_size,
     num_epochs=FLAGS.num_epochs, 
     num_threads=FLAGS.num_preprocess_threads,
     batch_join=FLAGS.batch_join,
-    shuffle=FLAGS.shuffle)
+    shuffle_files=FLAGS.shuffle)
   
   train_with_validation = len(sys.argv) > 2
   if train_with_validation:
     validset = sys.argv[2]
     eval_X, eval_y = inputs(
       validset, 
-      decode=decode,
+      decode_fn=decode,
       batch_size=FLAGS.batch_size * 100,
       num_threads=FLAGS.num_preprocess_threads,
       batch_join=FLAGS.batch_join,
-      shuffle=FLAGS.shuffle)
+      shuffle_files=FLAGS.shuffle)
   
   with tf.variable_scope('main') as scope:
     loss, accuracy = model.build_graph(X, y)

@@ -23,7 +23,7 @@ flags.DEFINE_string('algo', 'show_and_tell', 'bow rnn show_and_tell')
 flags.DEFINE_string('model_dir', './model.flickr.show_and_tell2/', '')  
 flags.DEFINE_string('vocab', '/home/gezi/temp/image-caption/flickr/seq-with-unk/train/vocab.bin', 'vocabulary binary file')
 
-flags.DEFINE_integer('num_interval_steps', 100, '')
+flags.DEFINE_integer('interval_steps', 100, '')
 flags.DEFINE_integer('eval_times', 0, '')
 
 
@@ -58,9 +58,9 @@ def test():
   test_flow(
     [loss], 
     names=eval_names,
-    gen_feed_dict=input_app.gen_feed_dict,
+    gen_feed_dict_fn=input_app.gen_feed_dict,
     model_dir=FLAGS.model_dir, 
-    num_interval_steps=FLAGS.num_interval_steps,
+    interval_steps=FLAGS.interval_steps,
     num_epochs=FLAGS.num_epochs,
     eval_times=FLAGS.eval_times,
     sess=sess)

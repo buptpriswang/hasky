@@ -21,14 +21,22 @@ def _decode(example, parse, dynamic_batch_length):
   features = parse(
       example,
       features={
+          'image_name': tf.FixedLenFeature([], tf.string),
+          'url': tf.FixedLenFeature([], tf.string),
           'text_str': tf.FixedLenFeature([], tf.string),
+          'ct0_str': tf.FixedLenFeature([], tf.string),
+          'title_str': tf.FixedLenFeature([], tf.string),
+          'real_title_str': tf.FixedLenFeature([], tf.string),
           'text': tf.VarLenFeature(tf.int64),
-          'input_text_str': tf.FixedLenFeature([], tf.string),
-          'input_text': tf.VarLenFeature(tf.int64),
+          'ct0': tf.VarLenFeature(tf.int64),
+          'title': tf.VarLenFeature(tf.int64),
+          'real_title': tf.VarLenFeature(tf.int64),
       })
 
+  image_name = features['image_name']
   text = features['text']
-  input_text = features['input_text']
+  input_type = 'real_title'
+  input_text = features[input_type]
 
   maxlen = 0 if dynamic_batch_length else TEXT_MAX_WORDS
   text = melt.sparse_tensor_to_dense(text, maxlen)
@@ -39,13 +47,8 @@ def _decode(example, parse, dynamic_batch_length):
   input_text = melt.sparse_tensor_to_dense(input_text, input_maxlen)
 
   text_str = features['text_str']
-  input_text_str = features['input_text_str']
+  input_text_str = features['{}_str'.format(input_type)]
   
-  try:
-    image_name = features['image_name']
-  except Exception:
-    image_name = text_str
-
   return image_name, text, text_str, input_text, input_text_str
 
 def decode_examples(serialized_examples, dynamic_batch_length):

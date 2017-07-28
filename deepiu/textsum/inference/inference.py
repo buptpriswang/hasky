@@ -104,6 +104,8 @@ def main(_):
   #predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
   #predict(predictor, "宝宝太胖怎么办呢")
   predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
+  predict(predictor, "北疆之行(三):乌尔禾魔鬼城,乌尔禾自助游攻略 - 蚂蜂窝")
+  predict(predictor, "众多名车齐上阵 直击《变形金刚3》片场")
 
   predicts(predictor, [
     "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网",

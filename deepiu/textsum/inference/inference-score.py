@@ -19,7 +19,8 @@ FLAGS = flags.FLAGS
 #FIXME: attention will hang..., no attention works fine
 #flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq.attention/', '')
 flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq/', '')
-flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic.10w/train/vocab.txt', 'vocabulary file')
+#flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic.10w/train/vocab.txt', 'vocabulary file')
+flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic/train/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_string('input_text_name', 'seq2seq/model_init_1/input_text:0', 'model_init_1 because predictor after trainer init')
 flags.DEFINE_string('text_name', 'seq2seq/model_init_1/text:0', '')
@@ -151,6 +152,7 @@ def main(_):
   predict(predictor, '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施', '辣椒小辣椒')
   predict(predictor, '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施', '辣椒果实')
   predict(predictor, '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施', '小橘子')
+  predict(predictor, '众多名车齐上阵 直击《变形金刚3》片场', '变形金刚3')
   #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院", "女孩")
   #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院", "学生")
   #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院", "女生学生")

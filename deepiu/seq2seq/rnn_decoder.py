@@ -80,9 +80,12 @@ flags.DEFINE_boolean('copy_only', False, '''if True then only copy mode using at
 flags.DEFINE_boolean('gen_copy', False, '''mix gen and copy, just add two logits(competes softmax) this is like 
                                          <Incorporating Copying Mechanism in Sequence-to-Sequence Learning>''')
 #TODO much slower.. 1.5 vs 2.7 batch/s then gen_copy sparse_softmax_cross_entorpy much faster then sofmtax then sum loss ?
+#TODO how is sparse_softmax_cross_entropy implemented
 flags.DEFINE_boolean('gen_copy_switch', False, '''mix gen and copy, using gen or copy switch gen_probablity, 
                                                   this is like <pointing unknown words>, 
                                                   <'Get To The Point: Summarization with Pointer-Generator Networks>''')
+
+flags.DEFINE_boolean('switch_after_softmax', True, '')
 
 #TODO support feed_prev training mode for dynamic rnn decode
 flags.DEFINE_boolean('feed_prev', False, 'wether use feed_prev mode for rnn decode during training also')
@@ -194,7 +197,10 @@ class RnnDecoder(Decoder):
       if FLAGS.gen_copy_switch:
           gen_probability = cell_state.gen_probability 
           #[batch_size, 1] * [batch_size, vocab_size]
-          return gen_probability * tf.nn.softmax(gen_logits) + (1 - gen_probability) * tf.nn.softmax(copy_logits)
+          if FLAGS.switch_after_softmax:
+            return gen_probability * tf.nn.softmax(gen_logits) + (1 - gen_probability) * tf.nn.softmax(copy_logits)
+          else:
+            return gen_probability * gen_logits + (1 - gen_probability) * copy_logits
       else:
         return gen_logits + copy_logits
         
@@ -228,7 +234,10 @@ class RnnDecoder(Decoder):
       if FLAGS.gen_copy_switch:
           #gen_copy_switch == True. 
           gen_probability = cell_state.gen_probability
-          return gen_probability * tf.nn.softmax(gen_logits) + (1 - gen_probability) * tf.nn.softmax(copy_logits)
+          if FLAGS.switch_after_softmax:
+            return gen_probability * tf.nn.softmax(gen_logits) + (1 - gen_probability) * tf.nn.softmax(copy_logits)
+          else:
+            return gen_probability * gen_logits + (1 - gen_probability) * copy_logits
       else:
         return gen_logits + copy_logits
 
@@ -374,7 +383,7 @@ class RnnDecoder(Decoder):
 
     mask = tf.cast(tf.sign(targets), dtype=tf.float32)
 
-    if FLAGS.gen_copy_switch:
+    if FLAGS.gen_copy_switch and FLAGS.switch_after_softmax:
       #TODO why need more gpu mem ? ...  do not save logits ? just calc loss in output_fn ?
       #batch size 256
       #File "/home/gezi/mine/hasky/util/melt/seq2seq/loss.py", line 154, in body

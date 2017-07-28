@@ -133,3 +133,6 @@ def texts2ids(texts, seg_method='default', feed_single=False, allow_all_zero=Fal
 
 def end_id():
   return vocab.end_id()
+
+def unk_id():
+  return vocab.unk_id()

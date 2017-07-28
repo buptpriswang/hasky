@@ -1,6 +1,6 @@
 source ./config 
 
-python ./inference/predict-outgraph.py \
+python ./inference/predict-outgraph.py --input_text_max_words=20 \
   --algo seq2seq \
   --model_dir /home/gezi/new/temp/textsum/model.seq2seq.copy/ \
   --vocab /home/gezi/temp/textsum/tfrecord/seq-basic/train/vocab.txt \
@@ -10,7 +10,7 @@ python ./inference/predict-outgraph.py \
   --feed_single $feed_single \
   --seq_decode_method 0 \
   --dynamic_batch_length 1 \
-  --beam_size 10 \
+  --beam_size 30 \
   --decode_max_words 10 \
   --rnn_method 0 \
   --emb_dim 1000 \

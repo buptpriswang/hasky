@@ -59,7 +59,7 @@ def _get_model_path(model_dir, save_model):
   ckpt = tf.train.get_checkpoint_state(model_dir)
   if ckpt and ckpt.model_checkpoint_path:
     #input valid dir and return latest model
-    return '%s/%s'%(model_dir, os.path.basename(ckpt.model_checkpoint_path)) 
+    return os.path.join(model_dir, os.path.basename(ckpt.model_checkpoint_path))
   elif os.path.isdir(model_dir):
     #input valid dir but no models
     return None 
@@ -216,7 +216,7 @@ def tf_train_flow(train_once_fn,
     if metric_eval_fn is not None:
       metric_eval_fn()
     if (num_epochs and step / num_steps_per_epoch >= num_epochs) or (num_steps and (step + 1) == start + num_steps) :
-      print('Done training for %d steps.' % (step), file=sys.stderr)
+      print('Done training for %d steps.' % (step + 1), file=sys.stderr)
       #FIXME becase coord.join seems not work,  RuntimeError: Coordinator stopped with threads still running: Thread-9
       exit(0)
     else:
