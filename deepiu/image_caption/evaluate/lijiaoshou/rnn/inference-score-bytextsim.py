@@ -28,7 +28,7 @@ flags.DEFINE_string('text_name', 'rnn/main/text:0', 'model_init_1 because predic
 flags.DEFINE_string('text2_name', 'rnn/main/text2:0', 'model_init_1 because predictor after trainer init')
 
 flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
-flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/click_input_text_feature/part-00010', 'train data')
+flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/text_feature/part-00010', 'train data')
 flags.DEFINE_integer('batch_size_', 10000, '')
 
 flags.DEFINE_string('seg_method_', 'basic', '')
@@ -88,7 +88,7 @@ def top_images(text):
       continue
     else:
       image_set.add(image)
-    input_text = l[2].split('\x01')[0].strip()
+    input_text = l[1].split('\x01')[0].strip()
     image_feature = l[-1].split('\x01')
     image_feature = [float(x) for x in image_feature]
 

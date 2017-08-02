@@ -16,8 +16,8 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
   
-flags.DEFINE_integer('rnn_method', 0, '0 forward, 1 backward, 2 bidirectional')
-flags.DEFINE_integer('rnn_output_method', 0, '0 sumed vec, 1 last vector, 2 first vector, 3 all here first means first to original sequence')
+flags.DEFINE_string('rnn_method', 'forward', '0 forward, 1 backward, 2 bidirectional')
+flags.DEFINE_string('rnn_output_method', 'sum', '0 sumed vec, 1 last vector, 2 first vector, 3 all here first means first to original sequence')
 
 flags.DEFINE_boolean('encode_start_mark', False, """need <S> start mark""")
 flags.DEFINE_boolean('encode_end_mark', False, """need </S> end mark""")
@@ -58,7 +58,7 @@ class RnnEncoder(Encoder):
 
     #follow models/textsum
     self.cell = create_rnn_cell(initializer=tf.random_uniform_initializer(-0.1, 0.1, seed=123));
-    if FLAGS.rnn_method == melt.rnn.EncodeMethod.bidrectional:
+    if FLAGS.rnn_method == melt.rnn.EncodeMethod.bidirectional:
       self.bwcell = create_rnn_cell(initializer=tf.random_uniform_initializer(-0.1, 0.1, seed=113));
     else:
       self.bwcell = None
@@ -68,7 +68,7 @@ class RnnEncoder(Encoder):
                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
-  def encode(self, sequence, input=None, emb=None):
+  def encode(self, sequence, input=None, emb=None, output_method=FLAGS.rnn_output_method):
     if emb is None:
       emb = self.emb 
 
@@ -95,7 +95,6 @@ class RnnEncoder(Encoder):
     if self.is_training and FLAGS.keep_prob < 1:
       inputs = tf.nn.dropout(inputs, FLAGS.keep_prob)
 
-    output_method = FLAGS.rnn_output_method 
     encode_feature, state = melt.rnn.encode(
           self.cell, 
           inputs, 
@@ -105,3 +104,6 @@ class RnnEncoder(Encoder):
           output_method=output_method)
 
     return encode_feature, state
+
+  def importance_encode(self, sequence, input=None, emb=None):
+    return self.encode(sequence, input, emb, output_method=melt.rnn.OutputMethod.argmax)[0]

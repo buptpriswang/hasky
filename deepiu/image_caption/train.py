@@ -262,6 +262,7 @@ def gen_predict_graph(predictor):
 
   if algos_factory.is_discriminant(FLAGS.algo):
     tf.add_to_collection('textsim_score', predictor.textsim_score)
+    tf.add_to_collection('text_importance', predictor.text_importance)
   
    #-----generateive
   if algos_factory.is_generative(FLAGS.algo):

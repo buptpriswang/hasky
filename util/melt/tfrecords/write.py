@@ -32,7 +32,9 @@ class Writer(object):
     self.close()
 
   def close(self):
-    self.writer.close()
+    #TODO tf version 1.2 core... here
+    #self.writer.close()
+    pass
 
   def write(self, example):
     self.count += 1

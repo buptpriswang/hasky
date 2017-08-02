@@ -48,6 +48,7 @@ class Rnn(object):
     logging.info('rnn_output_method:{}'.format(FLAGS.rnn_output_method))
     logging.info('num_layers:{}'.format(FLAGS.num_layers))
     logging.info('keep_prob:{}'.format(FLAGS.keep_prob))
+    logging.info('rnn_hidden_size:{}'.format(FLAGS.rnn_hidden_size))
     logging.info('emb_dim:{} notice for bidrectional need to * 2, emb_dim means final emb_dim for embedding'.format(FLAGS.emb_dim))
     
     if is_training:
@@ -58,6 +59,9 @@ class Rnn(object):
   def gen_text_feature(self, text, emb):
     text_feature, _ = self.encoder.encode(text, emb=emb)
     return text_feature
+
+  def gen_text_importance(self, text, emb):
+    return self.encoder.importance_encode(text, emb=emb)
 
   def build_train_graph(self, image_feature, text, neg_text):
     self.trainer.gen_text_feature = self.gen_text_feature
@@ -74,5 +78,7 @@ class RnnPredictor(DiscriminantPredictor, melt.PredictorBase):
     melt.PredictorBase.__init__(self)
     DiscriminantPredictor.__init__(self)  
 
-    self.gen_text_feature = Rnn(is_training=False, is_predict=True).gen_text_feature
+    predictor = Rnn(is_training=False, is_predict=True)
+    self.gen_text_feature = predictor.gen_text_feature
+    self.gen_text_importance = predictor.gen_text_importance
   

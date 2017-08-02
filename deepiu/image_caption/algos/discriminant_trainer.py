@@ -97,6 +97,7 @@ class DiscriminantTrainer(object):
 
   def forward_text_feature(self, text_feature):
     text_feature = self.forward_text_layers(text_feature)
+    #for pointwise comment below
     text_feature = tf.nn.l2_normalize(text_feature, 1)
     return text_feature	
 
@@ -109,20 +110,31 @@ class DiscriminantTrainer(object):
     text_feature = self.forward_text_feature(text_feature)
     return text_feature
 
+  def forward_text_importance(self, text):
+    return self.gen_text_importance(text, self.emb)
+
   def forward_image_feature(self, image_feature):
     """
     Args:
       image: batch image [batch_size, image_feature_len]
     """
     image_feature = self.forward_image_layers(image_feature)
+    
+    #for point wise comment below
     image_feature = tf.nn.l2_normalize(image_feature, 1)
+
     return image_feature
 
   def compute_image_text_sim(self, normed_image_feature, text_feature):
     #[batch_size, hidden_size]
     normed_text_feature = self.forward_text_feature(text_feature)
+    
+    #for point wise comment below
     #[batch_size,1] <= [batch_size, hidden_size],[batch_size, hidden_size]
-    return  melt.element_wise_cosine(normed_image_feature, normed_text_feature, nonorm=True)
+    return melt.element_wise_cosine(normed_image_feature, normed_text_feature, nonorm=True)
+
+    #point wise
+    #return -tf.losses.mean_squared_error(normed_image_feature, normed_text_feature, reduction='none')
 
   def build_graph(self, image_feature, text, neg_text, lookup_negs_once=False):
     """
@@ -172,6 +184,10 @@ class DiscriminantTrainer(object):
         loss = melt.hinge_loss(pos_score, neg_scores, FLAGS.margin)
       elif FLAGS.rank_loss == 'cross':
         loss = melt.cross_entropy_loss(scores, num_negs)
+      #point losss is bad here for you finetune both text and image embedding, all 0 vec will loss minimize..
+      #if use point loss you need to fix text embedding
+      elif FLAGS.rank_loss == 'point': 
+        loss = -tf.reduce_mean(pos_score) 
       else: 
         loss = melt.hinge_cross_loss(pos_score, neg_scores)
       

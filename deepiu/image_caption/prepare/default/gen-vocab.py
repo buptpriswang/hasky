@@ -60,14 +60,20 @@ for line in sys.stdin:
   if num % 10000 == 0:
     print(num, file=sys.stderr)
   l = line.rstrip().split('\t')
+  
   texts = l[1].split('\x01')
+  #texts = l[2].split('\x01')
+  
   for text in texts:
+    text = text.lower()
     words = segmentor.Segment(text, FLAGS.seg_method)
     if num % 10000 == 0:
       print(text, '|'.join(words), len(words), file=sys.stderr)
     counter.add(START_WORD)
     for word in words:
       counter.add(word)
+      if word.isdigit():
+        counter.add('<NUM>')
     counter.add(END_WORD)
   num += 1
 

@@ -735,7 +735,21 @@ def dense(inputs, kernel, bias=None, activation=None):
 def sequence_equal(x, y):
   return tf.reduce_mean(tf.to_int32(tf.equal(x,y)), 1)
 
-
 def get_batch_size(x):
   #or .shape.as_list()[0]  or .get_shape().as_list()[0]
   return x.get_shape()[0].value or tf.shape(x)[0]
+
+def max_pooling(outputs, sequence_length, axis=1):
+  weight = 1000.
+  sequence_mask = tf.expand_dims(tf.to_float(tf.sequence_mask(sequence_length, tf.shape(outputs)[1])), -1)
+  weighted_mask = sequence_mask * weight
+  weighted_output = outputs + weighted_mask
+  max_output = tf.reduce_max(weighted_output, axis)
+  return max_output - weight
+
+def argmax_pooling(outputs, sequence_length, axis=1):
+  weight = 1000.
+  sequence_mask = tf.expand_dims(tf.to_float(tf.sequence_mask(sequence_length, tf.shape(outputs)[1])), -1)
+  weighted_mask = sequence_mask * weight
+  weighted_output = outputs + weighted_mask
+  return tf.argmax(weighted_output, axis)

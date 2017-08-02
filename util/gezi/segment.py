@@ -94,6 +94,8 @@ class Segmentor(object):
         results_set.add(word)
     
     for word in seg.Segment(text, libsegment.SEG_BASIC):
+      if word.isdigit():
+        word = '<NUM>'
       if word not in results_set:
         results.append(word)
         results_set.add(word)

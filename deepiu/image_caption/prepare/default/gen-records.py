@@ -36,6 +36,9 @@ flags.DEFINE_boolean('write_sequence_example', False, '')
 flags.DEFINE_integer('text_index', 1, '')
 flags.DEFINE_integer('image_feature_index', -1, '')
 
+#flags.DEFINE_integer('text_index', 2, '')
+#flags.DEFINE_integer('image_feature_index', 1, '')
+
 """
 use only top query?
 use all queries ?
@@ -83,6 +86,8 @@ text2ids.init()
 
 import libstring_util
 
+#print('----------', FLAGS.seg_method)
+
 def is_luanma(words, word_ids):
   #return False
   for word, word_id in zip(words, word_ids):
@@ -107,6 +112,8 @@ def deal_file(file):
       texts = l[FLAGS.text_index].split('\x01')
 
       image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split('\x01')]
+      #image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split(' ')]
+      
       #assert len(image_feature) == IMAGE_FEATURE_LEN, '%s %d'%(img, len(image_feature))
       if len(image_feature) != IMAGE_FEATURE_LEN:
         print('bad line:', line)
@@ -190,46 +197,51 @@ def deal_file(file):
       if num == FLAGS.num_max_records:
         break
      
+def run():
+  files =  glob.glob(FLAGS.input_directory + '/*')
+  if FLAGS.num_max_inputs:
+    files = files[:FLAGS.num_max_inputs]
 
-files =  glob.glob(FLAGS.input_directory + '/*')
-if FLAGS.num_max_inputs:
-  files = files[:FLAGS.num_max_inputs]
+  print(FLAGS.input_directory, len(files))
 
-print(FLAGS.input_directory, len(files))
+  if FLAGS.threads > len(files):
+    FLAGS.threads = len(files)
+  if FLAGS.threads > 1:
+    pool = multiprocessing.Pool(processes = FLAGS.threads)
 
-if FLAGS.threads > len(files):
-  FLAGS.threads = len(files)
-if FLAGS.threads > 1:
-  pool = multiprocessing.Pool(processes = FLAGS.threads)
+    pool.map(deal_file, files)
 
-  pool.map(deal_file, files)
+    pool.close()
+    pool.join()
+  else:
+    for file in files:
+      deal_file(file)
 
-  pool.close()
-  pool.join()
-else:
-  for file in files:
-    deal_file(file)
+  num_images = image_counter.value
+  print('num_images:', num_images)
 
-num_images = image_counter.value
-print('num_images:', num_images)
+  num_records = record_counter.value
+  print('num_records:', num_records)
+  gezi.write_to_txt(num_records, os.path.join(FLAGS.output_directory, 'num_records.txt'))
 
-num_records = record_counter.value
-print('num_records:', num_records)
-gezi.write_to_txt(num_records, os.path.join(FLAGS.output_directory, 'num_records.txt'))
+  print('num_records_per_image', num_records / num_images)
 
-print('num_records_per_image', num_records / num_images)
-
-print('max_num_words:', max_num_words.value)
-print('avg_num_words:', sum_words.value / num_records)
+  print('max_num_words:', max_num_words.value)
+  print('avg_num_words:', sum_words.value / num_records)
 
 
-if FLAGS.np_save:
-  print('len(texts):', len(gtexts))
-  np.save(os.path.join(FLAGS.output_directory, 'texts.npy'), np.array(gtexts))
-  np.save(os.path.join(FLAGS.output_directory, 'text_strs.npy'), np.array(gtext_strs))
- 
-  np.save(os.path.join(FLAGS.output_directory, 'image_labels.npy'), image_labels)
+  if FLAGS.np_save:
+    print('len(texts):', len(gtexts))
+    np.save(os.path.join(FLAGS.output_directory, 'texts.npy'), np.array(gtexts))
+    np.save(os.path.join(FLAGS.output_directory, 'text_strs.npy'), np.array(gtext_strs))
+   
+    np.save(os.path.join(FLAGS.output_directory, 'image_labels.npy'), image_labels)
 
-  np.save(os.path.join(FLAGS.output_directory, 'image_names.npy'), np.array(image_names))
-  np.save(os.path.join(FLAGS.output_directory, 'image_features.npy'), np.array(image_features))
+    np.save(os.path.join(FLAGS.output_directory, 'image_names.npy'), np.array(image_names))
+    np.save(os.path.join(FLAGS.output_directory, 'image_features.npy'), np.array(image_features))
 
+def main(_):
+  run()
+
+if __name__ == '__main__':
+  tf.app.run()

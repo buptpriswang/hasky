@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic2/
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/rnn.bi.last
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/rnn.max2
 mkdir -p $model_dir
 
 python ./train.py \
@@ -45,8 +45,8 @@ python ./train.py \
   --dynamic_batch_length 1 \
   --batch_size 256 \
   --eval_batch_size 1013 \
-  --rnn_method 2 \
-  --rnn_output_method 1 \
+  --rnn_method 1 \
+  --rnn_output_method 5 \
   --emb_dim 256 \
   --rnn_hidden_size 256 \
   --hidden_size 1024 \

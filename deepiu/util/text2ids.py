@@ -41,7 +41,8 @@ def init(vocab_path=None):
 
 #@TODO gen-records should use text2ids
 #TODO ENCODE_UNK might not be in conf.py but to pass as param encode_unk=False
-def words2ids(words, feed_single=False, allow_all_zero=False, pad=True):
+def words2ids(words, feed_single=True, allow_all_zero=False, 
+              pad=True, append_start=False, append_end=False):
   """
   default params is suitable for bow
   for sequence method may need seg_method prhase and feed_single=True,
@@ -50,6 +51,7 @@ def words2ids(words, feed_single=False, allow_all_zero=False, pad=True):
 
   #@TODO feed_single move to Segmentor.py to add support for seg with vocab 
   """
+
   if not feed_single:
     word_ids = [vocab.id(word) for word in words if vocab.has(word) or ENCODE_UNK]
   else:
@@ -57,6 +59,8 @@ def words2ids(words, feed_single=False, allow_all_zero=False, pad=True):
     for word in words:
       if vocab.has(word):
         word_ids.append(vocab.id(word))
+      elif word.isdigit():
+        word_ids.append(vocab.id('<NUM>'))
       else:
         cns = gezi.get_single_cns(word)
         if cns:
@@ -67,15 +71,22 @@ def words2ids(words, feed_single=False, allow_all_zero=False, pad=True):
           if ENCODE_UNK:
             word_ids.append(vocab.unk_id())
 
+  if append_start:
+    word_ids = [vocab.start_id()] + word_ids
+
+  if append_end:
+    word_ids = word_ids + [vocab.end_id()]
+
   if not allow_all_zero and  not word_ids:
-    word_ids.append(1)
+    word_ids.append(vocab.end_id())
 
   if pad:
     word_ids = gezi.pad(word_ids, TEXT_MAX_WORDS, 0)  
 
   return word_ids
 
-def text2ids(text, seg_method='default', feed_single=False, allow_all_zero=False, pad=True):
+def text2ids(text, seg_method='default', feed_single=True, allow_all_zero=False, 
+            pad=True, append_start=False, append_end=False, to_lower=True):
   """
   default params is suitable for bow
   for sequence method may need seg_method prhase and feed_single=True,
@@ -84,8 +95,10 @@ def text2ids(text, seg_method='default', feed_single=False, allow_all_zero=False
 
   #@TODO feed_single move to Segmentor.py to add support for seg with vocab 
   """
+  if to_lower:
+    text = text.lower()
   words = Segmentor.Segment(text, seg_method)
-  return words2ids(words, feed_single, allow_all_zero, pad)
+  return words2ids(words, feed_single, allow_all_zero, pad, append_start, append_end)
 
 def ids2words(text_ids, print_end=True):
   #print('@@@@@@@@@@text_ids', text_ids)
@@ -105,7 +118,7 @@ def ids2words(text_ids, print_end=True):
         words.append(word)
       else:
         if print_end:
-          words.append('<EOS>')
+          words.append('</S>')
         break
     else:
       break
@@ -130,6 +143,9 @@ def segment(text, seg_method='default'):
 
 def texts2ids(texts, seg_method='default', feed_single=False, allow_all_zero=False, pad=True):
   return np.array([text2ids(text, seg_method, feed_single, allow_all_zero, pad) for text in texts])
+
+def start_id():
+  return vocab.end_id()
 
 def end_id():
   return vocab.end_id()

@@ -56,7 +56,7 @@ def is_list_or_tuple(item):
   return isinstance(item, (list, tuple))
 
 def get_value_name_list(values, names):
-  return ['{}:{:.3f}'.format(x[0], x[1]) for x in zip(names, values)]
+  return ['{}:{:.4f}'.format(x[0], x[1]) for x in zip(names, values)]
 
 #@TODO better pad 
 def pad(l, maxlen, mark=0):

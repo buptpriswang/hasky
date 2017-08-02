@@ -24,8 +24,8 @@ flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/m
 flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_string('image_feature_name_', 'bow/main/image_feature:0', 'model_init_1 because predictor after trainer init')
-flags.DEFINE_string('text_name', 'bow/main/text:0', 'model_init_1 because predictor after trainer init')
-flags.DEFINE_string('text2_name', 'bow/main/text2:0', 'model_init_1 because predictor after trainer init')
+flags.DEFINE_string('text_name', 'bow/main/text:0', '')
+flags.DEFINE_string('text2_name', 'bow/main/text2:0', '')
 
 flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
 flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/train/shoubai_feature.txt_0', 'train data')

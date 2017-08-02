@@ -32,7 +32,7 @@ python ./train.py \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
-  --metric_eval_interval_steps 10000 \
+  --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
@@ -43,7 +43,7 @@ python ./train.py \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
-  --margin 0.5 \
+  --margin 0.1 \
   --algo bow \
   --combiner=sum \
   --exclude_zero_index 1 \

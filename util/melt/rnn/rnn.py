@@ -19,19 +19,49 @@ import tensorflow as tf
 from melt.ops import dynamic_last_relevant
 
 import copy
+
+import melt
   
+#TODO change from 0, 1 .. to 'forward', 'backward' , 'sum', 'last'
 class EncodeMethod:
-  forward = 0
-  backward = 1
-  bidrectional = 2 
-  bidrectional_sum = 3
+  forward = 'forward'
+  backward = 'backward'
+  bidirectional = 'bidirectional'
+  bidirectional_sum = 'bidirectional_sum'
 
 class OutputMethod:
-  sum = 0
-  last = 1
-  first = 2
-  all = 3
-  mean = 4
+  sum = 'sum'
+  last = 'last'
+  first = 'first'
+  all = 'all'
+  mean = 'mean'
+  max = 'max'
+  argmax = 'argmax'
+
+def encode_outputs(outputs, output_method=OutputMethod.last, sequence_length=None):
+  #--seems slower convergence and not good result when only using last output, so change to use sum
+  if output_method == OutputMethod.sum:
+    return tf.reduce_sum(outputs, 1)
+  elif output_method == OutputMethod.max:
+    assert sequence_length is not None
+    #below not work.. sequence is different for each row instance
+    #return tf.reduce_max(outputs[:, :sequence_length, :], 1)
+    return tf.reduce_max(outputs, 1) #not exclude padding embeddings
+    #return melt.max_pooling(outputs, sequence_length)
+  elif output_method == OutputMethod.argmax:
+    assert sequence_length is not None
+    #return tf.argmax(outputs[:, :sequence_length, :], 1)
+    return tf.argmax(outputs, 1)
+    #return melt.argmax_pooling(outputs, sequence_length)
+  elif output_method == OutputMethod.mean:
+    assert sequence_length is not None
+    return tf.reduce_sum(outputs, 1) / tf.to_float(tf.expand_dims(sequence_length, 1)), state 
+  elif output_method == OutputMethod.last:
+    return dynamic_last_relevant(outputs, sequence_length)
+  elif output_method == OutputMethod.first:
+    return outputs[:, 0, :]
+  else: # all
+    return outputs
 
 def forward_encode(cell, inputs, sequence_length, initial_state=None, dtype=None, output_method=OutputMethod.last):
   outputs, state = tf.nn.dynamic_rnn(
@@ -41,17 +71,8 @@ def forward_encode(cell, inputs, sequence_length, initial_state=None, dtype=None
     dtype=dtype,
     sequence_length=sequence_length)
   
-  #--seems slower convergence and not good result when only using last output, so change to use sum
-  if output_method == OutputMethod.sum:
-    return tf.reduce_sum(outputs, 1), state
-  elif output_method == OutputMethod.mean:
-    return tf.reduce_sum(outputs, 1) / tf.to_float(tf.expand_dims(sequence_length, 1)), state 
-  elif output_method == OutputMethod.last:
-    return dynamic_last_relevant(outputs, sequence_length), state
-  elif output_method == OutputMethod.first:
-    return outputs[:, 0, :], state
-  else:
-    return outputs, state
+  return encode_outputs(outputs, output_method, sequence_length), state
+
 
 def backward_encode(cell, inputs, sequence_length, initial_state=None, dtype=None, output_method=OutputMethod.last):
   outputs, state = tf.nn.dynamic_rnn(
@@ -61,19 +82,9 @@ def backward_encode(cell, inputs, sequence_length, initial_state=None, dtype=Non
     dtype=dtype,
     sequence_length=sequence_length)
 
-  #--seems slower convergence and not good result when only using last output, so change to use sum
-  if output_method == OutputMethod.sum:
-    return tf.reduce_sum(outputs, 1), state
-  elif output_method == OutputMethod.mean:
-    return tf.reduce_sum(outputs, 1) /  tf.to_float(tf.expand_dims(sequence_length, 1)), state
-  elif output_method == OutputMethod.last:
-    return dynamic_last_relevant(outputs, sequence_length), state
-  elif output_method == OutputMethod.first:
-    return  outputs[:, 0, :], state
-  else:
-    return outputs, state
+  return encode_outputs(outputs, output_method, sequence_length), state
 
-def bidrectional_encode(cell_fw, 
+def bidirectional_encode(cell_fw, 
                         cell_bw, 
                         inputs, 
                         sequence_length, 
@@ -98,27 +109,11 @@ def bidrectional_encode(cell_fw,
 
   output_fws, output_bws = outputs
 
-  if output_method == OutputMethod.sum:
-    output_forward = tf.reduce_sum(output_fws, 1) 
-  elif output_method == OutputMethod.mean:
-    output_forward = tf.reduce_sum(output_fws, 1) / tf.to_float(tf.expand_dims(sequence_length, 1))
-  elif output_method == OutputMethod.last:
-    output_forward = dynamic_last_relevant(output_fws, sequence_length)
-  elif output_method == OutputMethod.first:
-    output_forward = output_fws[:, 0, :]
-  else:
-    output_forward = output_fws
+  output_forward = encode_outputs(output_fws, output_method, sequence_length)
+  output_backward = encode_outputs(output_bws, output_method, sequence_length)
 
   if output_method == OutputMethod.sum:
     output_backward = tf.reduce_sum(output_bws, 1) 
-  elif output_method == OutputMethod.mean:
-    output_backward = tf.reduce_sum(output_bws, 1) / tf.to_float(tf.expand_dims(sequence_length, 1))
-  elif output_method == OutputMethod.last:
-    output_backward = dynamic_last_relevant(output_bws, sequence_length)
-  elif output_method == OutputMethod.first:
-    output_backward = output_bws[:, 0, :]
-  else:
-    output_backward = output_bws
 
   if use_sum:
     output = output_forward + output_backward
@@ -147,11 +142,11 @@ def encode(cell,
       return forward_encode(cell, inputs, sequence_length, initial_state, dtype, output_method)
     elif encode_method == EncodeMethod.backward:
       return backward_encode(cell, inputs, sequence_length, initial_state, dtype, output_method)
-    elif encode_method == EncodeMethod.bidrectional:
-      return bidrectional_encode(cell, cell_bw, inputs, sequence_length, 
+    elif encode_method == EncodeMethod.bidirectional:
+      return bidirectional_encode(cell, cell_bw, inputs, sequence_length, 
                                  initial_state, inital_state_bw, dtype, output_method)
-    elif encode_method == EncodeMethod.bidrectional_sum:
-      return bidrectional_encode(cell, cell_bw, inputs, sequence_length, 
+    elif encode_method == EncodeMethod.bidirectional_sum:
+      return bidirectional_encode(cell, cell_bw, inputs, sequence_length, 
                                  initial_state, inital_state_bw, dtype, output_method,
                                  use_sum=True)
     else:

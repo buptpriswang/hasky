@@ -5,7 +5,7 @@ source $conf_path/config
 model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/rnn
 mkdir -p $model_dir
 
-python ./train.py \
+python ./train.py  --encode_start_mark=1 --encode_end_mark=1 \
 	--train_input=$train_output_path/'train-*' \
 	--valid_input=$valid_output_path/'test-*' \
 	--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -38,20 +38,20 @@ python ./train.py \
   --algo rnn \
   --interval 100 \
   --eval_interval 1000 \
-  --margin 0.5 \
+  --margin 0.1 \
   --learning_rate 0.01 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --dynamic_batch_length 1 \
   --batch_size 256 \
-  --eval_batch_size 1013 \
-  --rnn_method 1 \
-  --rnn_output_method 0 \
+  --eval_batch_size 1024 \
+  --rnn_method bidirectional \
+  --rnn_output_method max \
   --emb_dim 256 \
   --rnn_hidden_size 256 \
   --hidden_size 1024 \
   --bias 0 \
-  --cell lstm_block \
+  --cell gru \
   --monitor_level 2 \
   --num_gpus 0 \
 
