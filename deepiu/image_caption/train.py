@@ -36,7 +36,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', './model', '')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/model', '')
 
 flags.DEFINE_string('algo', 'bow', 'default algo is bow(cbow), also support rnn, show_and_tell, TODO cnn')
 
@@ -85,13 +85,18 @@ def tower_loss(trainer, input_app=None, input_results=None):
 
   #--------train
   image_name, image_feature, text, text_str = input_results[input_app.input_train_name]
+
   #--------train neg
   if input_results[input_app.input_train_neg_name]:
-    neg_text, neg_text_str = input_results[input_app.input_train_neg_name]
+    try:
+      neg_text, neg_text_str = input_results[input_app.input_train_neg_name]
+      neg_image = None
+    except Exception:
+      neg_text, neg_text_str, neg_image = input_results[input_app.input_train_neg_name]
   else:
-    neg_text, neg_text_str = None, None
+    neg_text, neg_text_str, neg_image = None, None, None
 
-  loss = trainer.build_train_graph(image_feature, text, neg_text)
+  loss = trainer.build_train_graph(image_feature, text, neg_text, neg_image)
   return loss
 
 def gen_train_graph(input_app, input_results, trainer):
@@ -228,11 +233,15 @@ def gen_validate(input_app, input_results, trainer, predictor):
   if train_with_validation and not FLAGS.train_only:
     eval_image_name, eval_image_feature, eval_text, eval_text_str = input_results[input_app.input_valid_name]
     if input_results[input_app.input_valid_neg_name]:
-      eval_neg_text, eval_neg_text_str = input_results[input_app.input_valid_neg_name]
+      try:
+        eval_neg_text, eval_neg_text_str = input_results[input_app.input_valid_neg_name]
+        eval_neg_image = None
+      except Exception:
+        eval_neg_text, eval_neg_text_str, eval_neg_image = input_results[input_app.input_valid_neg_name]
     else:
-      eval_neg_text, eval_neg_text_str = None, None
+      eval_neg_text, eval_neg_text_str, eval_neg_image = None, None, None
 
-    eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text)
+    eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text, eval_neg_image)
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 
@@ -262,7 +271,11 @@ def gen_predict_graph(predictor):
 
   if algos_factory.is_discriminant(FLAGS.algo):
     tf.add_to_collection('textsim_score', predictor.textsim_score)
-    tf.add_to_collection('text_importance', predictor.text_importance)
+    tf.add_to_collection('text_encode', predictor.text_encode)
+    tf.add_to_collection('image_encode', predictor.image_encode)
+    if predictor.text_importance is not None:
+      tf.add_to_collection('text_importance', predictor.text_importance)
+    print('predictor.text_importance:', predictor.text_importance)
   
    #-----generateive
   if algos_factory.is_generative(FLAGS.algo):

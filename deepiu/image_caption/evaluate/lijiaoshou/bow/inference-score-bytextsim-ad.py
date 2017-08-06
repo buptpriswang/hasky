@@ -16,19 +16,22 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou/', '')
-#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/showandtell/', '')
 flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/model/bow/', '')
+#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou/', '')
+#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow', '')
 
-#flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/vocab.txt', 'vocabulary file')
 flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/vocab.txt', 'vocabulary file')
+#flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_string('image_feature_name_', 'bow/main/image_feature:0', 'model_init_1 because predictor after trainer init')
 flags.DEFINE_string('text_name', 'bow/main/text:0', '')
 flags.DEFINE_string('text2_name', 'bow/main/text2:0', '')
 
-flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
-flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/train/shoubai_feature.txt_0', 'train data')
+flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.special.txt', '')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/train/shoubai_feature.txt_0', 'train data')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/toutiao_feature.txt', 'train data')
+flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/candidate_feature.txt', 'train data')
+
 flags.DEFINE_integer('batch_size_', 10000, '')
 
 flags.DEFINE_string('seg_method_', 'full', '')

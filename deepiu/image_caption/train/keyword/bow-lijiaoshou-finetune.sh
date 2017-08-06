@@ -5,12 +5,13 @@ source $conf_path/config
 model_dir=/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou
 mkdir -p $model_dir
 
+#--fixed_valid_input=$fixed_valid_output_path/'test-*' \
+#--num_fixed_evaluate_examples 10 \
 train_output_path=/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/train.lijiaoshou/
 valid_output_path=/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/valid.lijiaoshou/
 python ./train.py \
   --train_input=$train_output_path/'train-*' \
   --valid_input=$valid_output_path/'test-*' \
-  --fixed_valid_input=$fixed_valid_output_path/'test-*' \
   --valid_resource_dir=$valid_output_path \
   --vocab=$dir/vocab.bin \
   --num_records_file=$train_output_path/num_records.txt \
@@ -20,8 +21,10 @@ python ./train.py \
   --image_feature_bin=$valid_output_path/'image_features.npy' \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \
+  --text2img=$valid_output_path/'text2img.npy' \
+  --img2id=$valid_output_path/'img2id.npy' \
+  --eval_text2img 1 \
   --fixed_eval_batch_size 10 \
-  --num_fixed_evaluate_examples 10 \
   --num_evaluate_examples 10 \
   --show_eval 1 \
   --train_only 0 \
@@ -35,15 +38,17 @@ python ./train.py \
   --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
   --save_interval_steps 5000 \
-  --save_interval_epochs 1 \
+  --save_interval_epochs 10 \
+  --num_epochs 100 \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 500 \
   --debug 0 \
   --num_negs 1 \
+  --neg_image 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
-  --margin 0.5 \
+  --margin 0.1 \
   --algo bow \
   --combiner=sum \
   --exclude_zero_index 1 \

@@ -24,11 +24,14 @@ flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrec
 #flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_string('image_feature_name_', 'rnn/main/image_feature:0', 'model_init_1 because predictor after trainer init')
-flags.DEFINE_string('text_name', 'rnn/main/text:0', 'model_init_1 because predictor after trainer init')
-flags.DEFINE_string('text2_name', 'rnn/main/text2:0', 'model_init_1 because predictor after trainer init')
+flags.DEFINE_string('text_name', 'rnn/main/text:0', '')
+flags.DEFINE_string('text2_name', 'rnn/main/text2:0', '')
 
-flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.txt', '')
-flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/text_feature/part-00010', 'train data')
+flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.special.txt', '')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/click_input_text_feature/part-00010', 'train data')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/train/shoubai_feature.txt_0', 'train data')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/toutiao_feature.txt', 'train data')
+flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/candidate_feature.txt', 'train data')
 flags.DEFINE_integer('batch_size_', 10000, '')
 
 flags.DEFINE_string('seg_method_', 'basic', '')
@@ -46,12 +49,14 @@ from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK
 
 predictor = None 
 
-img_html = '<p><a href={0} target=_blank><img src={0} height=200></a></p>\n pos:{1} score:{2}, text:{3}, itext:{4}'
+img_html = '<p> <td><a href={0} target=_blank><img src={0} height=250 width=250></a></p> {1} {2}, <br /> {3}<td>'
 
 def _text2ids(text, max_words):
   word_ids = text2ids.text2ids(text, 
                                seg_method=FLAGS.seg_method_, 
                                feed_single=FLAGS.feed_single_, 
+                               append_start=True,
+                               append_end=True,
                                allow_all_zero=True, 
                                pad=False)
   word_ids = word_ids[:max_words]
@@ -109,8 +114,13 @@ def top_images(text):
   image_scores = zip(scores, images, itexts)
   image_scores.sort(reverse=True)
 
-  for i, (score, image, input_text) in enumerate(image_scores[:10]):
-    print(img_html.format(image, i, score, text, input_text))
+  print('<p><font size="5" color="red"><B>%s</B></font></p>'%text)
+  for i, (score, image, itext) in enumerate(image_scores[:50]):
+    if i % 5 == 0:
+      print('<table><tr>')
+    print(img_html.format(image, i, score, itext))
+    if (i + 1) % 5 == 0:
+      print('</tr></table>')
 
   #print(scores)
 

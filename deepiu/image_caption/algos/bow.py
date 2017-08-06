@@ -37,10 +37,13 @@ class Bow(object):
     """
     return bow_encoder.encode(text, emb)
 
-  def build_train_graph(self, image_feature, text, neg_text):
+  def gen_text_importance(self, text, emb):
+    return bow_encoder.importance_encode(text, emb=emb)
+
+  def build_train_graph(self, image_feature, text, neg_text, neg_image=None):
     #self.trainer = DiscriminantTrainer(is_training=self.is_training)
     self.trainer.gen_text_feature = self.gen_text_feature
-    loss = self.trainer.build_graph(image_feature, text, neg_text, lookup_negs_once=True)
+    loss = self.trainer.build_graph(image_feature, text, neg_text, neg_image, lookup_negs_once=True)
     return loss
 
 
@@ -50,12 +53,14 @@ class BowPredictor(DiscriminantPredictor, melt.PredictorBase):
     melt.PredictorBase.__init__(self)
     DiscriminantPredictor.__init__(self)  
 
-    self.gen_text_feature = Bow(is_training=False, is_predict=True).gen_text_feature
+    predictor = Bow(is_training=False, is_predict=True)
+    self.gen_text_feature = predictor.gen_text_feature
+    self.gen_text_importance = predictor.gen_text_importance
 
   #--------- only used during training evaluaion, image_feature and text all small
-  def build_train_graph(self, image_feature, text, neg_text):
+  def build_train_graph(self, image_feature, text, neg_text, neg_image=None):
     """
     Only used for train and evaluation, hack!
     """
     return super(DiscriminantPredictor, self).build_graph(
-      image_feature, text, neg_text, lookup_negs_once=True)
+      image_feature, text, neg_text, neg_image, lookup_negs_once=True)

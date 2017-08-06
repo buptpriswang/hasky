@@ -7,3 +7,5 @@ cat $train_data_path/* | \
     --min_count $min_count \
     --most_common $vocab_size \
     --seg_method $seg_method \
+
+cat $dir/vocab.txt | vocab2project.py > $dir/vocab.project 

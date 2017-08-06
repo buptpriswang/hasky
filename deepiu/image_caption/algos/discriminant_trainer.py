@@ -25,11 +25,15 @@ flags.DEFINE_string('activation', 'relu',
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
 flags.DEFINE_string('rank_loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
 
+flags.DEFINE_boolean('fix_image_embedding', False, '')
+flags.DEFINE_boolean('fix_text_embedding', False, '')
+
   
 import functools
 
 import tensorflow.contrib.slim as slim
 import melt
+logging = melt.logging
 import melt.slim 
 
 from deepiu.util import vocabulary
@@ -44,6 +48,9 @@ class DiscriminantTrainer(object):
     self.is_training = is_training
     self.is_predict = is_predict
     self.gen_text_feature = None
+
+    logging.info('emb_dim:{}'.format(FLAGS.emb_dim))
+    logging.info('margin:{}'.format(FLAGS.margin))
 
     emb_dim = FLAGS.emb_dim
     init_width = 0.5 / emb_dim
@@ -62,6 +69,9 @@ class DiscriminantTrainer(object):
 
     self.activation = melt.activations[FLAGS.activation]
 
+    #TODO can consider global initiallizer like 
+    # with tf.variable_scope("Model", reuse=None, initializer=initializer) 
+    #https://github.com/tensorflow/models/blob/master/tutorials/rnn/ptb/ptb_word_lm.py
     self.weights_initializer = tf.random_uniform_initializer(-FLAGS.initializer_scale, FLAGS.initializer_scale)
     self.biases_initialzier = melt.slim.init_ops.zeros_initializer if FLAGS.bias else None
 
@@ -111,7 +121,8 @@ class DiscriminantTrainer(object):
     return text_feature
 
   def forward_text_importance(self, text):
-    return self.gen_text_importance(text, self.emb)
+    with tf.variable_scope("image_text_sim"):
+      return self.gen_text_importance(text, self.emb)
 
   def forward_image_feature(self, image_feature):
     """
@@ -136,21 +147,29 @@ class DiscriminantTrainer(object):
     #point wise
     #return -tf.losses.mean_squared_error(normed_image_feature, normed_text_feature, reduction='none')
 
-  def build_graph(self, image_feature, text, neg_text, lookup_negs_once=False):
+  def build_graph(self, image_feature, text, neg_text, neg_image=None, lookup_negs_once=False):
     """
     Args:
     image_feature: [batch_size, IMAGE_FEATURE_LEN]
     text: [batch_size, MAX_TEXT_LEN]
     neg_text: [batch_size, num_negs, MAXT_TEXT_LEN]
+    neg_image: None or [batch_size, num_negs, IMAGE_FEATURE_LEN]
     """
+    if neg_image is not None:
+      neg_text = None
     with tf.variable_scope("image_text_sim"):
       #-------------get image feature
       #[batch_size, hidden_size] <= [batch_size, IMAGE_FEATURE_LEN] 
       normed_image_feature = self.forward_image_feature(image_feature)
 
+      if FLAGS.fix_image_embedding:
+        normed_image_feature = tf.stop_gradient(normed_image_feature)
+
       #--------------get image text sim as pos score
       #[batch_size, emb_dim] -> [batch_size, text_MAX_WORDS, emb_dim] -> [batch_size, emb_dim]
       text_feature = self.gen_text_feature(text, self.emb)
+      if FLAGS.fix_text_embedding:
+        text_feature = tf.stop_gradient(text_feature)
       tf.add_to_collection('text_feature', text_feature)
 
       pos_score = self.compute_image_text_sim(normed_image_feature, text_feature)
@@ -158,18 +177,28 @@ class DiscriminantTrainer(object):
       #--------------get image neg texts sim as neg scores
       #[batch_size, num_negs, text_MAX_WORDS, emb_dim] -> [batch_size, num_negs, emb_dim]
       tf.get_variable_scope().reuse_variables()
-      if lookup_negs_once:
-        neg_text_feature = self.gen_text_feature(neg_text, self.emb)
       neg_scores_list = []
-      
-      num_negs = neg_text.get_shape()[1]
-      for i in xrange(num_negs):
+      if neg_text is not None:
         if lookup_negs_once:
-          neg_text_feature_i = neg_text_feature[:, i, :]
-        else:
-          neg_text_feature_i = self.gen_text_feature(neg_text[:, i, :], self.emb)
-        neg_scores_i = self.compute_image_text_sim(normed_image_feature, neg_text_feature_i)
-        neg_scores_list.append(neg_scores_i)
+          neg_text_feature = self.gen_text_feature(neg_text, self.emb)
+    
+        num_negs = neg_text.get_shape()[1]
+        for i in xrange(num_negs):
+          if lookup_negs_once:
+            neg_text_feature_i = neg_text_feature[:, i, :]
+          else:
+            neg_text_feature_i = self.gen_text_feature(neg_text[:, i, :], self.emb)
+          neg_scores_i = self.compute_image_text_sim(normed_image_feature, neg_text_feature_i)
+          neg_scores_list.append(neg_scores_i)
+      else:
+        assert neg_image is not None 
+        num_negs = neg_image.get_shape()[1]
+        for i in xrange(num_negs):
+          neg_image_i = self.forward_image_feature(neg_image[:, i, :])
+          if FLAGS.fix_image_embedding:
+            neg_image_i = tf.stop_gradient(neg_image_i)
+          neg_scores_i =  self.compute_image_text_sim(neg_image_i, text_feature)
+          neg_scores_list.append(neg_scores_i)
 
       #[batch_size, num_negs]
       neg_scores = tf.concat(neg_scores_list, 1)
@@ -187,7 +216,7 @@ class DiscriminantTrainer(object):
       #point losss is bad here for you finetune both text and image embedding, all 0 vec will loss minimize..
       #if use point loss you need to fix text embedding
       elif FLAGS.rank_loss == 'point': 
-        loss = -tf.reduce_mean(pos_score) 
+        loss = tf.reduce_mean(1.0 - pos_score)
       else: 
         loss = melt.hinge_cross_loss(pos_score, neg_scores)
       

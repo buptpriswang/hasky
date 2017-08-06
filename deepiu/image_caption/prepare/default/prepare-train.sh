@@ -6,6 +6,7 @@ echo $train_data_path
 
 python ./gen-records.py  \
   --input_dir $train_data_path \
+  --threads 12 \
   --vocab $dir/vocab.txt \
   --output $train_output_path \
   --seg_method $online_seg_method \

@@ -15,6 +15,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+flags.DEFINE_boolean('neg_image', False, '')
 
 import functools
 
@@ -91,17 +92,31 @@ def decode_sequence_example(example):
 
 #---------------for negative sampling using tfrecords
 def _decode_neg(example, parse):
-  features = parse(
-      example,
-      features={
+  features_dict = {
           FLAGS.decode_name: tf.VarLenFeature(tf.int64),
           FLAGS.decode_str_name: tf.FixedLenFeature([], tf.string),
-      })
+      }
+
+  if FLAGS.neg_image:
+    if FLAGS.pre_calc_image_feature:
+      features_dict[FLAGS.image_feature_name] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
+    else:
+      features_dict['image_data'] = tf.FixedLenFeature([], dtype=tf.string)
+
+  features = parse(example, features=features_dict)
 
   text = features[FLAGS.decode_name]
   maxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
   text = melt.sparse_tensor_to_dense(text, maxlen)
   text_str = features[FLAGS.decode_str_name]
+
+  if FLAGS.neg_image:
+    #image_name = features['image_name']
+    if FLAGS.pre_calc_image_feature:
+      image_feature = features[FLAGS.image_feature_name]
+    else:
+      image_feature = features['image_data']
+    return text, text_str, image_feature
   
   return text, text_str
 
@@ -112,6 +127,15 @@ def decode_neg_example(example):
   return _decode_neg(example, tf.parse_single_example)
 
 def decode_neg_sequence_example(example):
+  context_features_dict = {
+     FLAGS.decode_str_name: tf.FixedLenFeature([], tf.string),
+    }
+
+  if FLAGS.pre_calc_image_feature:
+    context_features_dict[FLAGS.image_feature_name] = tf.FixedLenFeature([IMAGE_FEATURE_LEN], tf.float32)
+  else:
+    context_features_dict['image_data'] = tf.FixedLenFeature([], dtype=tf.string)
+
   features, sequence_features = tf.parse_single_sequence_example(
       example,
       context_features={
@@ -123,6 +147,14 @@ def decode_neg_sequence_example(example):
 
   text_str = features[FLAGS.decode_str_name]
   text = sequence_features[FLAGS.decode_name]
+
+  if FLAGS.neg_image:
+    #image_name = features['image_name']
+    if FLAGS.pre_calc_image_feature:
+      image_feature = features[FLAGS.image_feature_name]
+    else:
+      image_feature = features['image_data']
+    return text, text_str, image_feature  
   
   return text, text_str
 

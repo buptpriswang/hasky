@@ -199,7 +199,7 @@ class InputApp(object):
 
   def gen_train_neg_input(self, inputs, decode_neg_fn, trainset):
     assert FLAGS.num_negs > 0
-    neg_text, neg_text_str = inputs(
+    results = inputs(
       trainset, 
       decode_fn=decode_neg_fn,
       batch_size=FLAGS.batch_size * FLAGS.num_negs,
@@ -212,15 +212,24 @@ class InputApp(object):
       #fix_sequence=FLAGS.fix_sequence,
       name=self.input_train_neg_name)
 
+    if FLAGS.neg_image:
+      neg_text, neg_text_str, neg_image = results
+    else:
+      neg_text, neg_text_str = results
+
     if FLAGS.feed_dict:
       self.neg_text_place = text_placeholder('neg_text_place')
       self.neg_text_str = neg_text_str
       neg_text = self.neg_text_place
 
-    neg_text, neg_text_str = input.reshape_neg_tensors(
-      [neg_text, neg_text_str], FLAGS.batch_size, FLAGS.num_negs)
-
-    return neg_text, neg_text_str
+    if FLAGS.neg_image:
+      neg_text, neg_text_str, neg_image = input.reshape_neg_tensors(
+        [neg_text, neg_text_str, neg_image], FLAGS.batch_size, FLAGS.num_negs)
+      return neg_text, neg_text_str, neg_image
+    else:
+      neg_text, neg_text_str = input.reshape_neg_tensors(
+        [neg_text, neg_text_str], FLAGS.batch_size, FLAGS.num_negs)
+      return neg_text, neg_text_str
 
   def gen_valid_input(self, inputs, decode_fn):
     #---------------------- valid  
@@ -333,7 +342,7 @@ class InputApp(object):
     return eval_result, eval_show_result, eval_batch_size
 
   def gen_valid_neg_input(self, inputs, decode_neg_fn, trainset, eval_batch_size):
-    eval_neg_text, eval_neg_text_str = inputs(
+    results = inputs(
       trainset, 
       decode_fn=decode_neg_fn,
       batch_size=eval_batch_size * FLAGS.num_negs,
@@ -347,6 +356,10 @@ class InputApp(object):
       fix_sequence=FLAGS.fix_sequence,
       name=self.input_valid_neg_name)
 
+    if not FLAGS.neg_image:
+      eval_neg_text, eval_neg_text_str = results
+    else:
+      eval_neg_text, eval_neg_text_str, eval_neg_image = results
     if FLAGS.feed_dict:
       self.eval_neg_text_str = eval_neg_text_str
       eval_neg_text = self.neg_text_place
@@ -356,13 +369,22 @@ class InputApp(object):
         self.eval_neg_text_str = eval_neg_text_str
         eval_neg_text_str = self.eval_neg_text_str_place
       
-    eval_neg_text, eval_neg_text_str = input.reshape_neg_tensors([eval_neg_text, eval_neg_text_str], 
+    if FLAGS.neg_image:
+        eval_neg_text, eval_neg_text_str, eval_neg_image = input.reshape_neg_tensors(
+                                                            [eval_neg_text, eval_neg_text_str, eval_neg_image], 
                                                             eval_batch_size, 
                                                             FLAGS.num_negs)
+    else:
+      eval_neg_text, eval_neg_text_str = input.reshape_neg_tensors([eval_neg_text, eval_neg_text_str], 
+                                                              eval_batch_size, 
+                                                              FLAGS.num_negs)
     #[batch_size, num_negs, 1] -> [batch_size, num_negs], notice tf.squeeze will get [batch_size] when num_negs == 1
     eval_neg_text_str = tf.squeeze(eval_neg_text_str, squeeze_dims=[-1])
 
-    return eval_neg_text, eval_neg_text_str
+    if FLAGS.neg_image:
+      return eval_neg_text, eval_neg_text_str, eval_neg_image
+    else:
+      return eval_neg_text, eval_neg_text_str
 
   def gen_input(self, train_only=False):
     timer = gezi.Timer('gen input')

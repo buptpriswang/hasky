@@ -101,9 +101,7 @@ def tf_train_flow(train_once_fn,
     max_to_keep=max_models_keep, 
     keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0)
   
-  #epoch_saver = tf.train.Saver(
-  #  max_to_keep=max_models_keep,
-  #  keep_checkpoint_every_n_hours=24) # TODO  
+  epoch_saver = tf.train.Saver()
   best_epoch_saver = tf.train.Saver() 
   
   #pre_step means the step last saved, train without pretrained,then -1
@@ -196,16 +194,20 @@ def tf_train_flow(train_once_fn,
               num_bad_epochs = 0
             pre_epoch_eval_loss = eval_loss
 
-          #epoch_saver.save(sess, 
-          #                 os.path.join(epoch_dir,'model.cpkt-%d'%epoch), 
-          #                 global_step=step)
+          epoch_saver.save(sess, 
+                          os.path.join(epoch_dir,'model.cpkt-%d'%epoch), 
+                          global_step=step)
+          #--------do not add step
+          # epoch_saver.save(sess, 
+          #        os.path.join(epoch_dir,'model.cpkt-%d'%epoch))
       if stop is True:
         print('Early stop running %d stpes'%(step), file=sys.stderr)
         raise tf.errors.OutOfRangeError(None, None,'Early stop running %d stpes'%(step))
       if num_steps and (step + 1) == start + num_steps:
         raise tf.errors.OutOfRangeError(None, None,'Reached max num steps')
-      max_num_epochs = 1000
-      if num_steps_per_epoch and step // num_steps_per_epoch == max_num_epochs:
+      #max_num_epochs = 1000
+      max_num_epochs = num_epochs
+      if num_steps_per_epoch and step // num_steps_per_epoch >= max_num_epochs:
         raise tf.errors.OutOfRangeError(None, None,'Reached max num epochs of %d'%max_num_epochs)
       step += 1
   except tf.errors.OutOfRangeError, e:

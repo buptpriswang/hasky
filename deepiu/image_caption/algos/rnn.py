@@ -44,6 +44,7 @@ class Rnn(object):
     self.is_training = is_training
     self.is_predict = is_predict
 
+    logging.info('rnn_cell:{}'.format(FLAGS.cell))
     logging.info('rnn_method:{}'.format(FLAGS.rnn_method))
     logging.info('rnn_output_method:{}'.format(FLAGS.rnn_output_method))
     logging.info('num_layers:{}'.format(FLAGS.num_layers))
@@ -63,9 +64,9 @@ class Rnn(object):
   def gen_text_importance(self, text, emb):
     return self.encoder.importance_encode(text, emb=emb)
 
-  def build_train_graph(self, image_feature, text, neg_text):
+  def build_train_graph(self, image_feature, text, neg_text, neg_image=None):
     self.trainer.gen_text_feature = self.gen_text_feature
-    loss = self.trainer.build_graph(image_feature, text, neg_text)
+    loss = self.trainer.build_graph(image_feature, text, neg_text, neg_image)
     
     #--for debug
     self.gradients = tf.gradients(loss, tf.trainable_variables())

@@ -47,11 +47,13 @@ def encode_outputs(outputs, output_method=OutputMethod.last, sequence_length=Non
     #below not work.. sequence is different for each row instance
     #return tf.reduce_max(outputs[:, :sequence_length, :], 1)
     return tf.reduce_max(outputs, 1) #not exclude padding embeddings
+    #return tf.reduce_max(tf.abs(outputs), 1)
     #return melt.max_pooling(outputs, sequence_length)
   elif output_method == OutputMethod.argmax:
     assert sequence_length is not None
     #return tf.argmax(outputs[:, :sequence_length, :], 1)
     return tf.argmax(outputs, 1)
+    #return tf.argmax(tf.abs(outputs), 1)
     #return melt.argmax_pooling(outputs, sequence_length)
   elif output_method == OutputMethod.mean:
     assert sequence_length is not None

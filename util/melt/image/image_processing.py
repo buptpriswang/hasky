@@ -153,7 +153,10 @@ def decode_image(contents, channels=None, name=None):
 
     #is_jpeg = math_ops.equal(substr, b'\xff\xd8\xff\xe0', name='is_jpeg')
     is_jpeg = math_ops.equal(substr, b'\xff', name='is_jpeg')
-    return control_flow_ops.cond(is_jpeg, _jpeg, check_png, name='cond_jpeg')
+    try:
+      return control_flow_ops.cond(is_jpeg, _jpeg, check_png, name='cond_jpeg')
+    except Exception:
+      return gen_image_ops.decode_jpeg(contents, channels, try_recover_truncated=True, acceptable_fraction=10)
 
 def process_image(encoded_image,
                   is_training,
@@ -162,7 +165,7 @@ def process_image(encoded_image,
                   resize_height=346,
                   resize_width=346,
                   distort=True,
-                  image_format="jpeg"):
+                  image_format=None):
   """Decode an image, resize and apply random distortions.
 
   In training, images are distorted slightly differently depending on thread_id.
@@ -192,14 +195,15 @@ def process_image(encoded_image,
   # Decode image into a float32 Tensor of shape [?, ?, 3] with values in [0, 1).
   with tf.name_scope("decode", values=[encoded_image]):
     if image_format == "jpeg":
-      image = tf.image.decode_jpeg(encoded_image, channels=3)
+      image = tf.image.decode_jpeg(encoded_image, channels=3, try_recover_truncated=True, acceptable_fraction=10)
     elif image_format == "png":
       image = tf.image.decode_png(encoded_image, channels=3)
     else:
       #raise ValueError("Invalid image format: %s" % image_format) 
       #https://github.com/tensorflow/tensorflow/issues/8551 return no shape.., reesize_images will fail 
-      #image = decode_image(encoded_image, channels=3)
-      image = tf.image.decode_image(encoded_image, channels=3)
+      image = decode_image(encoded_image, channels=3)
+      #image = tf.image.decode_image(encoded_image, channels=3)
+    #image = tf.image.decode_image(encoded_image, channels=3, try_recover_truncted=True, acceptable_fraction=10)
 
   image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 

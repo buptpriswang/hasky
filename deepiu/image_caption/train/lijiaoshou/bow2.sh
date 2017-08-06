@@ -1,4 +1,4 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/bow2/ 
+conf_path=./prepare/default/app-conf/lijiaoshou/bow/ 
 cp $conf_path/conf.py .
 source $conf_path/config 
 

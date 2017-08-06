@@ -79,17 +79,18 @@ def element_wise_cosine(a, b, a_normed=False, b_normed=False, nonorm=False, keep
     if a_normed:
       normalized_a = a 
     else:
-      normalized_a = tf.nn.l2_normalize(a, 1)
+      normalized_a = tf.nn.l2_normalize(a, -1)
     if b_normed:
       normalized_b = b 
     else:
-      normalized_b = tf.nn.l2_normalize(b, 1)
+      normalized_b = tf.nn.l2_normalize(b, -1)
     #return tf.matmul(normalized_a, normalized_b, transpose_b=True)
-    return tf.reduce_sum(tf.mul(normalized_a, normalized_b), 1, keep_dims=keep_dims)
+    return tf.reduce_sum(tf.multiply(normalized_a, normalized_b), -1, keep_dims=keep_dims)
 
 def cosine_nonorm(a, b, name=None):
   with tf.name_scope(name, 'cosine_nonorm', [a,b]):
     return tf.matmul(a, b, transpose_b=True)  
+
 #[batch_size, y] [x, y] => [batch_size, x]
 def cosine(a, b, a_normed=False, b_normed=False, nonorm=False, name=None):
   if nonorm:
@@ -98,11 +99,11 @@ def cosine(a, b, a_normed=False, b_normed=False, nonorm=False, name=None):
     if a_normed:
       normalized_a = a 
     else:
-      normalized_a = tf.nn.l2_normalize(a, 1)
+      normalized_a = tf.nn.l2_normalize(a, -1)
     if b_normed:
       normalized_b = b 
     else:
-      normalized_b = tf.nn.l2_normalize(b, 1)
+      normalized_b = tf.nn.l2_normalize(b, -1)
     return tf.matmul(normalized_a, normalized_b, transpose_b=True)
 
 def reduce_mean(input_tensor,  reduction_indices=None, keep_dims=False):
@@ -193,7 +194,7 @@ def wrapped_embedding_lookup(emb, index, reduction_indices=None, combiner='mean'
   else:
     return embedding_lookup(emb, index, reduction_indices, combiner, name)
 
-def batch_embedding_lookup(emb, index, combiner='mean', name=None):
+def batch_embedding_lookup_reduce(emb, index, combiner='mean', name=None):
   """
   same as embedding_lookup but use index_dim_length - 1 as reduction_indices
   """
@@ -220,7 +221,15 @@ def batch_embedding_lookup_sum(emb, index, name=None):
     reduction_indices = len(index.get_shape()) - 1
     return tf.reduce_sum(lookup_result, reduction_indices)
 
-def batch_masked_embedding_lookup(emb, index, combiner='mean', exclude_zero_index=True, name=None):
+def batch_masked_embedding_lookup_reduce(emb, index, combiner='mean', exclude_zero_index=True, name=None):
+  if combiner == 'mean':
+    return batch_masked_embedding_lookup_mean(emb, index, exclude_zero_index, name)[1]
+  elif combiner == 'sum':
+    return batch_masked_embedding_lookup_sum(emb, index, exclude_zero_index, name)[1]
+  else:
+    raise ValueError('Unsupported combiner: ', combiner)
+
+def batch_masked_embedding_lookup_and_reduce(emb, index, combiner='mean', exclude_zero_index=True, name=None):
   if combiner == 'mean':
     return batch_masked_embedding_lookup_mean(emb, index, exclude_zero_index, name)
   elif combiner == 'sum':
@@ -245,8 +254,8 @@ def batch_masked_embedding_lookup_mean(emb, index, exclude_zero_index=True, name
       #@TODO this will casue 4 times slower 
       masked_emb = mask2d(emb)    
       mask_lookup_result = tf.nn.embedding_lookup(masked_emb, index)
-      lookup_result = tf.mul(lookup_result, mask_lookup_result)
-    return reduce_mean_with_mask(lookup_result,  
+      lookup_result = tf.multiply(lookup_result, mask_lookup_result)
+    return lookup_result, reduce_mean_with_mask(lookup_result,  
                                  tf.expand_dims(tf.cast(tf.sign(index), dtype=tf.float32), -1),
                                  reduction_indices)
 
@@ -263,7 +272,22 @@ def batch_masked_embedding_lookup_sum(emb, index, exclude_zero_index=True, name=
       masked_emb = mask2d(emb)
       mask_lookup_result = tf.nn.embedding_lookup(masked_emb, index)
       lookup_result = tf.multiply(lookup_result, mask_lookup_result)
-    return tf.reduce_sum(lookup_result, reduction_indices)
+    return lookup_result, tf.reduce_sum(lookup_result, reduction_indices)
+
+def batch_masked_embedding_lookup(emb, index, exclude_zero_index=True, name=None):
+  """ 
+  @TODO need c++ op to really mask last dim zero feature vector
+  now assume vector should zero filtered to be zero vector if not exclude_zero_index
+  or will have to do lookup twice
+  """
+  with tf.name_scope(name, 'batch_masked_emb_lookup_sum', [emb, index]):
+    lookup_result = tf.nn.embedding_lookup(emb, index)
+    reduction_indices = len(index.get_shape()) - 1  
+    if exclude_zero_index:
+      masked_emb = mask2d(emb)
+      mask_lookup_result = tf.nn.embedding_lookup(masked_emb, index)
+      lookup_result = tf.multiply(lookup_result, mask_lookup_result)
+    return lookup_result 
 
 def batch_wrapped_embedding_lookup(emb, index, combiner='mean', use_mask=False, exclude_zero_index=True, name=None):
   if use_mask:

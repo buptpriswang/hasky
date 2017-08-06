@@ -66,11 +66,16 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     self.score = self.build_predict_graph(text_max_words)
     tf.get_variable_scope().reuse_variables()
     self.textsim_score = self.build_textsim_predict_graph(text_max_words)
-    try:
-      self.text_importance = self.forward_text_importance(self.get_text_feed(text_max_words))
-    except Exception:
-      print('Not support text importance')
-      self.text_importance = None
+    #try:
+    self.text_importance = self.forward_text_importance(self.get_text_feed(text_max_words))
+    #except Exception:
+    #  print('Not support text importance')
+    #  self.text_importance = None
+    
+    with tf.variable_scope("image_text_sim"):
+      self.text_encode = self.forward_text(self.get_text_feed(text_max_words))
+      self.image_encode = self.forward_image_feature(self.get_image_feature_feed())
+
     return self.score
 
   def predict(self, image, text):

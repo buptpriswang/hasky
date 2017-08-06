@@ -42,7 +42,8 @@ def init(vocab_path=None):
 #@TODO gen-records should use text2ids
 #TODO ENCODE_UNK might not be in conf.py but to pass as param encode_unk=False
 def words2ids(words, feed_single=True, allow_all_zero=False, 
-              pad=True, append_start=False, append_end=False):
+              pad=True, append_start=False, append_end=False,
+              max_words=None):
   """
   default params is suitable for bow
   for sequence method may need seg_method prhase and feed_single=True,
@@ -81,12 +82,13 @@ def words2ids(words, feed_single=True, allow_all_zero=False,
     word_ids.append(vocab.end_id())
 
   if pad:
-    word_ids = gezi.pad(word_ids, TEXT_MAX_WORDS, 0)  
+    word_ids = gezi.pad(word_ids, max_words or TEXT_MAX_WORDS, 0)  
 
   return word_ids
 
 def text2ids(text, seg_method='default', feed_single=True, allow_all_zero=False, 
-            pad=True, append_start=False, append_end=False, to_lower=True):
+            pad=True, append_start=False, append_end=False, to_lower=True,
+            max_words=None):
   """
   default params is suitable for bow
   for sequence method may need seg_method prhase and feed_single=True,
@@ -98,7 +100,7 @@ def text2ids(text, seg_method='default', feed_single=True, allow_all_zero=False,
   if to_lower:
     text = text.lower()
   words = Segmentor.Segment(text, seg_method)
-  return words2ids(words, feed_single, allow_all_zero, pad, append_start, append_end)
+  return words2ids(words, feed_single, allow_all_zero, pad, append_start, append_end, max_words)
 
 def ids2words(text_ids, print_end=True):
   #print('@@@@@@@@@@text_ids', text_ids)

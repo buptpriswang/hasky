@@ -99,12 +99,12 @@ def is_luanma(words, word_ids):
 
 def deal_file(file):
   out_file = '{}/{}'.format(FLAGS.output_directory, '-'.join([FLAGS.name, file.split('/')[-1].split('-')[-1]]))
-  print('out_file:', out_file)
+  print('file:', file, 'out_file:', out_file, file=sys.stderr)
   with melt.tfrecords.Writer(out_file) as writer:
     num = 0
     for line in open(file):
       if num % 1000 == 0:
-        print(num)
+        print(num, file=sys.stderr)
       
       l = line.rstrip('\n').split('\t')
       img = l[0]
@@ -116,24 +116,27 @@ def deal_file(file):
       
       #assert len(image_feature) == IMAGE_FEATURE_LEN, '%s %d'%(img, len(image_feature))
       if len(image_feature) != IMAGE_FEATURE_LEN:
-        print('bad line:', line)
+        print('bad line:', line, file=sys.stderr)
         continue
 
       is_top_text = True
       for text in texts:
         if text.strip() == '':
+          print('empty line', line, file=sys.stderr)
           continue
 
         words = text2ids.Segmentor.Segment(text, FLAGS.seg_method)
         word_ids = text2ids.words2ids(words, feed_single=FLAGS.feed_single, allow_all_zero=True, pad=False)
         word_ids_length = len(word_ids)
-        if num % 1000 == 0:
+        if num % 10000 == 0:
           print(img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)
         if len(word_ids) == 0:
+          print('empy wordids!', file=sys.stderr)
+          print(img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)
           continue 
-        if is_luanma(words, word_ids):
-          print('luanma', img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)
-          continue 
+        #if is_luanma(words, word_ids):
+        #  print('luanma', img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)
+        #  continue 
                   
         word_ids = word_ids[:TEXT_MAX_WORDS]
         if FLAGS.pad:
@@ -225,6 +228,8 @@ def run():
   gezi.write_to_txt(num_records, os.path.join(FLAGS.output_directory, 'num_records.txt'))
 
   print('num_records_per_image', num_records / num_images)
+
+  print('num_texts', len(gtexts))
 
   print('max_num_words:', max_num_words.value)
   print('avg_num_words:', sum_words.value / num_records)

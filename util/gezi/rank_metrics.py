@@ -257,6 +257,7 @@ class RecallMetrics():
       'recall@2',
       'recall@5',
       'recall@10',
+      'recall@50',
         ]
     self.avg_metrics = gezi.avg_score.AvgScore()
 
@@ -267,7 +268,8 @@ class RecallMetrics():
       recall_at_k(labels, 1),
       recall_at_k(labels, 2),
       recall_at_k(labels, 5),
-      recall_at_k(labels, 10)
+      recall_at_k(labels, 10),
+      recall_at_k(labels, 50)
         ]
     self.avg_metrics.add(metrics)
   

@@ -15,6 +15,8 @@ import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 
 import sys, os, glob
+import inspect
+
 import gezi
 import melt 
 
@@ -109,30 +111,51 @@ rnn_cells = {
   'gru' : tf.contrib.rnn.GRUCell,
   'lstm_block' : tf.contrib.rnn.LSTMBlockCell, #LSTMBlockCell is faster then LSTMCell
   }
-
-def create_rnn_cell(num_units, is_training=True, initializer=None, num_layers=1, keep_prob=1.0, Cell=None, cell_type='lstm', scope=None):
+#from https://github.com/tensorflow/models/blob/master/tutorials/rnn/ptb/ptb_word_lm.py lstm_cell()
+def create_rnn_cell(num_units, is_training=True, initializer=None, forget_bias=1.0, num_layers=1, 
+                    keep_prob=1.0, input_keep_prob=1.0, Cell=None, cell_type='lstm', scope=None):
   with tf.variable_scope(scope or 'create_rnn_cell') as scope:
     if Cell is None:
       Cell = rnn_cells.get(cell_type.lower(), tf.contrib.rnn.LSTMCell)
-    try:
-      #cell = Cell(num_units, initializer=initializer, state_is_tuple=True)
-      cell = Cell(num_units, initializer=initializer)
-    except Exception:
-      #logging.warning('initializer not used as cell type not support, cell_type:%s'%cell_type)
-      cell = Cell(num_units)
-    if is_training and keep_prob < 1:
-      cell = tf.contrib.rnn.DropoutWrapper(
-          cell,
-          input_keep_prob=keep_prob,
-          output_keep_prob=keep_prob)
+    # try:
+    #   #cell = Cell(num_units, initializer=initializer, state_is_tuple=True)
+    #   cell = Cell(num_units, initializer=initializer)
+    # except Exception:
+    #   #logging.warning('initializer not used as cell type not support, cell_type:%s'%cell_type)
+    #   cell = Cell(num_units)
+
+    # Slightly better results can be obtained with forget gate biases
+    # initialized to 1 but the hyperparameters of the model would need to be
+    # different than reported in the paper.
+    def cell_():
+      # With the latest TensorFlow source code (as of Mar 27, 2017),
+      # the BasicLSTMCell will need a reuse parameter which is unfortunately not
+      # defined in TensorFlow 1.0. To maintain backwards compatibility, we add
+      # an argument check here:
+      if 'reuse' in inspect.getargspec(
+          Cell.__init__).args:
+        return Cell(
+            num_units, forget_bias=forget_bias,
+            reuse=tf.get_variable_scope().reuse)
+      else:
+        return tf.contrib.rnn.BasicLSTMCell(
+            num_units, forget_bias=forget_bias, state_is_tuple=True)
+
+    attn_cell = cell_
+    if is_training and (keep_prob < 1 or input_keep_prob < 1):
+      def attn_cell():
+        return tf.contrib.rnn.DropoutWrapper(
+            cell_(), 
+            input_keep_prob=input_keep_prob,
+            output_keep_prob=keep_prob)
+
     if num_layers > 1:
-      raise ValueError('multi layer TODO for tf1.2')
-      #cell = tf.contrib.rnn.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
-      #-----------FIXME https://github.com/tensorflow/tensorflow/issues/8191   might not work for multi layer 
-      try:
-        cell = tf.contrib.rnn.MultiRNNCell([Cell(num_units, initializer=initializer) for _ in range(num_layers)], state_is_tuple=True)
-      except Exception:
-        cell = tf.contrib.rnn.MultiRNNCell([Cell(num_units) for _ in range(num_layers)], state_is_tuple=True)
+      cell = tf.contrib.rnn.MultiRNNCell(
+        [attn_cell() for _ in range(num_layers)], state_is_tuple=True)
+    else:
+      cell = attn_cell()
+    #--now cell share graph by default so below is wrong.. will share cell for each layer
+    ##cell = tf.contrib.rnn.MultiRNNCell([cell] * num_layers, state_is_tuple=True) 
     return cell
 
 #-------for train flow
@@ -160,9 +183,9 @@ def print_results(results, names=None):
     else:
       print(gezi.pretty_floats(results))
 
-def logging_results(results, names, tag):\
+def logging_results(results, names, tag=''):\
   logging.info('\t'.join(
-    [tag] + ['%s:[%.3f]'%(name, result) for name, result in zip(names, results)]))
+    [tag] + ['%s:[%.4f]'%(name, result) for name, result in zip(names, results)]))
       
 def parse_results(results, names=None):
   #only single values in results!
@@ -446,11 +469,16 @@ def monitor_embedding(emb, vocab, vocab_size):
   histogram_summary('emb_unk_id', tf.gather(emb, vocab.unk_id()))
 
 def visualize_embedding(emb, vocab_txt):
-    # You can add multiple embeddings. Here we add only one.
-    embedding = melt.flow.projector_config.embeddings.add()
-    embedding.tensor_name = emb.name
-    # Link this tensor to its metadata file (e.g. labels).
+  # You can add multiple embeddings. Here we add only one.
+  embedding = melt.flow.projector_config.embeddings.add()
+  embedding.tensor_name = emb.name
+  # Link this tensor to its metadata file (e.g. labels).
+  if vocab_txt.endswith('.bin'):
     embedding.metadata_path = vocab_txt.replace('.bin', '.project')
+  elif vocab_txt.endswith('.txt'):
+    embedding.metadata_path = vocab_txt.replace('.txt', '.project')
+  else:
+    embedding.metadata_path = vocab_txt[:vocab_txt.rindex('.')] + '.project'
 
 def get_summary_ops():
   return ops.get_collection(ops.GraphKeys.SUMMARIES)

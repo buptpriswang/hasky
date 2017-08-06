@@ -124,6 +124,7 @@ def train_flow(ops,
   if debug:
     sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
+  logging.info('learning_rate:{}'.format(FLAGS.learning_rate))
   #batch size right now not define here, but in app code like input_app.py
   melt.set_global('batch_size', FLAGS.batch_size)
   melt.set_global('num_gpus', max(FLAGS.num_gpus, 1))

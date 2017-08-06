@@ -19,6 +19,9 @@ python ./train.py \
   --image_feature_bin=$valid_output_path/'image_features.npy' \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \
+  --text2img=$valid_output_path/'text2img.npy' \
+  --img2id=$valid_output_path/'img2id.npy' \
+  --eval_text2img 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
@@ -35,11 +38,13 @@ python ./train.py \
   --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
-  --save_interval_epochs 1 \
+  --save_interval_epochs 10 \
+  --num_epochs 1000 \
   --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 500 \
+  --metric_eval_batch_size 1000 \
   --debug 0 \
   --num_negs 1 \
+  --neg_image 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \

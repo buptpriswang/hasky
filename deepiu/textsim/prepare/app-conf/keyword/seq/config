@@ -1,0 +1,26 @@
+input_path=/home/gezi/new/data/keyword/
+dir=/home/gezi/new/temp/image-caption/keyword/tfrecord/seq
+
+train_data_path=$input_path/train
+valid_data_path=$input_path/valid
+
+train_output_path=$dir/train
+valid_output_path=$dir/valid
+fixed_valid_output_path=$dir/fixed_valid
+
+resource_dir=/home/gezi/exp/tieba/urate/
+
+vocab_size=100000
+
+seg_method=phrase_single
+online_seg_method=phrase
+feed_single=1
+
+shuffle_texts=1
+max_texts=0
+
+#export HADOOP_HOME=/home/img/chenghuige/soft/hadoop-client/hadoop
+#export PATH=$HADOOP_HOME/bin:$PATH
+
+hdfs_dir=/app/tuku/chenghuige/image-caption/seq-basic.10w
+hdfs_train_output_path=$hdfs_dir/train

@@ -12,7 +12,7 @@ fixed_valid_output_path=$dir/fixed_valid
 resource_dir=/home/gezi/exp/tieba/urate/
 
 vocab_size=500000
-min_count=5
+min_count=4
 
 seg_method=full
 online_seg_method=full

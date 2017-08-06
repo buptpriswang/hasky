@@ -22,7 +22,9 @@ flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images/', 'in
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
 flags.DEFINE_string('img2text', '', '')
-flags.DEFINE_string('text2id', '', '')
+flags.DEFINE_string('text2id', '', 'not used')
+flags.DEFINE_string('text2img', '', '')
+flags.DEFINE_string('img2id', '', 'not used')
 flags.DEFINE_string('image_name_bin', '', '')
 flags.DEFINE_string('image_feature_bin', '', '')
 
@@ -31,6 +33,9 @@ flags.DEFINE_integer('metric_eval_batch_size', 1000, '')
 flags.DEFINE_integer('metric_topn', 100, 'only consider topn results when calcing metrics')
 
 flags.DEFINE_integer('max_texts', 200000, '') 
+
+flags.DEFINE_boolean('eval_img2text', True, '')
+flags.DEFINE_boolean('eval_text2img', False, '')
 
 import sys, os
 import gezi.nowarning
@@ -60,6 +65,9 @@ image_labels = None
 
 img2text = None
 text2id = None
+
+text2img = None
+img2id = None
 
 image_names = None
 image_features = None
@@ -119,6 +127,13 @@ def init_labels():
 def get_image_labels():
   init_labels()
   return image_labels
+
+def get_bidrectional_lable_map_txt2im():
+  global text2img, img2id
+  if text2img is None:
+    text2img = np.load(FLAGS.text2img).item()
+    img2id = np.load(FLAGS.img2id).item()
+  return text2img, img2id
 
 def get_bidrectional_lable_map():
   global img2text, text2id
@@ -323,11 +338,10 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
 
 score_op = None
 
-
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell
-  print(img_features.shape, all_distinct_texts.shape)
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', all_distinct_texts.shape)
   score = predictor.bulk_predict(img_features, all_distinct_texts)
   timer.print()
 
@@ -339,7 +353,33 @@ def predicts(imgs, img_features, predictor, rank_metrics):
     
     hits = img2text[img]
 
-    num_positions = min(num_texts, FLAGS.metric_topn)
+    #notice only work for recall@ or precision@ not work for ndcg@, if ndcg@ must use all
+    #num_positions = min(num_texts, FLAGS.metric_topn)
+    num_positions = num_texts
+    labels = [indexes[j] in hits for j in xrange(num_positions)]
+
+    rank_metrics.add(labels)
+
+def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
+  timer = gezi.Timer('preidctor.bulk_predict text2im')
+  _, img_features = get_image_names_and_features()
+  # TODO gpu outofmem predict for showandtell
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape)
+  score = predictor.bulk_predict(img_features, texts)
+  score = score.transpose()
+  print('---------score shape', score.shape)
+  timer.print()
+
+  text2img, img2id = get_bidrectional_lable_map_txt2im()
+  num_imgs = img_features.shape[0]
+
+  for i, text_str in enumerate(text_strs):
+    indexes = (-score[i]).argsort()
+    
+    hits = text2img[text_str]
+
+    #num_positions = min(num_imgs, FLAGS.metric_topn)
+    num_positions = num_imgs
     labels = [indexes[j] in hits for j in xrange(num_positions)]
 
     rank_metrics.add(labels)
@@ -347,39 +387,67 @@ def predicts(imgs, img_features, predictor, rank_metrics):
 def evaluate_scores(predictor, random=False):
   timer = gezi.Timer('evaluate_scores')
   init()
-  imgs, img_features = get_image_names_and_features()
-  
-  num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs))
-  step = FLAGS.metric_eval_batch_size
+  if FLAGS.eval_img2text:
+    imgs, img_features = get_image_names_and_features()
+    num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs))
+    step = FLAGS.metric_eval_batch_size
 
-  if random:
-    index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
-    imgs = imgs[index]
-    img_features = img_features[index]
+    if random:
+      index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
+      imgs = imgs[index]
+      img_features = img_features[index]
 
-  text_max_words = all_distinct_texts.shape[1]
-  rank_metrics = gezi.rank_metrics.RecallMetrics()
+    text_max_words = all_distinct_texts.shape[1]
+    rank_metrics = gezi.rank_metrics.RecallMetrics()
 
-  print('text_max_words:', text_max_words)
-  start = 0
-  while start < num_metric_eval_examples:
-    end = start + step
-    if end > num_metric_eval_examples:
-      end = num_metric_eval_examples
-    print('predicts start:', start, 'end:', end, file=sys.stderr)
-    predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics)
-    start = end
+    print('text_max_words:', text_max_words)
+    start = 0
+    while start < num_metric_eval_examples:
+      end = start + step
+      if end > num_metric_eval_examples:
+        end = num_metric_eval_examples
+      print('predicts start:', start, 'end:', end, file=sys.stderr)
+      predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics)
+      start = end
+      
+    melt.logging_results(
+      rank_metrics.get_metrics(), 
+      rank_metrics.get_names(), 
+      tag='evaluate: epoch:{} step:{} train:{} eval:{}'.format(
+        melt.epoch(), 
+        melt.step(),
+        melt.train_loss(),
+        melt.eval_loss()))
+
+  if FLAGS.eval_text2img:
+    num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(all_distinct_texts))
+    if random:
+      index = np.random.choice(len(all_distinct_texts), num_metric_eval_examples, replace=False)
+      text_strs = all_distinct_text_strs[index]
+      texts = all_distinct_texts[index]
+
+    rank_metrics2 = gezi.rank_metrics.RecallMetrics()
+
+    start = 0
+    while start < num_metric_eval_examples:
+      end = start + step
+      if end > num_metric_eval_examples:
+        end = num_metric_eval_examples
+      print('predicts start:', start, 'end:', end, file=sys.stderr)
+      predicts_txt2im(text_strs[start: end], texts[start: end], predictor, rank_metrics2)
+      start = end
     
-  melt.logging_results(
-    rank_metrics.get_metrics(), 
-    rank_metrics.get_names(), 
-    tag='evaluate: epoch:{} step:{} train:{} eval:{}'.format(
-      melt.epoch(), 
-      melt.step(),
-      melt.train_loss(),
-      melt.eval_loss()))
+    melt.logging_results(
+      rank_metrics2.get_metrics(), 
+      ['t2i' + x for x in rank_metrics2.get_names()],
+      tag='text2img')
 
   timer.print()
 
-  return rank_metrics.get_metrics(), rank_metrics.get_names()
+  if FLAGS.eval_img2text and FLAGS.eval_text2img:
+    return rank_metrics.get_metrics() + rank_metrics2.get_metrics(), rank_metrics.get_names() + ['t2i' + x for x in rank_metrics2.get_names()]
+  elif FLAGS.eval_img2text:
+    return rank_metrics.get_metrics(), rank_metrics.get_names()
+  else:
+    return rank_metrics2.get_metrics(), rank_metrics2.get_names()
   

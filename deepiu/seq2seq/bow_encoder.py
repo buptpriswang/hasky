@@ -28,16 +28,25 @@ flags.DEFINE_boolean('exclude_zero_index', True, 'wether really exclude the firs
 import melt
 from deepiu.seq2seq.encoder import Encoder
 
-def embedding_lookup(emb, indexes):
+def embedding_lookup_reduce(emb, indexes):
   #with tf.device('/cpu:0'):
-  return melt.batch_masked_embedding_lookup(emb,
-                                            indexes, 
-                                            combiner=FLAGS.combiner, 
-                                            exclude_zero_index=FLAGS.exclude_zero_index)
+  return melt.batch_masked_embedding_lookup_reduce(emb,
+                                                   indexes, 
+                                                   combiner=FLAGS.combiner, 
+                                                   exclude_zero_index=FLAGS.exclude_zero_index)
 
 #TODO should add emb_bias?
 def encode(sequence, emb):
-  return embedding_lookup(emb, sequence)
+  return embedding_lookup_reduce(emb, sequence)
+
+def importance_encode(sequence, emb=None):
+  #[batch_size, length, embedding_size], [batch_size, embedding_size]
+  lookup_result, encode_emb = melt.batch_masked_embedding_lookup_and_reduce(emb,
+                                                  sequence, 
+                                                  combiner=FLAGS.combiner, 
+                                                  exclude_zero_index=FLAGS.exclude_zero_index)
+  return melt.element_wise_cosine(lookup_result, tf.expand_dims(encode_emb, 1), keep_dims=False)
+
 
 class BowEncoder(Encoder):
   def __init__(self, is_training=True, is_predict=False):
@@ -49,3 +58,16 @@ class BowEncoder(Encoder):
     if emb is None:
       emb = self.emb
     return encode(sequence, emb)
+
+  def importance_encode(self, sequence, emb=None):
+    if emb is None:
+      emb = self.emb
+    #[batch_size, length, embedding_size], [batch_size, embedding_size]
+    lookup_result, encode_emb = melt.batch_masked_embedding_lookup_and_reduce(emb,
+                                                    indexes, 
+                                                    combiner=FLAGS.combiner, 
+                                                    exclude_zero_index=FLAGS.exclude_zero_index)
+    return melt.element_wise_cosine(lookup_result, tf.expand_dims(encode_emb, 1), keep_dims=False)
+
+
+

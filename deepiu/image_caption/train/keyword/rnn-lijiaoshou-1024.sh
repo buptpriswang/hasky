@@ -40,7 +40,7 @@ python ./train.py  --encode_start_mark=1 --encode_end_mark=1 \
   --interval 100 \
   --eval_interval 1000 \
   --margin 0.1 \
-  --learning_rate 0.01 \
+  --learning_rate 0.1 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --dynamic_batch_length 1 \
