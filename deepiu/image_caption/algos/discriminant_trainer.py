@@ -159,8 +159,7 @@ class DiscriminantTrainer(object):
     neg_text: [batch_size, num_negs, MAXT_TEXT_LEN]
     neg_image: None or [batch_size, num_negs, IMAGE_FEATURE_LEN]
     """
-    if neg_image is not None:
-      neg_text = None
+    assert (neg_text is not None) or (neg_image is not None)
     with tf.variable_scope(self.scope):
       #-------------get image feature
       #[batch_size, hidden_size] <= [batch_size, IMAGE_FEATURE_LEN] 
@@ -188,8 +187,7 @@ class DiscriminantTrainer(object):
             neg_text_feature_i = self.forward_text(neg_text[:, i, :])
           neg_scores_i = self.compute_image_text_sim(image_feature, neg_text_feature_i)
           neg_scores_list.append(neg_scores_i)
-      else:
-        assert neg_image is not None 
+      if neg_image is not None:
         num_negs = neg_image.get_shape()[1]
         for i in xrange(num_negs):
           neg_image_feature_i = self.forward_image_feature(neg_image[:, i, :])

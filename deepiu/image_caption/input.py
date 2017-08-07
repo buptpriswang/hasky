@@ -15,7 +15,8 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean('neg_image', False, '')
+flags.DEFINE_boolean('neg_image', False, 'default is only neg text if neg_image then default is neg_text None')
+flags.DEFINE_boolean('neg_both', False, 'neg_image and neg_text')
 
 import functools
 

@@ -96,6 +96,8 @@ def tower_loss(trainer, input_app=None, input_results=None):
   else:
     neg_text, neg_text_str, neg_image = None, None, None
 
+  if FLAGS.neg_image and not FLAGS.neg_both:
+    neg_text = None
   loss = trainer.build_train_graph(image_feature, text, neg_text, neg_image)
   return loss
 
