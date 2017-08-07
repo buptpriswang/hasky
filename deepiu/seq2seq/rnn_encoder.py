@@ -78,8 +78,8 @@ class RnnEncoder(Encoder):
     self.sequence = sequence
     self.sequence_length = sequence_length
 
-    #tf.add_to_collection('debug_seqeuence', sequence)
-    #tf.add_to_collection('debug_length', sequence_length)
+    tf.add_to_collection('debug_seqeuence', sequence)
+    tf.add_to_collection('debug_length', sequence_length)
     
     #for attention due to float32 numerice accuracy problem, may has some diff, so not slice it
     #if self.is_predict:
@@ -105,10 +105,11 @@ class RnnEncoder(Encoder):
 
     return encode_feature, state
 
-  def importance_encode(self, sequence, input=None, emb=None):
+  def words_importance_encode(self, sequence, input=None, emb=None):
     #[batch_size, emb_dim]
     argmax_values = self.encode(sequence, input, emb, output_method=melt.rnn.OutputMethod.argmax)[0]
     indices = melt.batch_values_to_indices(tf.to_int32(argmax_values))
     updates = tf.ones_like(argmax_values)
     shape = tf.shape(sequence)
-    return tf.scatter_nd(indices, updates, shape=shape) * tf.to_int64(tf.sequence_mask(self.sequence_length, shape[-1]))
+    scores = tf.scatter_nd(indices, updates, shape=shape) * tf.to_int64(tf.sequence_mask(self.sequence_length, shape[-1]))
+    return scores

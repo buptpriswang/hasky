@@ -23,12 +23,12 @@ flags.DEFINE_string('activation', 'relu',
                     and relu slightly better than tanh and convrgence speed faster""")
 
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
-flags.DEFINE_string('rank_loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
+flags.DEFINE_string('loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
 
 flags.DEFINE_boolean('fix_image_embedding', False, '')
 flags.DEFINE_boolean('fix_text_embedding', False, '')
 
-  
+
 import functools
 
 import tensorflow.contrib.slim as slim
@@ -81,6 +81,7 @@ class DiscriminantTrainer(object):
                                                 height=FLAGS.image_height, 
                                                 width=FLAGS.image_width)
 
+    self.scope = 'image_text_sim'
 
   def forward_image_layers(self, image_feature):
     if not FLAGS.pre_calc_image_feature:
@@ -96,6 +97,7 @@ class DiscriminantTrainer(object):
     #return melt.layers.mlp_nobias(image_feature, FLAGS.hidden_size, FLAGS.hidden_size, self.activation, scope='image_mlp')
 
   def forward_text_layers(self, text_feature):
+    #TODO better config like google/seq2seq us pyymal
     dims = [FLAGS.hidden_size, FLAGS.hidden_size]
     return melt.slim.mlp(text_feature, 
                          dims, 
@@ -120,10 +122,6 @@ class DiscriminantTrainer(object):
     text_feature = self.forward_text_feature(text_feature)
     return text_feature
 
-  def forward_text_importance(self, text):
-    with tf.variable_scope("image_text_sim"):
-      return self.gen_text_importance(text, self.emb)
-
   def forward_image_feature(self, image_feature):
     """
     Args:
@@ -136,13 +134,19 @@ class DiscriminantTrainer(object):
 
     return image_feature
 
-  def compute_image_text_sim(self, normed_image_feature, text_feature):
+  def compute_image_text_sim(self, normed_image_feature, normed_text_feature):
     #[batch_size, hidden_size]
-    normed_text_feature = self.forward_text_feature(text_feature)
+    if FLAGS.fix_image_embedding:
+      normed_image_feature = tf.stop_gradient(normed_image_feature)
+
+    if FLAGS.fix_text_embedding:
+      #not only stop internal text ebmeddding but also mlp part so fix final text embedding
+      normed_text_feature = tf.stop_gradient(normed_text_feature)
     
     #for point wise comment below
     #[batch_size,1] <= [batch_size, hidden_size],[batch_size, hidden_size]
     return melt.element_wise_cosine(normed_image_feature, normed_text_feature, nonorm=True)
+
 
     #point wise
     #return -tf.losses.mean_squared_error(normed_image_feature, normed_text_feature, reduction='none')
@@ -157,22 +161,16 @@ class DiscriminantTrainer(object):
     """
     if neg_image is not None:
       neg_text = None
-    with tf.variable_scope("image_text_sim"):
+    with tf.variable_scope(self.scope):
       #-------------get image feature
       #[batch_size, hidden_size] <= [batch_size, IMAGE_FEATURE_LEN] 
-      normed_image_feature = self.forward_image_feature(image_feature)
-
-      if FLAGS.fix_image_embedding:
-        normed_image_feature = tf.stop_gradient(normed_image_feature)
-
+      image_feature = self.forward_image_feature(image_feature)
       #--------------get image text sim as pos score
       #[batch_size, emb_dim] -> [batch_size, text_MAX_WORDS, emb_dim] -> [batch_size, emb_dim]
-      text_feature = self.gen_text_feature(text, self.emb)
-      if FLAGS.fix_text_embedding:
-        text_feature = tf.stop_gradient(text_feature)
-      tf.add_to_collection('text_feature', text_feature)
+      #text_feature = self.gen_text_feature(text, self.emb)
+      text_feature = self.forward_text(text)
 
-      pos_score = self.compute_image_text_sim(normed_image_feature, text_feature)
+      pos_score = self.compute_image_text_sim(image_feature, text_feature)
       
       #--------------get image neg texts sim as neg scores
       #[batch_size, num_negs, text_MAX_WORDS, emb_dim] -> [batch_size, num_negs, emb_dim]
@@ -180,24 +178,22 @@ class DiscriminantTrainer(object):
       neg_scores_list = []
       if neg_text is not None:
         if lookup_negs_once:
-          neg_text_feature = self.gen_text_feature(neg_text, self.emb)
+          neg_text_feature = self.forward_text(neg_text)
     
         num_negs = neg_text.get_shape()[1]
         for i in xrange(num_negs):
           if lookup_negs_once:
             neg_text_feature_i = neg_text_feature[:, i, :]
           else:
-            neg_text_feature_i = self.gen_text_feature(neg_text[:, i, :], self.emb)
-          neg_scores_i = self.compute_image_text_sim(normed_image_feature, neg_text_feature_i)
+            neg_text_feature_i = self.forward_text(neg_text[:, i, :])
+          neg_scores_i = self.compute_image_text_sim(image_feature, neg_text_feature_i)
           neg_scores_list.append(neg_scores_i)
       else:
         assert neg_image is not None 
         num_negs = neg_image.get_shape()[1]
         for i in xrange(num_negs):
-          neg_image_i = self.forward_image_feature(neg_image[:, i, :])
-          if FLAGS.fix_image_embedding:
-            neg_image_i = tf.stop_gradient(neg_image_i)
-          neg_scores_i =  self.compute_image_text_sim(neg_image_i, text_feature)
+          neg_image_feature_i = self.forward_image_feature(neg_image[:, i, :])
+          neg_scores_i =  self.compute_image_text_sim(neg_image_feature_i, text_feature)
           neg_scores_list.append(neg_scores_i)
 
       #[batch_size, num_negs]
@@ -209,16 +205,17 @@ class DiscriminantTrainer(object):
       #may be turn to prob is and show is 
       #probs = tf.sigmoid(scores)
 
-      if FLAGS.rank_loss == 'hinge':
-        loss = melt.hinge_loss(pos_score, neg_scores, FLAGS.margin)
-      elif FLAGS.rank_loss == 'cross':
-        loss = melt.cross_entropy_loss(scores, num_negs)
+      if FLAGS.loss == 'hinge':
+        loss = melt.losses.hinge(pos_score, neg_scores, FLAGS.margin)
+      elif FLAGS.loss == 'cross':
+        #will conver to 0-1 logits int melt.cross_entropy_loss http://www.wildml.com/2016/07/deep-learning-for-chatbots-2-retrieval-based-model-tensorflow/
+        loss = melt.losses.cross_entropy(scores, num_negs)
       #point losss is bad here for you finetune both text and image embedding, all 0 vec will loss minimize..
       #if use point loss you need to fix text embedding
-      elif FLAGS.rank_loss == 'point': 
+      elif FLAGS.loss == 'point': 
         loss = tf.reduce_mean(1.0 - pos_score)
       else: 
-        loss = melt.hinge_cross_loss(pos_score, neg_scores)
+        loss = melt.losses.hinge_cross(pos_score, neg_scores)
       
       tf.add_to_collection('scores', scores)
     return loss

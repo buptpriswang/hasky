@@ -56,13 +56,13 @@ class Rnn(object):
       self.trainer = DiscriminantTrainer(is_training=True)
 
     self.encoder = RnnEncoder(is_training, is_predict)
-
+    
   def gen_text_feature(self, text, emb):
     text_feature, _ = self.encoder.encode(text, emb=emb)
     return text_feature
 
-  def gen_text_importance(self, text, emb):
-    return self.encoder.importance_encode(text, emb=emb)
+  def encoder_words_importance(self, text, emb):
+    return self.encoder.words_importance_encode(text, emb=emb)
 
   def build_train_graph(self, image_feature, text, neg_text, neg_image=None):
     self.trainer.gen_text_feature = self.gen_text_feature
@@ -81,5 +81,6 @@ class RnnPredictor(DiscriminantPredictor, melt.PredictorBase):
 
     predictor = Rnn(is_training=False, is_predict=True)
     self.gen_text_feature = predictor.gen_text_feature
-    self.gen_text_importance = predictor.gen_text_importance
+    self.encoder_words_importance = predictor.encoder_words_importance
+    
   

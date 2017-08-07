@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/rnn.finetune
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/rnn.fiximage.point
 mkdir -p $model_dir
 
 python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
@@ -35,9 +35,11 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --num_evaluate_examples 10 \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
-  --num_epochs 500 \
+  --num_epochs 1000 \
   --num_negs 1 \
   --neg_image 1 \
+  --rank_loss point \
+  --fix_image_emb 1 \
   --debug 0 \
   --feed_dict 0 \
   --algo rnn \

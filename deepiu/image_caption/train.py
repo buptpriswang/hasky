@@ -270,14 +270,18 @@ def gen_predict_graph(predictor):
   tf.add_to_collection('score', score)
 
   if algos_factory.is_discriminant(FLAGS.algo):
-    tf.add_to_collection('textsim_score', predictor.textsim_score)
+    tf.add_to_collection('textsim', predictor.textsim_score)
     tf.add_to_collection('text_encode', predictor.text_encode)
     tf.add_to_collection('image_encode', predictor.image_encode)
-    if predictor.text_importance is not None:
-      tf.add_to_collection('text_importance', predictor.text_importance)
-    print('predictor.text_importance:', predictor.text_importance)
+    tf.add_to_collection('words_importance', predictor.words_importance)
+    if predictor.encoder_words_importance is not None:
+      tf.add_to_collection('encoder_words_importance', predictor.encoder_words_importance)
+
+    tf.add_to_collection('image_words_score', predictor.image_words_score)
+    tf.add_to_collection('text_words_score', predictor.text_words_score)
   
    #-----generateive
+   #-----TODO all move to predictor so train app file do not need to do again
   if algos_factory.is_generative(FLAGS.algo):
     exact_score = predictor.init_predict(exact_loss=True)
     tf.add_to_collection('exact_score', exact_score)

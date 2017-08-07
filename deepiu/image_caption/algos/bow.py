@@ -37,8 +37,12 @@ class Bow(object):
     """
     return bow_encoder.encode(text, emb)
 
-  def gen_text_importance(self, text, emb):
-    return bow_encoder.importance_encode(text, emb=emb)
+  # def gen_text_importance(self, text, emb):
+  #   #return bow_encoder.importance_encode(text, emb=emb)
+  #   #text batch_size must be 1 currently [1, seq_len] -> [seq_len, 1]
+  #   sequence = tf.transpose(sequence, [1, 0])
+  #   word_feature = self.trainer.forward_text(word_index)
+  #   return word_feature
 
   def build_train_graph(self, image_feature, text, neg_text, neg_image=None):
     #self.trainer = DiscriminantTrainer(is_training=self.is_training)
@@ -55,7 +59,6 @@ class BowPredictor(DiscriminantPredictor, melt.PredictorBase):
 
     predictor = Bow(is_training=False, is_predict=True)
     self.gen_text_feature = predictor.gen_text_feature
-    self.gen_text_importance = predictor.gen_text_importance
 
   #--------- only used during training evaluaion, image_feature and text all small
   def build_train_graph(self, image_feature, text, neg_text, neg_image=None):

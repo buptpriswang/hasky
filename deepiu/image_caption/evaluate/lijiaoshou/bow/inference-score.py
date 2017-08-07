@@ -33,6 +33,7 @@ flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.special.txt',
 flags.DEFINE_string('image_feature_pattern', '/home/gezi/data/lijiaoshou/candidate_feature.txt', 'train data')
 flags.DEFINE_integer('num_files', 2, '')
 flags.DEFINE_integer('batch_size_', 100000, '')
+flags.DEFINE_integer('text_max_words', 100, '')
 
 flags.DEFINE_string('seg_method_', 'full', '')
 flags.DEFINE_bool('feed_single_', False, '')
@@ -65,7 +66,7 @@ def _text2ids(text, max_words):
 
 def predicts(image_features, text):
   #TODO may be N texts to speed up as bow support this
-  word_ids_list = [_text2ids(text, TEXT_MAX_WORDS)] 
+  word_ids_list = [_text2ids(text, FLAGS.text_max_words or TEXT_MAX_WORDS)] 
 
   score = predictor.inference('score', 
                               feed_dict= {

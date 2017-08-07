@@ -341,10 +341,9 @@ score_op = None
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', all_distinct_texts.shape)
   score = predictor.bulk_predict(img_features, all_distinct_texts)
   timer.print()
-
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', all_distinct_texts.shape, 'score_shape:', score.shape)
   img2text, _ = get_bidrectional_lable_map()
   num_texts = all_distinct_texts.shape[0]
 
@@ -364,10 +363,9 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict text2im')
   _, img_features = get_image_names_and_features()
   # TODO gpu outofmem predict for showandtell
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape)
   score = predictor.bulk_predict(img_features, texts)
   score = score.transpose()
-  print('---------score shape', score.shape)
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
 
   text2img, img2id = get_bidrectional_lable_map_txt2im()

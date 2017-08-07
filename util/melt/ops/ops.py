@@ -87,6 +87,11 @@ def element_wise_cosine(a, b, a_normed=False, b_normed=False, nonorm=False, keep
     #return tf.matmul(normalized_a, normalized_b, transpose_b=True)
     return tf.reduce_sum(tf.multiply(normalized_a, normalized_b), -1, keep_dims=keep_dims)
 
+def dot(a, b, name=None):
+  with tf.name_scope(name, 'dot', [a,b]):
+    return tf.matmul(a, b, transpose_b=True)   
+
+#actually is dot..
 def cosine_nonorm(a, b, name=None):
   with tf.name_scope(name, 'cosine_nonorm', [a,b]):
     return tf.matmul(a, b, transpose_b=True)  
@@ -675,14 +680,16 @@ def sigmoid_cross_entropy(x, y):
 
 activations = {'sigmoid' :  tf.nn.sigmoid, 'tanh' : tf.nn.tanh, 'relu' : tf.nn.relu}
 
+
+#--@TODO other rank loss
+#Depreciated use melt.losses.
+
 def reduce_loss(loss_matrix, combiner='mean'):
   if combiner == 'mean':
     return tf.reduce_mean(loss_matrix)
   else:
     return tf.reduce_sum(loss_matrix)
 
-#--@TODO other rank loss
-#@TODO move to losses
 def hinge_loss(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
   with tf.name_scope(name, 'hinge_loss', [pos_score, neg_score]):
     loss_matrix = tf.maximum(0., margin - (pos_score - neg_score))
@@ -692,18 +699,21 @@ def hinge_loss(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
 def cross_entropy_loss(scores, num_negs=1, combiner='mean', name=None):
   with tf.name_scope(name, 'cross_entropy_loss', [scores]):
     batch_size = scores.get_shape()[0]
-    targets = tf.concat(1, [tf.ones([batch_size, 1], tf.float32), tf.zeros([batch_size, num_negs], tf.float32)])
-    #TODO check code of sigmoid and softmax
-    #loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(scores, targets)
-    loss_matrix = tf.nn.softmax_cross_entropy_with_logits(scores, targets)
+    targets = tf.concat([tf.ones([batch_size, 1], tf.float32), tf.zeros([batch_size, num_negs], tf.float32)], 1)
+    #http://www.wildml.com/2016/07/deep-learning-for-chatbots-2-retrieval-based-model-tensorflow/ 
+    #I think for binary is same for sigmoid or softmax
+    logits = tf.sigmoid(scores)
+    loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=targets)
+    #loss_matrix = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=targets)
     loss = reduce_loss(loss_matrix, combiner)
     return loss
 
 def hinge_cross_loss(pos_score, neg_score, combiner='mean', name=None):
   with tf.name_scope(name, 'hinge_cross_loss', [pos_score, neg_score]):
     logits = pos_score - neg_score
+    logits = tf.sigmoid(logits)
     targets = tf.ones_like(neg_score, tf.float32)
-    loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits, targets)
+    loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=targets)
     loss = reduce_loss(loss_matrix, combiner)
     return loss
 
@@ -763,17 +773,12 @@ def get_batch_size(x):
   #or .shape.as_list()[0]  or .get_shape().as_list()[0]
   return x.get_shape()[0].value or tf.shape(x)[0]
 
-def max_pooling(outputs, sequence_length, axis=1):
-  weight = 1000.
-  sequence_mask = tf.expand_dims(tf.to_float(tf.sequence_mask(sequence_length, tf.shape(outputs)[1])), -1)
+def max_pooling(outputs, sequence_length, axis=1, reduce_func=tf.reduce_max):
+  weight = -1e18
+  sequence_mask = tf.expand_dims(1. - tf.to_float(tf.sequence_mask(sequence_length, tf.shape(outputs)[1])), -1)
   weighted_mask = sequence_mask * weight
   weighted_output = outputs + weighted_mask
-  max_output = tf.reduce_max(weighted_output, axis)
-  return max_output - weight
+  return reduce_func(weighted_output, axis)
 
 def argmax_pooling(outputs, sequence_length, axis=1):
-  weight = 1000.
-  sequence_mask = tf.expand_dims(tf.to_float(tf.sequence_mask(sequence_length, tf.shape(outputs)[1])), -1)
-  weighted_mask = sequence_mask * weight
-  weighted_output = outputs + weighted_mask
-  return tf.argmax(weighted_output, axis)
+  return max_pooling(outputs, sequence_length, axis, reduce_func=tf.argmax)

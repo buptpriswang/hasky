@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+  #!/usr/bin/env python
 # ==============================================================================
 #          \file   flow.py
 #        \author   chenghuige  
@@ -139,6 +139,7 @@ def tf_train_flow(train_once_fn,
   threads = tf.train.start_queue_runners(sess=sess, coord=coord)
   checkpoint_path = os.path.join(model_dir, 'model.ckpt')
 
+  tf.train.write_graph(sess.graph_def, model_dir, 'train.pbtxt')
   try:
     step = start = pre_step +  1
     #hack just for save one model after load
@@ -165,7 +166,8 @@ def tf_train_flow(train_once_fn,
                      _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 
                      global_step=step)
           timer.print()
-        if save_interval_epochs and num_steps_per_epoch and step % (num_steps_per_epoch * save_interval_epochs) == 0:
+        #if save_interval_epochs and num_steps_per_epoch and step % (num_steps_per_epoch * save_interval_epochs) == 0:
+        if save_interval_epochs and num_steps_per_epoch and step % num_steps_per_epoch == 0:
           epoch = step // num_steps_per_epoch
           eval_loss = melt.eval_loss()
           if eval_loss:
@@ -193,10 +195,10 @@ def tf_train_flow(train_once_fn,
             else:
               num_bad_epochs = 0
             pre_epoch_eval_loss = eval_loss
-
-          epoch_saver.save(sess, 
-                          os.path.join(epoch_dir,'model.cpkt-%d'%epoch), 
-                          global_step=step)
+          if step % (num_steps_per_epoch * save_interval_epochs) == 0:
+            epoch_saver.save(sess, 
+                            os.path.join(epoch_dir,'model.cpkt-%d'%epoch), 
+                            global_step=step)
           #--------do not add step
           # epoch_saver.save(sess, 
           #        os.path.join(epoch_dir,'model.cpkt-%d'%epoch))
@@ -218,7 +220,7 @@ def tf_train_flow(train_once_fn,
     if metric_eval_fn is not None:
       metric_eval_fn()
     if (num_epochs and step / num_steps_per_epoch >= num_epochs) or (num_steps and (step + 1) == start + num_steps) :
-      print('Done training for %d steps.' % (step + 1), file=sys.stderr)
+      print('Done training for %.3f epochs, %d steps.' % (step / num_steps_per_epoch, step + 1), file=sys.stderr)
       #FIXME becase coord.join seems not work,  RuntimeError: Coordinator stopped with threads still running: Thread-9
       exit(0)
     else:

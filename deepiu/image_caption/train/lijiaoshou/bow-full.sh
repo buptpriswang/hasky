@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic 
+conf_path=./prepare/default/app-conf/lijiaoshou/bow/ 
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.full
 mkdir -p $model_dir
 
 python ./train.py \

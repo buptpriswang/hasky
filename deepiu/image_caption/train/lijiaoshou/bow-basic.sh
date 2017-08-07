@@ -39,7 +39,7 @@ python ./train.py \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
-  --num_epochs 100 \
+  --num_epochs 1000 \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
   --debug 0 \

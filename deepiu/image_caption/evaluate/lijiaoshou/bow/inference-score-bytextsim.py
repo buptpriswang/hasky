@@ -67,7 +67,7 @@ def predicts(image_features, input_texts, text):
   word_ids_list = [_text2ids(text, TEXT_MAX_WORDS)] 
   input_word_ids_list = [_text2ids(input_text, TEXT_MAX_WORDS) for input_text in input_texts]
 
-  score = predictor.inference('textsim_score', 
+  score = predictor.inference('textsim', 
                               feed_dict= {
                                       FLAGS.text_name: input_word_ids_list,
                                       FLAGS.text2_name: word_ids_list

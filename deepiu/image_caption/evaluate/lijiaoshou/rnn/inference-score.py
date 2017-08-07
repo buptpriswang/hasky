@@ -121,7 +121,7 @@ def top_images(text):
   for i, (score, image, itext) in enumerate(image_scores[:50]):
     if i % 5 == 0:
       print('<table><tr>')
-    itext = ''
+    #itext = ''
     print(img_html.format(image, i, score, itext))
     if (i + 1) % 5 == 0:
       print('</tr></table>')

@@ -1,9 +1,11 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic 
+conf_path=./prepare/default/app-conf/lijiaoshou/bow
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.ct0.full
 mkdir -p $model_dir
+
+train_output_path=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/train.keyword/
 
 python ./train.py \
   --train_input=$train_output_path/'train-*' \
@@ -38,8 +40,8 @@ python ./train.py \
   --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
-  --save_interval_epochs 10 \
-  --num_epochs 1000 \
+  --save_interval_epochs 1 \
+  --num_epochs 100 \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
   --debug 0 \

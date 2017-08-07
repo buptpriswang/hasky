@@ -39,7 +39,8 @@ def embedding_lookup_reduce(emb, indexes):
 def encode(sequence, emb):
   return embedding_lookup_reduce(emb, sequence)
 
-def importance_encode(sequence, emb=None):
+#not correct this is only for embedding importance calc, for final result see bow.py
+def words_importance_encode(sequence, emb=None):
   #[batch_size, length, embedding_size], [batch_size, embedding_size]
   lookup_result, encode_emb = melt.batch_masked_embedding_lookup_and_reduce(emb,
                                                   sequence, 
@@ -59,7 +60,7 @@ class BowEncoder(Encoder):
       emb = self.emb
     return encode(sequence, emb)
 
-  def importance_encode(self, sequence, emb=None):
+  def words_importance_encode(self, sequence, emb=None):
     if emb is None:
       emb = self.emb
     #[batch_size, length, embedding_size], [batch_size, embedding_size]

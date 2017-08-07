@@ -32,4 +32,6 @@ import melt.apps
 import melt.rnn 
 
 import melt.seq2seq 
-import melt.image
+import melt.image  
+
+import melt.losses 
