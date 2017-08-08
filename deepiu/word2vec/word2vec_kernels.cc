@@ -11,6 +11,14 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+"""
+chg modify it a bit, 
+input is corpus file  all number/word_id so no need of word2id(pre done)
+
+for vocab file add one <PAD> for zero index with freq 0 (need vocab file only for )
+but no need for vocab file for SkipgramWord2vec just int py prepare count and pass it 
+to neg train
+"""
 ==============================================================================*/
 
 #include "tensorflow/core/framework/op.h"
@@ -23,6 +31,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/thread_annotations.h"
 #include "tensorflow/core/util/guarded_philox_random.h"
+
 
 namespace tensorflow {
 
@@ -57,6 +66,7 @@ class SkipgramWord2vecOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("min_count", &min_count_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("subsample", &subsample_));
     OP_REQUIRES_OK(ctx, Init(ctx->env(), filename));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab_count", &freq_));
 
     mutex_lock l(mu_);
     example_pos_ = corpus_size_;
@@ -94,13 +104,11 @@ class SkipgramWord2vecOp : public OpKernel {
       current_epoch.scalar<int32>()() = current_epoch_;
       total_words_processed.scalar<int64>()() = total_words_processed_;
     }
-    ctx->set_output(0, word_);
-    ctx->set_output(1, freq_);
-    ctx->set_output(2, words_per_epoch);
-    ctx->set_output(3, current_epoch);
-    ctx->set_output(4, total_words_processed);
-    ctx->set_output(5, examples);
-    ctx->set_output(6, labels);
+    ctx->set_output(0, words_per_epoch);
+    ctx->set_output(1, current_epoch);
+    ctx->set_output(2, total_words_processed);
+    ctx->set_output(3, examples);
+    ctx->set_output(4, labels);
   }
 
  private:
@@ -114,8 +122,7 @@ class SkipgramWord2vecOp : public OpKernel {
   float subsample_ = 1e-3;
   int min_count_ = 5;
   int32 vocab_size_ = 0;
-  Tensor word_;
-  Tensor freq_;
+  std::vector<int32> freq_;
   int64 corpus_size_ = 0;
   std::vector<int32> corpus_;
   std::vector<Example> precalc_examples_;
@@ -149,7 +156,7 @@ class SkipgramWord2vecOp : public OpKernel {
               example_pos_ = 0;
             }
             if (subsample_ > 0) {
-              int32 word_freq = freq_.flat<int32>()(corpus_[example_pos_]);
+              int32 word_freq = freq_[corpus_[example_pos_]];
               // See Eq. 5 in http://arxiv.org/abs/1310.4546
               float keep_prob =
                   (std::sqrt(word_freq / (subsample_ * corpus_size_)) + 1) *
@@ -176,16 +183,14 @@ class SkipgramWord2vecOp : public OpKernel {
     *label = sentence_[label_pos_++];
   }
 
-  Status Init(Env* env, const string& filename, const string& vocab_filename) {
+  Status Init(Env* env, const string& filename) {
     string data;
     TF_RETURN_IF_ERROR(ReadFileToString(env, filename, &data));
     StringPiece input = data;
     string w;
     corpus_size_ = 0;
-    //num_reserved_ids = 1
-    std::unordered_map<string, int32> word_freq;
+
     while (ScanWord(&input, &w)) {
-      ++(word_freq[w]);
       ++corpus_size_;
     }
     if (corpus_size_ < window_size_ * 10) {
@@ -193,43 +198,12 @@ class SkipgramWord2vecOp : public OpKernel {
                                      " contains too little data: ",
                                      corpus_size_, " words");
     }
-    typedef std::pair<string, int32> WordFreq;
-    std::vector<WordFreq> ordered;
-    for (const auto& p : word_freq) {
-      if (p.second >= min_count_) ordered.push_back(p);
-    }
-    LOG(INFO) << "Data file: " << filename << " contains " << data.size()
-              << " bytes, " << corpus_size_ << " words, " << word_freq.size()
-              << " unique words, " << ordered.size()
-              << " unique frequent words.";
-    word_freq.clear();
-    std::sort(ordered.begin(), ordered.end(),
-              [](const WordFreq& x, const WordFreq& y) {
-                return x.second > y.second;
-              });
-    vocab_size_ = static_cast<int32>(1 + ordered.size());
-    Tensor word(DT_STRING, TensorShape({vocab_size_}));
-    Tensor freq(DT_INT32, TensorShape({vocab_size_}));
-    word.flat<string>()(0) = "UNK";
-    static const int32 kUnkId = 0;
-    std::unordered_map<string, int32> word_id;
-    int64 total_counted = 0;
-    for (std::size_t i = 0; i < ordered.size(); ++i) {
-      const auto& w = ordered[i].first;
-      auto id = i + 1;
-      word.flat<string>()(id) = w;
-      auto word_count = ordered[i].second;
-      freq.flat<int32>()(id) = word_count;
-      total_counted += word_count;
-      word_id[w] = id;
-    }
-    freq.flat<int32>()(kUnkId) = corpus_size_ - total_counted;
-    word_ = word;
-    freq_ = freq;
+   
     corpus_.reserve(corpus_size_);
     input = data;
     while (ScanWord(&input, &w)) {
-      corpus_.push_back(gtl::FindWithDefault(word_id, w, kUnkId));
+      corpus_.push_back(std::stoi(w));
+      //corpus_.push_back(1);
     }
     LOG(INFO) << "corpus_ size:" << corpus_.size();
     precalc_examples_.resize(kPrecalc);

@@ -1,1 +1,2 @@
-python word2vec_optimized.py --train_data=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/train/seg.utf8.txt --save_path=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec --interactive=1 --epochs_to_train=0
+dir=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic
+python word2vec_optimized.py --save_path=$dir/word2vec2 --interactive=1 --vocab_path=$dir/vocab.txt --train_data=$dir/valid/seg-id.txt

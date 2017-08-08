@@ -17,8 +17,8 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('hidden_size', 1024, 'hidden size, depreciated, use mlp_layer_dims instead')
-flags.DEFINE_string('image_mlp_layer_dims', '1024,1024', '')
-flags.DEFINE_string('text_mlp_layer_dims', '1024,1024', '')
+flags.DEFINE_string('image_mlp_dims', '1024,1024', '')
+flags.DEFINE_string('text_mlp_dims', '1024,1024', '')
 
 flags.DEFINE_float('margin', 0.5, 'margin for rankloss when rank_loss is hinge loss')
 flags.DEFINE_string('activation', 'relu', 
@@ -28,12 +28,10 @@ flags.DEFINE_string('activation', 'relu',
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
 flags.DEFINE_string('loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
 
-flags.DEFINE_boolean('fix_image_embedding', False, '')
-
-flags.DEFINE_boolean('fix_text_embedding', False, '')
-
-flags.DEFINE_boolean('fix_word_embedding', False, '')
-flags.DEFINE_boolean('pre_train_word_embedding', False, '')
+flags.DEFINE_boolean('fix_image_embedding', False, 'image part all fixed, so just fintune text part')
+flags.DEFINE_boolean('fix_text_embedding', False, 'text part all fixed, so just fintune image part')
+flags.DEFINE_string('word_embedding_file', None, 'load pre trained word embedding from word2vec or glov if not None')
+flags.DEFINE_boolean('finetune_word_embedding', True, 'wether update word embedding')
 
 
 import functools
@@ -67,9 +65,18 @@ class DiscriminantTrainer(object):
     #if not cpu and on gpu run and using adagrad, will fail  TODO check why
     #also this will be more safer, since emb is large might exceed gpu mem   
     #with tf.device('/cpu:0'):
-    #  #NOTICE if using bidirectional rnn then actually emb_dim is emb_dim / 2, because will at last step depth-concatate output fw and bw vectors
     #  self.emb = melt.variable.get_weights_uniform('emb', [vocab_size, emb_dim], -init_width, init_width)
-    self.emb = embedding.get_embedding_cpu('emb')
+    
+    if not FLAGS.word_embedding_file:
+      self.emb = embedding.get_embedding_cpu(name='emb', trainable=FLAGS.fintune_word_embedding)
+    else:
+      #https://github.com/tensorflow/tensorflow/issues/1570  
+      #still adgrad must cpu..
+      #if not fintue emb this will be ok if fintune restart will ok ? must not use word embedding file? os.path.exists(FLAGS.model_dir) ? judge?
+      #or will still try to load from check point ? TODO for safe you could re run by setting word_embedding_file as None or ''
+      logging.info('Loading worde embedding from :{} and finetune=:{}'.format(FLAGS.word_embedding_file, FLAGS.finetune_word_embedding))
+      self.emb = melt.load_constant_cpu(FLAGS.word_embedding_file, name='emb', trainable=FLAGS.finetune_word_embedding)
+
     melt.visualize_embedding(self.emb, FLAGS.vocab)
     if is_training and FLAGS.monitor_level > 0:
       melt.monitor_embedding(self.emb, vocabulary.vocab, vocab_size)
@@ -89,8 +96,8 @@ class DiscriminantTrainer(object):
                                                 width=FLAGS.image_width)
 
 
-    self.image_mlp_layer_dims = [int(x) for x in FLAGS.image_mlp_layer_dims.split(',')]
-    self.text_mlp_layer_dims = [int(x) for x in FLAGS.text_mlp_layer_dims.split(',')]
+    self.image_mlp_dims = [int(x) for x in FLAGS.image_mlp_dims.split(',')] if FLAGS.image_mlp_dims is not '0' else None
+    self.text_mlp_dims = [int(x) for x in FLAGS.text_mlp_dims.split(',')] if FLAGS.text_mlp_dims is not '0' else None
 
     self.scope = 'image_text_sim'
 
@@ -98,7 +105,10 @@ class DiscriminantTrainer(object):
     if not FLAGS.pre_calc_image_feature:
       image_feature = self.image_process_fn(image_feature)
 
-    dims = self.image_mlp_layer_dims
+    dims = self.image_mlp_dims
+    if not dims:
+      return image_feature
+
     return melt.slim.mlp(image_feature, 
                          dims, 
                          self.activation, 
@@ -109,7 +119,10 @@ class DiscriminantTrainer(object):
 
   def forward_text_layers(self, text_feature):
     #TODO better config like google/seq2seq us pyymal
-    dims = self.text_mlp_layer_dims
+    dims = self.text_mlp_dims
+    if not dims:
+      return text_feature
+
     return melt.slim.mlp(text_feature, 
                          dims, 
                          self.activation, 

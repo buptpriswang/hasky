@@ -1,2 +1,2 @@
 #python word2vec_optimized.py --train_data=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/train/seg.utf8.txt --save_path=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec2
-python word2vec_optimized.py --train_data=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/train/seg.txt --save_path=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec2
+python word2vec_optimized.py --vocab_path=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/vocab.txt --train_data=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/train/seg-id.txt --save_path=/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec2 

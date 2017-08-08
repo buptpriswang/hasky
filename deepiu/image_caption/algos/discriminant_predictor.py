@@ -38,9 +38,9 @@ except Exception:
 from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
 
 class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
-  def __init__(self, need_embedding=True):
+  def __init__(self, sess=None):
     #super(DiscriminantPredictor, self).__init__()
-    melt.PredictorBase.__init__(self)
+    melt.PredictorBase.__init__(self, sess=sess)
     DiscriminantTrainer.__init__(self, is_training=False, is_predict=True)
 
     self.text = None
@@ -68,6 +68,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     self.score = self.build_predict_graph(text_max_words)
     tf.get_variable_scope().reuse_variables()
     self.textsim_score = self.build_textsim_predict_graph(text_max_words)
+    self.text_emb_sim_score = self.build_text_emb_sim_predict_graph(text_max_words)
 
     self.words_importance = self.build_words_importance_graph(self.get_text_feed(text_max_words))
     try:
@@ -80,6 +81,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
 
     self.image_words_score = self.build_image_words_sim_graph()
     self.text_words_score = self.build_text_words_sim_graph(text_max_words)
+    self.text_words_emb_score = self.build_text_words_emb_sim_graph(text_max_words)
 
     return self.score
 
@@ -168,6 +170,13 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       score = melt.dot(text_feature, text_feature2)
       return score
 
+  def build_text_emb_sim_graph(self, text,  text2):
+    with tf.variable_scope(self.scope):
+      text_feature = self.gen_text_feature(text, self.emb)
+      text_feature2 = self.gen_text_feature(text2, self.emb)
+      score = melt.cosine(text_feature, text_feature2)
+      return score
+
   def build_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
     score = self.build_graph(self.get_image_feature_feed(), self.get_text_feed(text_max_words))
     return score
@@ -175,6 +184,11 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
   def build_textsim_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
     self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
     score = self.build_textsim_graph(self.get_text_feed(text_max_words), self.text2_feed)
+    return score
+
+  def build_text_emb_sim_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
+    self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
+    score = self.build_text_emb_sim_graph(self.get_text_feed(text_max_words), self.text2_feed)
     return score
 
   def build_fixed_text_feature_graph(self, text_feature_npy): 
@@ -185,7 +199,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     """
     with tf.variable_scope(self.scope):
       image_feature = self.forward_image_feature(self.image_feature_feed)
-      text_feature = melt.load_constant(self.sess, text_feature_npy)
+      text_feature = melt.load_constant(text_feature_npy, self.sess)
       score = melt.dot(image_feature, text_feature)
       return score
 
@@ -211,7 +225,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
   def init_evaluate_constant_text(self, text_npy):
     #self.text = tf.constant(text_npy)
     if self.text is None:
-      self.text = melt.load_constant(self.sess, text_npy)
+      self.text = melt.load_constant(text_npy, self.sess)
 
   def init_evaluate_constant(self, image_feature_npy, text_npy):
     self.init_evaluate_constant_image(image_feature_npy)
@@ -231,6 +245,15 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     num_words = min(self.vocab_size - 1, MAX_EMB_WORDS)
     word_index = tf.reshape(tf.range(num_words), [num_words, 1])
     word_feature = self.forward_text(word_index)
+    return word_feature
+
+  def gen_word_feature(self):
+    #@TODO may need melt.first_nrows so as to avoid caclc to many words
+    # du -h comment_feature_final.npy 
+    #3.6G comment_feature_final.npy  so 100w 4G, 800w 32G, 1500w word will exceed cpu 
+    num_words = min(self.vocab_size - 1, MAX_EMB_WORDS)
+    word_index = tf.reshape(tf.range(num_words), [num_words, 1])
+    word_feature = self.gen_text_feature(word_index, self.emb)
     return word_feature
 
   def build_evaluate_image_word_graph(self, image_feature):
@@ -266,7 +289,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
   def forward_fixed_text(self, text_npy):
     #text = tf.constant(text_npy)  #smaller than 2G, then ok... 
     #but for safe in more application
-    text = melt.load_constant(self.sess, text_npy)
+    text = melt.load_constant(text_npy, self.sess)
     with tf.variable_scope(self.scope):
       text_feature = self.forward_text(text)
       return text_feature
@@ -313,4 +336,11 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       text_feature = self.forward_text(self.get_text_feed(text_max_words))
       word_feature = self.forward_word_feature()
       score = melt.dot(text_feature, word_feature)
+      return score
+
+  def build_text_words_emb_sim_graph(self, text_max_words=TEXT_MAX_WORDS):
+    with tf.variable_scope(self.scope):
+      text_feature = self.gen_text_feature(self.get_text_feed(text_max_words), self.emb)
+      word_feature = self.gen_word_feature()
+      score = melt.cosine(text_feature, word_feature)
       return score

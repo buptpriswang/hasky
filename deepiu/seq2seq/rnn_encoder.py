@@ -68,7 +68,7 @@ class RnnEncoder(Encoder):
                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
-  def encode(self, sequence, input=None, emb=None, output_method=FLAGS.rnn_output_method):
+  def encode(self, sequence, input=None, emb=None, output_method=None):
     if emb is None:
       emb = self.emb 
 
@@ -101,7 +101,7 @@ class RnnEncoder(Encoder):
           sequence_length, 
           cell_bw=self.bwcell,
           encode_method=FLAGS.rnn_method,
-          output_method=output_method)
+          output_method=output_method or FLAGS.rnn_output_method)
 
     return encode_feature, state
 

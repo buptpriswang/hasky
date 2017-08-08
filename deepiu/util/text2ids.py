@@ -31,6 +31,8 @@ except Exception:
 vocab = None 
 Segmentor = None 
 
+NUM_MARK = '<NUM>'
+
 def init(vocab_path=None):
   global vocab, Segmentor
   if vocab is None:
@@ -43,7 +45,7 @@ def init(vocab_path=None):
 #TODO ENCODE_UNK might not be in conf.py but to pass as param encode_unk=False
 def words2ids(words, feed_single=True, allow_all_zero=False, 
               pad=True, append_start=False, append_end=False,
-              max_words=None):
+              max_words=None, norm_digit=True, norm_all_digit=False):
   """
   default params is suitable for bow
   for sequence method may need seg_method prhase and feed_single=True,
@@ -52,16 +54,18 @@ def words2ids(words, feed_single=True, allow_all_zero=False,
 
   #@TODO feed_single move to Segmentor.py to add support for seg with vocab 
   """
-
   if not feed_single:
     word_ids = [vocab.id(word) for word in words if vocab.has(word) or ENCODE_UNK]
   else:
     word_ids = []
     for word in words:
+      if norm_all_digit and word.isdigit():
+        word_ids.append(vocab.id(NUM_MARK))
+        continue
       if vocab.has(word):
         word_ids.append(vocab.id(word))
-      elif word.isdigit():
-        word_ids.append(vocab.id('<NUM>'))
+      elif not norm_all_digit and norm_digit and word.isdigit():
+        word_ids.append(vocab.id(NUM_MARK))
       else:
         cns = gezi.get_single_cns(word)
         if cns:
@@ -86,9 +90,9 @@ def words2ids(words, feed_single=True, allow_all_zero=False,
 
   return word_ids
 
-def text2ids(text, seg_method='default', feed_single=True, allow_all_zero=False, 
+def text2ids(text, seg_method='basic', feed_single=True, allow_all_zero=False, 
             pad=True, append_start=False, append_end=False, to_lower=True,
-            max_words=None):
+            max_words=None, norm_digit=True, norm_all_digit=False):
   """
   default params is suitable for bow
   for sequence method may need seg_method prhase and feed_single=True,
@@ -100,7 +104,15 @@ def text2ids(text, seg_method='default', feed_single=True, allow_all_zero=False,
   if to_lower:
     text = text.lower()
   words = Segmentor.Segment(text, seg_method)
-  return words2ids(words, feed_single, allow_all_zero, pad, append_start, append_end, max_words)
+  return words2ids(words, 
+                   feed_single=feed_single, 
+                   allow_all_zero=allow_all_zero, 
+                   pad=pad, 
+                   append_start=append_start, 
+                   append_end=append_end, 
+                   max_words=max_words, 
+                   norm_digit=norm_digit,
+                   norm_all_digit=norm_all_digit)
 
 def ids2words(text_ids, print_end=True):
   #print('@@@@@@@@@@text_ids', text_ids)

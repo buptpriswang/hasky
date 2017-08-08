@@ -273,6 +273,7 @@ def gen_predict_graph(predictor):
 
   if algos_factory.is_discriminant(FLAGS.algo):
     tf.add_to_collection('textsim', predictor.textsim_score)
+    tf.add_to_collection('text_emb_sim', predictor.text_emb_sim_score)
     tf.add_to_collection('text_encode', predictor.text_encode)
     tf.add_to_collection('image_encode', predictor.image_encode)
     tf.add_to_collection('words_importance', predictor.words_importance)
@@ -281,6 +282,7 @@ def gen_predict_graph(predictor):
 
     tf.add_to_collection('image_words_score', predictor.image_words_score)
     tf.add_to_collection('text_words_score', predictor.text_words_score)
+    tf.add_to_collection('text_words_emb_score', predictor.text_words_emb_score)
   
    #-----generateive
    #-----TODO all move to predictor so train app file do not need to do again

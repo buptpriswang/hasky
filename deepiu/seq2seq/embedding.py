@@ -36,22 +36,20 @@ from deepiu.util import vocabulary
 #                             initializer=tf.truncated_normal_initializer(stddev=0.1),
 #                             regularizer=slim.l2_regularizer(0.05),
 #                             device='/CPU:0')
-def get_embedding(name='emb'):
-  emb_dim = FLAGS.emb_dim
-  vocabulary.init()
-  vocab_size = vocabulary.get_vocab_size() 
-  
-  ##NOTICE if using bidirectional rnn then actually emb_dim is emb_dim / 2, because will as last step depth-concatate output fw and bw vectors
+def get_embedding(name='emb', height=None, emb_dim=None, trainable=True):
+  emb_dim = emb_dim or FLAGS.emb_dim
+  if height is None:
+    vocabulary.init()
+    height = vocabulary.get_vocab_size() 
   
   init_width = 0.5 / emb_dim
-  emb = melt.variable.get_weights_uniform(name, [vocab_size, emb_dim], -init_width, init_width)
-  
+  emb = melt.variable.get_weights_uniform(name, [height, emb_dim], -init_width, init_width, trainable=trainable)
   #return to above code if this works not better
   #emb = melt.variable.get_weights_truncated(name, [vocab_size, emb_dim], stddev=FLAGS.weight_stddev)
   
   return emb 
 
-def get_embedding_cpu(name='emb'):
+def get_embedding_cpu(name='emb', height=None, emb_dim=None, trainable=True):
   with tf.device('/CPU:0'):
-    return get_embedding(name)
+    return get_embedding(name, height=height, emb_dim=emb_dim, trainable=trainable)
 
