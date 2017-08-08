@@ -36,7 +36,7 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
-  --num_negs 1 \
+  --num_negs 5 \
   --neg_image 1 \
   --word_embedding_file $dir/'word2vec2/word_embedding.npy' \
   --finetune_word_embedding 1 \

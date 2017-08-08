@@ -43,7 +43,7 @@ python ./train.py \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
   --debug 0 \
-  --num_negs 1 \
+  --num_negs 5 \
   --neg_image 1 \
   --word_embedding_file $dir/'word2vec2/word_embedding.npy' \
   --finetune_word_embedding 1 \
