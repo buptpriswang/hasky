@@ -139,6 +139,11 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       self.text_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text')
     return self.text_feed
 
+  def get_text2_feed(self, text_max_words=TEXT_MAX_WORDS):
+    if self.text2_feed is None:
+      self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
+    return self.text2_feed
+
   def bulk_fixed_text_predict(self, images):
     """
     not useful compare to bulk_predict since performance is similar, no gain
@@ -182,13 +187,11 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     return score
 
   def build_textsim_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
-    self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
-    score = self.build_textsim_graph(self.get_text_feed(text_max_words), self.text2_feed)
+    score = self.build_textsim_graph(self.get_text_feed(text_max_words), self.get_text2_feed(text_max_words))
     return score
 
   def build_text_emb_sim_predict_graph(self, text_max_words=TEXT_MAX_WORDS):
-    self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
-    score = self.build_text_emb_sim_graph(self.get_text_feed(text_max_words), self.text2_feed)
+    score = self.build_text_emb_sim_graph(self.get_text_feed(text_max_words), self.get_text2_feed(text_max_words))
     return score
 
   def build_fixed_text_feature_graph(self, text_feature_npy): 

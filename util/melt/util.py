@@ -17,6 +17,8 @@ from tensorflow.python import debug as tf_debug
 import sys, os, glob
 import inspect
 
+import numpy as np
+
 import gezi
 import melt 
 
@@ -330,21 +332,46 @@ def npdtype2tfdtype(data_npy):
     return tf.float64
   return tf.float32
 
-def load_constant(sess, data_npy, dtype=None, shape=None):
+def load_constant(data_npy, sess=None, trainable=False, 
+                  dtype=None, shape=None, name=None):
   """
   tf.constant only can be used for small data
   so melt.constant means melt.large_constant and have more general usage
+  https://stackoverflow.com/questions/35687678/using-a-pre-trained-word-embedding-word2vec-or-glove-in-tensorflow
   """
+
+  #or if isinstance(data_npy, str)
+  if type(data_npy) is str:
+    data_npy = np.load(data_npy)
+
   if dtype is None:
     dtype = npdtype2tfdtype(data_npy)
   #dtype = tf.float32
   if shape is None:
     shape = data_npy.shape
-  data_init = tf.placeholder(dtype, shape)
-  #@TODO getvariable?
-  data = tf.Variable(data_init, trainable=False, collections=[])
-  sess.run(data.initializer, feed_dict={data_init: data_npy})
+  
+  if name is None:
+    data_init = tf.placeholder(dtype, shape)
+    #@TODO getvariable?
+    data = tf.Variable(data_init, trainable=trainable, collections=[], name=name)
+    if sess is None:
+      sess = melt.get_session()
+    sess.run(data.initializer, feed_dict={data_init: data_npy})
+    return data
+  else:
+    data = tf.get_variable(name, shape=shape, initializer=tf.constant_initializer(data_npy), trainable=trainable)
+  
   return data
+
+def load_constant_cpu(data_npy, sess=None, trainable=False, 
+                      dtype=None, shape=None, name=None):
+   with tf.device('/CPU:0'):
+    return load_constant(data_npy, 
+        sess=sess, 
+        trainable=trainable,
+        dtype=dtype,
+        shape=shape,
+        name=name)
 
 def reuse_variables():
   tf.get_variable_scope().reuse_variables()
