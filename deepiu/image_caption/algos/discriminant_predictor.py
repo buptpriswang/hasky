@@ -266,7 +266,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
   def forward_fixed_text(self, text_npy):
     #text = tf.constant(text_npy)  #smaller than 2G, then ok... 
     #but for safe in more application
-    text = melt.constant(self.sess, text_npy)
+    text = melt.load_constant(self.sess, text_npy)
     with tf.variable_scope(self.scope):
       text_feature = self.forward_text(text)
       return text_feature

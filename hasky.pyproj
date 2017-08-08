@@ -407,6 +407,7 @@
     <Compile Include="deepiu\util\text2ids.py" />
     <Compile Include="deepiu\util\vocabulary.py" />
     <Compile Include="deepiu\util\__init__.py" />
+    <Compile Include="deepiu\word2vec\word2vec_optimized.py" />
     <Compile Include="deepiu\__init__.py" />
     <Compile Include="setup.py" />
     <Compile Include="tests\flags\model.py" />
@@ -809,6 +810,7 @@
     <Folder Include="deepiu\textsum_pytorch\" />
     <Folder Include="deepiu\tools\" />
     <Folder Include="deepiu\util\" />
+    <Folder Include="deepiu\word2vec\" />
     <Folder Include="tests\" />
     <Folder Include="tests\flags" />
     <Folder Include="util\" />
@@ -3190,6 +3192,11 @@
     <Content Include="deepiu\util\text2ids.pyc" />
     <Content Include="deepiu\util\vocabulary.pyc" />
     <Content Include="deepiu\util\__init__.pyc" />
+    <Content Include="deepiu\word2vec\compile.sh" />
+    <Content Include="deepiu\word2vec\test.sh" />
+    <Content Include="deepiu\word2vec\train.sh" />
+    <Content Include="deepiu\word2vec\word2vec_kernels.cc" />
+    <Content Include="deepiu\word2vec\word2vec_ops.cc" />
     <Content Include="deepiu\__init__.pyc" />
     <Content Include="util\melt\apps\train.pyc" />
     <Content Include="util\melt\apps\__init__.pyc" />

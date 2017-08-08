@@ -243,7 +243,9 @@ class Word2Vec(object):
     opts = self._options
     with open(os.path.join(opts.save_path, "vocab.txt"), "w") as f:
       for i in xrange(opts.vocab_size):
-        vocab_word = tf.compat.as_text(opts.vocab_words[i]).encode("utf-8")
+        #vocab_word = tf.compat.as_text(opts.vocab_words[i]).encode("utf-8")
+        #vocab_word = opts.vocab_words[i].encode('gbk')
+        vocab_word = opts.vocab_words[i]
         f.write("%s %d\n" % (vocab_word,
                              opts.vocab_counts[i]))
 
@@ -251,23 +253,6 @@ class Word2Vec(object):
     """Build the evaluation graph."""
     # Eval graph
     opts = self._options
-
-    # Normalized word embeddings of shape [vocab_size, emb_dim].
-    nemb = tf.nn.l2_normalize(self._w_in, 1)
-
-    # Nodes for computing neighbors for a given word according to
-    # their cosine distance.
-    nearby_word = tf.placeholder(dtype=tf.int32)  # word id
-    nearby_emb = tf.gather(self._w_in, nearby_word)
-    nearby_emb = tf.reduce_sum(nearby_emb, 0, keep_dims=True)
-    nearby_emb = tf.nn.l2_normalize(nearby_emb, 1)
-    nearby_dist = tf.matmul(nearby_emb, nemb, transpose_b=True)
-    nearby_val, nearby_idx = tf.nn.top_k(nearby_dist,
-                                         min(1000, opts.vocab_size))
-
-    self._nearby_word = nearby_word
-    self._nearby_val, self._nearby_idx = nearby_val, nearby_idx 
-
     # Properly initialize all variables.
     tf.global_variables_initializer().run()
 
@@ -320,47 +305,10 @@ class Word2Vec(object):
     return idx
 
   def eval(self):
-    """Evaluate analogy questions and reports accuracy."""
-    return 
-    # How many questions we get right at precision@1.
-    correct = 0
-
-    try:
-      total = self._analogy_questions.shape[0]
-    except AttributeError as e:
-      raise AttributeError("Need to read analogy questions.")
-
-    start = 0
-    while start < total:
-      limit = start + 2500
-      sub = self._analogy_questions[start:limit, :]
-      idx = self._predict(sub)
-      start = limit
-      for question in xrange(sub.shape[0]):
-        for j in xrange(4):
-          if idx[question, j] == sub[question, 3]:
-            # Bingo! We predicted correctly. E.g., [italy, rome, france, paris].
-            correct += 1
-            break
-          elif idx[question, j] in sub[question, :3]:
-            # We need to skip words already in the question.
-            continue
-          else:
-            # The correct label is not the precision@1
-            break
-    print()
-    print("Eval %4d/%d accuracy = %4.1f%%" % (correct, total,
-                                              correct * 100.0 / total))
+    pass
 
   def analogy(self, w0, w1, w2):
-    """Predict word w3 as in w0:w1 vs w2:w3."""
-    wid = np.array([[self._word2id.get(w, 0) for w in [w0, w1, w2]]])
-    idx = self._predict(wid)
-    for c in [self._id2word[i] for i in idx[0, :]]:
-      if c not in [w0, w1, w2]:
-        print(c)
-        break
-    print("unknown")
+    pass
 
   def nearby(self, words, num=50):
     """Prints out nearby words given a list of words."""
@@ -396,13 +344,15 @@ def main(_):
       #model.read_analogies() # Read analogy questions
 
     if FLAGS.interactive:
+      # E.g.,
+      # [0]: model.analogy(b'france', b'paris', b'russia')
+      # [1]: model.nearby([b'proton', b'elephant', b'maxwell'])
+      #_start_shell(locals())
       print('load model from file %s %s', opts.save_path, os.path.join(opts.save_path, "model.ckpt"))
       #TODO........ why fail...
       #model.saver.restore(session, os.path.join(opts.save_path, "model.ckpt"))
       #model.saver.restore(session, '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec/model.ckpt')
       model.saver.restore(session, '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec/model.ckpt-729509')
-      
-      #_start_shell(locals())
       while True:
         print('input your word  like iphone')
         word = sys.stdin.readline().strip()

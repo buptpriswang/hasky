@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os, sys
+import os, sys, traceback
 import tensorflow as tf
 import melt 
 import gezi
@@ -225,6 +225,7 @@ def tf_train_flow(train_once_fn,
       exit(0)
     else:
       print('Should not stop, but stopped at epoch: %.3f'%(step / num_steps_per_epoch), file=sys.stderr)
+      print(traceback.format_exc(), file=sys.stderr)
       raise e
   finally:
     coord.request_stop()

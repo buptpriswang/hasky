@@ -1,3 +1,6 @@
+for test input single word like nike, iphone or 
+input ÃÀÅ® ´÷ Ä«¾µ to find similar words to sentence/phrase
+
 This directory contains models for unsupervised training of word embeddings
 using the model described in:
 

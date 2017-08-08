@@ -16,7 +16,10 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('hidden_size', 1024, 'hidden size')
+flags.DEFINE_integer('hidden_size', 1024, 'hidden size, depreciated, use mlp_layer_dims instead')
+flags.DEFINE_string('image_mlp_layer_dims', '1024,1024', '')
+flags.DEFINE_string('text_mlp_layer_dims', '1024,1024', '')
+
 flags.DEFINE_float('margin', 0.5, 'margin for rankloss when rank_loss is hinge loss')
 flags.DEFINE_string('activation', 'relu', 
                     """relu/tanh/sigmoid  seems sigmoid will not work here not convergent
@@ -26,7 +29,11 @@ flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can spee
 flags.DEFINE_string('loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
 
 flags.DEFINE_boolean('fix_image_embedding', False, '')
+
 flags.DEFINE_boolean('fix_text_embedding', False, '')
+
+flags.DEFINE_boolean('fix_word_embedding', False, '')
+flags.DEFINE_boolean('pre_train_word_embedding', False, '')
 
 
 import functools
@@ -81,13 +88,17 @@ class DiscriminantTrainer(object):
                                                 height=FLAGS.image_height, 
                                                 width=FLAGS.image_width)
 
+
+    self.image_mlp_layer_dims = [int(x) for x in FLAGS.image_mlp_layer_dims.split(',')]
+    self.text_mlp_layer_dims = [int(x) for x in FLAGS.text_mlp_layer_dims.split(',')]
+
     self.scope = 'image_text_sim'
 
   def forward_image_layers(self, image_feature):
     if not FLAGS.pre_calc_image_feature:
       image_feature = self.image_process_fn(image_feature)
 
-    dims = [FLAGS.hidden_size, FLAGS.hidden_size]
+    dims = self.image_mlp_layer_dims
     return melt.slim.mlp(image_feature, 
                          dims, 
                          self.activation, 
@@ -98,7 +109,7 @@ class DiscriminantTrainer(object):
 
   def forward_text_layers(self, text_feature):
     #TODO better config like google/seq2seq us pyymal
-    dims = [FLAGS.hidden_size, FLAGS.hidden_size]
+    dims = self.text_mlp_layer_dims
     return melt.slim.mlp(text_feature, 
                          dims, 
                          self.activation, 
