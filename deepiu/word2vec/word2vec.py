@@ -56,11 +56,6 @@ flags.DEFINE_string("save_path", None, "Directory to write the model and "
 flags.DEFINE_string("train_data", None, "Training text file. "
                     "E.g., unzipped file http://mattmahoney.net/dc/text8.zip.")
 flags.DEFINE_string(
-    "eval_data", None, "File consisting of analogies of four tokens."
-    "embedding 2 - embedding 1 + embedding 3 should be close "
-    "to embedding 4."
-    "See README.md for how to get 'questions-words.txt'.")
-flags.DEFINE_string(
     "eval_data", None,
     "must be all ids")
 flags.DEFINE_string(
@@ -118,6 +113,10 @@ class Options(object):
     # The training text file.
     self.train_data = FLAGS.train_data
 
+    self.vocab_path = FLAGS.vocab_path
+
+    self.eval_data = FLAGS.eval_data
+
     # Number of negative samples per example.
     self.num_samples = FLAGS.num_neg_samples
 
@@ -171,11 +170,8 @@ class Word2Vec(object):
   def __init__(self, options, session):
     self._options = options
     self._session = session
-    self._word2id = {}
-    self._id2word = []
     self.build_graph()
     self.build_eval_graph()
-    self.save_vocab()
 
   def forward(self, examples, labels):
     """Build the graph for the forward pass."""
@@ -215,7 +211,7 @@ class Word2Vec(object):
         unique=True,
         range_max=opts.vocab_size,
         distortion=0.75,
-        unigrams=opts.vocab_counts.tolist()))
+        unigrams=opts.vocab_counts))
 
     # Embeddings for examples: [batch_size, emb_dim]
     example_emb = tf.nn.embedding_lookup(emb, examples)
@@ -231,7 +227,7 @@ class Word2Vec(object):
     sampled_b = tf.nn.embedding_lookup(sm_b, sampled_ids)
 
     # True logits: [batch_size, 1]
-    true_logits = tf.reduce_sum(tf.mul(example_emb, true_w), 1) + true_b
+    true_logits = tf.reduce_sum(tf.multiply(example_emb, true_w), 1) + true_b
 
     # Sampled logits: [batch_size, num_sampled]
     # We replicate sampled noise labels for all examples in the batch
@@ -277,7 +273,7 @@ class Word2Vec(object):
   def build_eval_graph(self):
     """Build the eval graph."""
     # Eval graph
-
+    opts = self._options
     # Normalized word embeddings of shape [vocab_size, emb_dim].
     nemb = tf.nn.l2_normalize(self._emb, 1)
 
@@ -325,19 +321,19 @@ class Word2Vec(object):
 
     true_logits, sampled_logits = self.forward(examples, labels)
     loss = self.nce_loss(true_logits, sampled_logits)
-    tf.summary.scalar("NCE loss", loss)
+    tf.summary.scalar("loss", loss)
     self._loss = loss
     self.optimize(loss)
 
-    #TODO eval loss from opts.eval_data ?
     (_, _, _, eval_examples, eval_labels) = word2vec.skipgram_word2vec(filename=opts.eval_data,
                                             vocab_count=opts.vocab_counts,
-                                            batch_size=opts.batch_size * 10,
+                                            batch_size=opts.batch_size, #TODO must be same size as train right now
                                             window_size=opts.window_size,
                                             min_count=opts.min_count,
                                             subsample=0)
-    eval_true_logits, eval_sampled_logits = self.forward(examples, labels)
+    eval_true_logits, eval_sampled_logits = self.forward(eval_examples, eval_labels)
     eval_loss = self.nce_loss(eval_true_logits, eval_sampled_logits)
+    tf.summary.scalar("eval loss", loss)
     self._eval_loss = eval_loss
 
     # Properly initialize all variables.
@@ -371,13 +367,15 @@ class Word2Vec(object):
     last_checkpoint_time = 0
     while True:
       time.sleep(opts.statistics_interval)  # Reports our progress once a while.
+      # (epoch, step, loss, words, lr) = self._session.run(
+      #     [self._epoch, self.global_step, self._loss, self._words, self._lr])
       (epoch, step, loss, eval_loss, words, lr) = self._session.run(
           [self._epoch, self.global_step, self._loss, self._eval_loss, self._words, self._lr])
       now = time.time()
       last_words, last_time, rate = words, now, (words - last_words) / (
           now - last_time)
       print("Epoch %4d Step %8d: lr = %5.3f loss = %6.2f eval_loss = %6.2f words/sec = %8.0f\r" %
-            (epoch, step, lr, loss, rate), end="")
+            (epoch, step, lr, loss, eval_loss, rate), end="")
       sys.stdout.flush()
       if now - last_summary_time > opts.summary_interval:
         summary_str = self._session.run(summary_op)
@@ -445,7 +443,7 @@ def main(_):
       print('load model from file %s %s', opts.save_path, os.path.join(opts.save_path, "model.ckpt"))
       #TODO........ why fail...
       #model.saver.restore(session, os.path.join(opts.save_path, "model.ckpt"))
-       model.saver.restore(session, os.path.join(opts.save_path, 'model.ckpt-%d'%opts.epochs_to_train))
+      model.saver.restore(session, os.path.join(opts.save_path, 'model.ckpt-%d'%opts.epochs_to_train))
       while True:
         print('input your word  like iphone')
         word = sys.stdin.readline().strip()

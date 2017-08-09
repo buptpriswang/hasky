@@ -1,5 +1,8 @@
-for test input single word like nike, iphone or 
-input 美女 戴 墨镜 to find similar words to sentence/phrase
+for test input single word like nike, iphone or  
+input 美女 戴 墨镜 to find similar words to sentence/phrase  
+nearby now is sum of input word embedding then find similar embedding words to summed embedding 
+
+word2vec_optimized.py/train.sh 10 times faster then word2vec.py/train-minibatch.sh  
 
 This directory contains models for unsupervised training of word embeddings
 using the model described in:
@@ -18,7 +21,7 @@ Assuming you have cloned the git repository, navigate into this directory. To do
 curl http://mattmahoney.net/dc/text8.zip > text8.zip
 unzip text8.zip
 curl https://storage.googleapis.com/google-code-archive-source/v2/code.google.com/word2vec/source-archive.zip > source-archive.zip
-unzip -p source-archive.zip  word2vec/trunk/questions-words.txt > questions-words.txt
+unzip -p source-archive.zip  word2vec/trunk/questions-words.txt > questio ns-words.txt
 rm text8.zip source-archive.zip
 ```
 
