@@ -334,8 +334,7 @@ def main(_):
       print('load model from file %s %s', opts.save_path, os.path.join(opts.save_path, "model.ckpt"))
       #TODO........ why fail...
       #model.saver.restore(session, os.path.join(opts.save_path, "model.ckpt"))
-      #model.saver.restore(session, '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec/model.ckpt')
-      model.saver.restore(session, '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/word2vec2/model.ckpt-15')
+      model.saver.restore(session, os.path.join(opts.save_path, 'model.ckpt-%d'%opts.epochs_to_train))
       while True:
         print('input your word  like iphone')
         word = sys.stdin.readline().strip()

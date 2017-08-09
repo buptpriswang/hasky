@@ -134,7 +134,8 @@ class DiscriminantTrainer(object):
   def forward_text_feature(self, text_feature):
     text_feature = self.forward_text_layers(text_feature)
     #for pointwise comment below
-    text_feature = tf.nn.l2_normalize(text_feature, 1)
+    #must be -1 not 1 for num_negs might > 1 if lookup onece..
+    text_feature = tf.nn.l2_normalize(text_feature, -1)
     return text_feature	
 
   def forward_text(self, text):
@@ -154,7 +155,7 @@ class DiscriminantTrainer(object):
     image_feature = self.forward_image_layers(image_feature)
     
     #for point wise comment below
-    image_feature = tf.nn.l2_normalize(image_feature, 1)
+    image_feature = tf.nn.l2_normalize(image_feature, -1)
 
     return image_feature
 
@@ -224,8 +225,6 @@ class DiscriminantTrainer(object):
       #---------------rank loss
       #[batch_size, 1 + num_negs]
       scores = tf.concat([pos_score, neg_scores], 1)
-      #may be turn to prob is and show is 
-      #probs = tf.sigmoid(scores)
 
       if FLAGS.loss == 'hinge':
         loss = melt.losses.hinge(pos_score, neg_scores, FLAGS.margin)

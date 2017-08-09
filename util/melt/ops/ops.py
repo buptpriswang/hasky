@@ -69,7 +69,7 @@ def mlp_forward_nobias(input, hidden, out, activation=tf.nn.relu, name=None):
 
 def element_wise_cosine_nonorm(a, b, keep_dims=True, name=None):
   with tf.name_scope(name, 'element_wise_cosine_nonorm', [a, b]):
-    return tf.reduce_sum(tf.multiply(a, b), 1, keep_dims=keep_dims)
+    return tf.reduce_sum(tf.multiply(a, b), -1, keep_dims=keep_dims)
 
 #[batch_size, y], [batch_size, y] => [batch_size, 1]
 def element_wise_cosine(a, b, a_normed=False, b_normed=False, nonorm=False, keep_dims=True, name=None):

@@ -121,12 +121,11 @@ def gen_train_graph(input_app, input_results, trainer):
     
   deal_debug_results = None
   if FLAGS.debug == True:
-    ops += [tf.get_collection('scores')[-1], tf.get_collection('text_feature')[-1]]
+    ops += [tf.get_collection('scores')[-1]]
     
     def _deal_debug_results(results):
-      _, scores, text_feature = results
+      _, scores = results
       print('scores', scores)
-      print('text_feature', text_feature)
 
     # if not FLAGS.feed_dict:
     #   ops += [text, text_str, neg_text, neg_text_str]
@@ -243,7 +242,10 @@ def gen_validate(input_app, input_results, trainer, predictor):
     else:
       eval_neg_text, eval_neg_text_str, eval_neg_image = None, None, None
 
-    eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text, eval_neg_image)
+    if FLAGS.neg_image and not FLAGS.neg_both:
+      eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, None, eval_neg_image)
+    else:
+      eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text, eval_neg_image)
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 

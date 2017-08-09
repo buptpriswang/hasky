@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic 
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.w2v
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic.debug
 mkdir -p $model_dir
 
 python ./train.py \
@@ -42,11 +42,9 @@ python ./train.py \
   --num_epochs 1000 \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
-  --debug 0 \
+  --debug 1 \
   --num_negs 5 \
   --neg_image 0 \
-  --word_embedding_file $dir/'word2vec2/word_embedding.npy' \
-  --finetune_word_embedding 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
