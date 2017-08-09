@@ -9,6 +9,7 @@ print('tensorflow_version:', tf.__version__, file=sys.stderr)
 
 import melt.utils
 from melt.utils import logging
+from melt.utils import EmbeddingSim
 
 from melt.util import *
 from melt.ops import *

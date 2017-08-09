@@ -45,6 +45,7 @@ def matmul(X, w):
   """ General matmul  that will deal both for dense and sparse input
   hide the differnce of dense and sparse input for end users
   Since sparse usage is much less then dense, try to use slim. or tf.contrib.layers directly if possible
+  https://github.com/tensorflow/tensorflow/issues/342
   Args:
   X: a tensor, or a list with two sparse tensors (index, value)
   w: a tensor

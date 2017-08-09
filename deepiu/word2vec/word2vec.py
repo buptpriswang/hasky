@@ -325,16 +325,17 @@ class Word2Vec(object):
     self._loss = loss
     self.optimize(loss)
 
-    (_, _, _, eval_examples, eval_labels) = word2vec.skipgram_word2vec(filename=opts.eval_data,
-                                            vocab_count=opts.vocab_counts,
-                                            batch_size=opts.batch_size, #TODO must be same size as train right now
-                                            window_size=opts.window_size,
-                                            min_count=opts.min_count,
-                                            subsample=0)
-    eval_true_logits, eval_sampled_logits = self.forward(eval_examples, eval_labels)
-    eval_loss = self.nce_loss(eval_true_logits, eval_sampled_logits)
-    tf.summary.scalar("eval loss", loss)
-    self._eval_loss = eval_loss
+    ##TODO not work for eval
+    # (_, _, _, eval_examples, eval_labels) = word2vec.skipgram_word2vec(filename=opts.eval_data,
+    #                                         vocab_count=opts.vocab_counts,
+    #                                         batch_size=opts.batch_size, #TODO must be same size as train right now
+    #                                         window_size=opts.window_size,
+    #                                         min_count=opts.min_count,
+    #                                         subsample=0)
+    # eval_true_logits, eval_sampled_logits = self.forward(eval_examples, eval_labels)
+    # eval_loss = self.nce_loss(eval_true_logits, eval_sampled_logits)
+    # tf.summary.scalar("eval loss", loss)
+    # self._eval_loss = eval_loss
 
     # Properly initialize all variables.
     tf.global_variables_initializer().run()
@@ -367,14 +368,16 @@ class Word2Vec(object):
     last_checkpoint_time = 0
     while True:
       time.sleep(opts.statistics_interval)  # Reports our progress once a while.
-      # (epoch, step, loss, words, lr) = self._session.run(
-      #     [self._epoch, self.global_step, self._loss, self._words, self._lr])
-      (epoch, step, loss, eval_loss, words, lr) = self._session.run(
-          [self._epoch, self.global_step, self._loss, self._eval_loss, self._words, self._lr])
+      (epoch, step, loss, words, lr) = self._session.run(
+          [self._epoch, self.global_step, self._loss, self._words, self._lr])
+      # (epoch, step, loss, eval_loss, words, lr) = self._session.run(
+      #     [self._epoch, self.global_step, self._loss, self._eval_loss, self._words, self._lr])
       now = time.time()
       last_words, last_time, rate = words, now, (words - last_words) / (
           now - last_time)
-      print("Epoch %4d Step %8d: lr = %5.3f loss = %6.2f eval_loss = %6.2f words/sec = %8.0f\r" %
+      # print("Epoch %4d Step %8d: lr = %5.3f loss = %6.2f eval_loss = %6.2f words/sec = %8.0f\r" %
+      #       (epoch, step, lr, loss, eval_loss, rate), end="")
+      print("Epoch %4d Step %8d: lr = %5.3f loss = %6.2f words/sec = %8.0f\r" %
             (epoch, step, lr, loss, eval_loss, rate), end="")
       sys.stdout.flush()
       if now - last_summary_time > opts.summary_interval:
@@ -397,9 +400,10 @@ class Word2Vec(object):
 
   def eval(self):
     self.nearby('nike')
-    self.nearby('脛芦戮碌')
-    self.nearby('赂脽 脤煤')
-    self.nearby('脦脪 碌脛 录脪脧莽 禄脻脰脻 脭陆脌麓 脭陆 脠脠 拢卢 脮脪 脪禄驴卯 脧虏禄露 碌脛 脛芦戮碌 潞脺 脰脴脪陋')
+    self.nearby('墨镜')
+    self.nearby('手表')
+    self.nearby('高 铁')
+    self.nearby('我 的 家乡 惠州 越来 越 热 ， 找 一款 喜欢 的 墨镜 很 重要')
 
   def nearby(self, words, num=50):
     """Prints out nearby words given a list of words."""

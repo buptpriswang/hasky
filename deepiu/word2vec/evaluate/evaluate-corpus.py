@@ -1,17 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # ==============================================================================
-#          \file   __init__.py
+#          \file   evaluate-corpus.py
 #        \author   chenghuige  
-#          \date   2016-10-06 11:13:00.567854
+#          \date   2017-08-09 15:08:05.043836
 #   \Description  
 # ==============================================================================
 
   
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
+#from __future__ import print_function
 
-import melt.utils.logging   
+import sys, os
 
-from melt.utils.embsim import EmbeddingSim
+  

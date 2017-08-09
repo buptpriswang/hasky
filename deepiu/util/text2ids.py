@@ -53,6 +53,7 @@ def words2ids(words, feed_single=True, allow_all_zero=False,
   like new-word -> phrase -> basic -> single cn
 
   #@TODO feed_single move to Segmentor.py to add support for seg with vocab 
+  norm_all_digit is not used mostly, since you can control this behavior when gen vocab 
   """
   if not feed_single:
     word_ids = [vocab.id(word) for word in words if vocab.has(word) or ENCODE_UNK]

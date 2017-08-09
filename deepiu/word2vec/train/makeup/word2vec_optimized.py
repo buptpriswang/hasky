@@ -299,11 +299,11 @@ class Word2Vec(object):
       t.join()
 
   def eval(self):
-    self.nearby('nike')
-    self.nearby('墨镜')
-    self.nearby('手表')
-    self.nearby('高 铁')
-    self.nearby('我 的 家乡 惠州 越来 越 热 ， 找 一款 喜欢 的 墨镜 很 重要')
+    self.nearby('面膜')
+    self.nearby('润霜')
+    self.nearby('乳霜')
+    self.nearby('水 润霜')
+    self.nearby('曼秀雷敦')
 
   def nearby(self, words, num=50):
     """Prints out nearby words given a list of words."""
@@ -350,6 +350,7 @@ def main(_):
       model = Word2Vec(opts, session)
 
     if FLAGS.interactive:
+      _start_shell(locals())
       print('load model from file %s %s', opts.save_path, os.path.join(opts.save_path, "model.ckpt"))
       #TODO........ why fail...
       #model.saver.restore(session, os.path.join(opts.save_path, "model.ckpt"))

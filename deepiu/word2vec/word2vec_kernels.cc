@@ -203,7 +203,6 @@ class SkipgramWord2vecOp : public OpKernel {
     input = data;
     while (ScanWord(&input, &w)) {
       corpus_.push_back(std::stoi(w));
-      //corpus_.push_back(1);
     }
     LOG(INFO) << "corpus_ size:" << corpus_.size();
     precalc_examples_.resize(kPrecalc);
