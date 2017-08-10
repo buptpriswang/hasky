@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn
+model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn2
 mkdir -p $model_dir
 
 python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
@@ -37,14 +37,16 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
   --num_negs 1 \
+  --neg_left 1 \
+  --neg_right 1 \
   --mlp_dims 512 \
   --debug 0 \
   --feed_dict 0 \
   --algo dual_rnn \
   --interval 100 \
   --eval_interval 1000 \
-  --margin 0.1 \
-  --learning_rate 0.1 \
+  --margin 0.5 \
+  --learning_rate 0.01 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --dynamic_batch_length 1 \

@@ -1,0 +1,6 @@
+bow2 2lneg 2rneg 0.5 margin  seems better then bow.sh 5rneg margin 0.1 
+rnn2 1lneg 1rneg 0.5 margin
+
+it seems better to use 0.5 so we can have hight score as 0.9... 
+if using 0.1 will be 0.4... 
+however in lijiaoshou ad it seems 0.1 perform better 

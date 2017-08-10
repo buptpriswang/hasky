@@ -155,7 +155,6 @@ def gen_validate(input_app, input_results, trainer, predictor):
 
     eval_loss = trainer.build_train_graph(eval_input_text, eval_text)
     eval_scores = tf.get_collection('scores')[-1]
-    print('gen_validate-------------------------', tf.get_collection('scores'))
     eval_ops = [eval_loss]
 
     if FLAGS.show_eval and (predictor is not None):
@@ -246,8 +245,6 @@ def train_process(trainer, predictor=None):
     predictor.load(FLAGS.model_dir)
     import conf  
     from conf import TEXT_MAX_WORDS, INPUT_TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK
-
-    print('-------------------------', tf.get_collection('scores'))
 
     #TODO: now copy from prpare/gen-records.py
     def _text2ids(text, max_words):

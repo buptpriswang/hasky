@@ -302,10 +302,10 @@ def predicts(imgs, img_features, predictor, rank_metrics):
   # TODO gpu outofmem predict for showandtell
   texts = all_distinct_texts[:FLAGS.max_texts]
   score = predictor.bulk_predict(img_features,texts)
-  timer.print()
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
+  timer.print()
   img2text = get_bidrectional_lable_map()
-  num_texts = all_distinct_texts.shape[0]
+  num_texts = texts.shape[0]
 
   for i, img in enumerate(imgs):
     indexes = (-score[i]).argsort()
@@ -325,8 +325,8 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
   # TODO gpu outofmem predict for showandtell
   img_features = img_features[:FLAGS.max_images]
   score = predictor.bulk_predict(img_features, texts)
-  score = score.transpose()
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
+  score = score.transpose()
   timer.print()
 
   text2img = get_bidrectional_lable_map_txt2im()

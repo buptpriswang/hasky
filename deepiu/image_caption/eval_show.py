@@ -24,6 +24,7 @@ flags.DEFINE_integer('num_word_topn', 50, '')
 #---------for rnn decode
 flags.DEFINE_integer('seq_decode_method', 0, 'sequence decode method: 0 max prob, 1 sample, 2 full sample, 3 beam search')
 flags.DEFINE_bool('show_beam_search', True, '')
+flags.DEFINE_integer('max_evalshow_texts', 1e18, '')
 
 import functools
 import melt
@@ -74,7 +75,8 @@ def gen_eval_show_ops(input_app, input_results, predictor, eval_scores, eval_neg
   evaluate_image_name, evaluate_image_feature, evaluate_text, evaluate_text_str = input_results[input_app.fixed_input_valid_name]
   num_evaluate_examples = input_app.num_evaluate_examples
 
-  all_distinct_texts = evaluator.all_distinct_texts 
+  #if shrink then pos with high score might still not recall! pay attention!!!!
+  all_distinct_texts = evaluator.all_distinct_texts[:FLAGS.max_texts] #max_texts in evaluator.py deepiu.util
   #print(all_distinct_texts[0], evaluator.all_distinct_text_strs[0], text2ids.ids2text(all_distinct_texts[0]))
   predictor.init_evaluate_constant_text(all_distinct_texts)
   pos_scores = eval_scores[:num_evaluate_examples, 0]
@@ -83,8 +85,8 @@ def gen_eval_show_ops(input_app, input_results, predictor, eval_scores, eval_neg
   evaluate_neg_text_str = eval_neg_text_str[:num_evaluate_examples, 0] 
   #eval neg text ids
   evaluate_neg_text = eval_neg_text[:num_evaluate_examples, 0, :]
-  #--all from image to text show
-  eval_score = predictor.build_evaluate_fixed_text_graph(evaluate_image_feature)
+  #--all from image to text show, only need num_evaluate_examples to calc to show!
+  eval_score = predictor.build_evaluate_fixed_text_graph(evaluate_image_feature[:num_evaluate_examples, :])
   eval_max_score, eval_max_index = tf.nn.top_k(eval_score, FLAGS.num_text_topn)
   eval_word_score = predictor.build_evaluate_image_word_graph(evaluate_image_feature)
   eval_word_max_score, eval_word_max_index = tf.nn.top_k(eval_word_score, FLAGS.num_word_topn)

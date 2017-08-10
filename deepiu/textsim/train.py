@@ -166,7 +166,6 @@ def gen_validate(input_app, input_results, trainer, predictor):
         eval_neg_rtext = None
     eval_loss = trainer.build_train_graph(eval_ltext, eval_rtext, eval_neg_ltext, eval_neg_rtext)
     eval_scores = tf.get_collection('scores')[-1]
-    print('gen_validate-------------------------', tf.get_collection('scores'))
     eval_ops = [eval_loss]
 
     if FLAGS.show_eval and (predictor is not None):
