@@ -12,9 +12,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys, os
+import sys, os,glob
 import tensorflow as tf
 import melt 
+
 
 from libword_counter import Vocabulary
 
@@ -27,18 +28,22 @@ vocab = text2ids.vocab
 
 embsim = melt.EmbeddingSim(os.path.join(dir, 'word2vec'), name='w_in')
 
-corpus_file = os.path.join('/home/gezi/data/product/makeup/tb/title2name/valid/name.filtered.rand.valid.txt_0')
+corpus_pattern = os.path.join('/home/gezi/data/product/makeup/tb/title2name/valid/*')
 
 max_words = 50
-itexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+itexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
 
 left_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in itexts]
 
-corpus_text = open(corpus_file).readlines()
+corpus_text = []
+for file in glob.glob(corpus_pattern):
+  corpus_text += open(file).readlines()
 
 corpus_text = [x.split()[0] for x in corpus_text]
 
-right_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in corpus_text[:10000]]
+right_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in corpus_text] 
+
+print(len(corpus_text))
 
 lids_ = tf.placeholder(dtype=tf.int32, shape=[None, max_words]) 
 rids_ = tf.placeholder(dtype=tf.int32, shape=[None, max_words]) 

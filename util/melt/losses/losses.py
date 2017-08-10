@@ -21,12 +21,6 @@ def reduce_loss(loss_matrix, combiner='mean'):
   else:
     return tf.reduce_sum(loss_matrix)
 
-def hinge(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
-  with tf.name_scope(name, 'hinge_loss', [pos_score, neg_score]):
-    loss_matrix = tf.maximum(0., margin - (pos_score - neg_score))
-    loss = reduce_loss(loss_matrix, combiner)
-    return loss
-
 def cross_entropy(scores, num_negs=1, combiner='mean', name=None):
   with tf.name_scope(name, 'cross_entropy_loss', [scores]):
     batch_size = scores.get_shape()[0]
@@ -39,11 +33,25 @@ def cross_entropy(scores, num_negs=1, combiner='mean', name=None):
     loss = reduce_loss(loss_matrix, combiner)
     return loss
 
-def hinge_cross(pos_score, neg_score, combiner='mean', name=None):
+#---------below pairwise
+def hinge(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
+  with tf.name_scope(name, 'hinge_loss', [pos_score, neg_score]):
+    loss_matrix = tf.maximum(0., margin - (pos_score - neg_score))
+    loss = reduce_loss(loss_matrix, combiner)
+    return loss
+
+def pairwise_cross(pos_score, neg_score, combiner='mean', name=None):
   with tf.name_scope(name, 'hinge_cross_loss', [pos_score, neg_score]):
-    logits = pos_score - neg_score
-    logits = tf.sigmoid(logits)
+    score = pos_score - neg_score
+    logits = tf.sigmoid(score)
     targets = tf.ones_like(neg_score, tf.float32)
     loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=targets)
     loss = reduce_loss(loss_matrix, combiner)
+    return loss
+
+def pairwise_exp(pos_score, neg_score, theta=1.,  combiner='mean', name=None):
+  with tf.name_scope(name, 'hinge_exp_loss', [pos_score, neg_score]):
+    score = pos_score - neg_score
+    loss = tf.log(1. + tf.exp(-theta * score))
+    loss = reduce_loss(loss, combiner)
     return loss

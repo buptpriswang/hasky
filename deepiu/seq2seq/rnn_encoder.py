@@ -68,7 +68,7 @@ class RnnEncoder(Encoder):
                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
-  def encode(self, sequence, input=None, emb=None, output_method=None):
+  def encode(self, sequence, emb=None, input=None, output_method=None):
     if emb is None:
       emb = self.emb 
 
@@ -105,9 +105,9 @@ class RnnEncoder(Encoder):
 
     return encode_feature, state
 
-  def words_importance_encode(self, sequence, input=None, emb=None):
+  def words_importance_encode(self, sequence, emb=None, input=None):
     #[batch_size, emb_dim]
-    argmax_values = self.encode(sequence, input, emb, output_method=melt.rnn.OutputMethod.argmax)[0]
+    argmax_values = self.encode(sequence, emb, input, output_method=melt.rnn.OutputMethod.argmax)[0]
     indices = melt.batch_values_to_indices(tf.to_int32(argmax_values))
     updates = tf.ones_like(argmax_values)
     shape = tf.shape(sequence)

@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
+conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic.5neg
+model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
 python ./train.py \
@@ -15,8 +15,8 @@ python ./train.py \
   --image_url_prefix='D:\data\image-text-sim\evaluate\imgs\' \
   --label_file=$valid_output_path/'image_labels.npy' \
   --image_feature_file=$valid_data_path/'test' \
-  --image_name_bin=$valid_output_path/'distinct_image_names.npy' \
-  --image_feature_bin=$valid_output_path/'distinct_image_features.npy' \
+  --image_name_bin=$valid_output_path/'image_names.npy' \
+  --image_feature_bin=$valid_output_path/'image_features.npy' \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \
@@ -44,12 +44,11 @@ python ./train.py \
   --metric_eval_batch_size 1000 \
   --debug 0 \
   --num_negs 5 \
-  --neg_image 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.1 \
-  --algo bow \
+  --algo dual_bow \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
@@ -59,4 +58,4 @@ python ./train.py \
   --num_records 0 \
   --min_records 12 \
   --log_device 0 
- 
+

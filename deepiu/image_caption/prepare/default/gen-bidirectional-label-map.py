@@ -18,6 +18,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('img2text', '', '')
 flags.DEFINE_string('text2id', '', '')
 flags.DEFINE_string('all_distinct_text_strs', '', '')
+flags.DEFINE_string('all_distinct_image_names', '', '')
 
 flags.DEFINE_string('image_names', '', '')
 
@@ -29,6 +30,7 @@ import sys
 import numpy as np 
 
 all_distinct_text_strs = np.load(FLAGS.all_distinct_text_strs) 
+all_distinct_image_names = np.load(FLAGS.all_distinct_image_names)
 
 img2text = {}
 text2id = {}
@@ -38,8 +40,7 @@ img2id = {}
 for i, text in enumerate(all_distinct_text_strs):
   text2id[text] = i
 
-image_names = np.load(FLAGS.image_names)
-for i, image_name in enumerate(image_names):
+for i, image_name in enumerate(all_distinct_image_names):
   img2id[image_name] = i
 
 for line in sys.stdin:

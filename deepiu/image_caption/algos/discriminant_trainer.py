@@ -20,13 +20,11 @@ flags.DEFINE_integer('hidden_size', 1024, 'hidden size, depreciated, use mlp_lay
 flags.DEFINE_string('image_mlp_dims', '1024,1024', '')
 flags.DEFINE_string('text_mlp_dims', '1024,1024', '')
 
-flags.DEFINE_float('margin', 0.5, 'margin for rankloss when rank_loss is hinge loss')
 flags.DEFINE_string('activation', 'relu', 
                     """relu/tanh/sigmoid  seems sigmoid will not work here not convergent
                     and relu slightly better than tanh and convrgence speed faster""")
 
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
-flags.DEFINE_string('loss', 'hinge', 'use hinge(hinge_loss) or cross(cross_entropy_loss) or hinge_cross(subtract then cross)')
 
 flags.DEFINE_boolean('fix_image_embedding', False, 'image part all fixed, so just fintune text part')
 flags.DEFINE_boolean('fix_text_embedding', False, 'text part all fixed, so just fintune image part')
@@ -43,6 +41,7 @@ import melt.slim
 
 from deepiu.util import vocabulary
 from deepiu.seq2seq import embedding
+from deepiu.util.rank_loss import pairwise_loss
 
 class DiscriminantTrainer(object):
   """
@@ -170,7 +169,7 @@ class DiscriminantTrainer(object):
     
     #for point wise comment below
     #[batch_size,1] <= [batch_size, hidden_size],[batch_size, hidden_size]
-    return melt.element_wise_cosine(normed_image_feature, normed_text_feature, nonorm=True)
+    return melt.element_wise_dot(normed_image_feature, normed_text_feature)
 
 
     #point wise
@@ -185,7 +184,7 @@ class DiscriminantTrainer(object):
     neg_image: None or [batch_size, num_negs, IMAGE_FEATURE_LEN]
     """
     assert (neg_text is not None) or (neg_image is not None)
-    with tf.variable_scope(self.scope):
+    with tf.variable_scope(self.scope) as scope:
       #-------------get image feature
       #[batch_size, hidden_size] <= [batch_size, IMAGE_FEATURE_LEN] 
       image_feature = self.forward_image_feature(image_feature)
@@ -196,9 +195,10 @@ class DiscriminantTrainer(object):
 
       pos_score = self.compute_image_text_sim(image_feature, text_feature)
       
+      scope.reuse_variables()
+      
       #--------------get image neg texts sim as neg scores
-      #[batch_size, num_negs, text_MAX_WORDS, emb_dim] -> [batch_size, num_negs, emb_dim]
-      tf.get_variable_scope().reuse_variables()
+      #[batch_size, num_negs, text_MAX_WORDS, emb_dim] -> [batch_size, num_negs, emb_dim]  
       neg_scores_list = []
       if neg_text is not None:
         if lookup_negs_once:
@@ -221,24 +221,11 @@ class DiscriminantTrainer(object):
 
       #[batch_size, num_negs]
       neg_scores = tf.concat(neg_scores_list, 1)
-
-      #---------------rank loss
       #[batch_size, 1 + num_negs]
       scores = tf.concat([pos_score, neg_scores], 1)
-
-      if FLAGS.loss == 'hinge':
-        loss = melt.losses.hinge(pos_score, neg_scores, FLAGS.margin)
-      elif FLAGS.loss == 'cross':
-        #will conver to 0-1 logits int melt.cross_entropy_loss http://www.wildml.com/2016/07/deep-learning-for-chatbots-2-retrieval-based-model-tensorflow/
-        loss = melt.losses.cross_entropy(scores, num_negs)
-      #point losss is bad here for you finetune both text and image embedding, all 0 vec will loss minimize..
-      #if use point loss you need to fix text embedding
-      elif FLAGS.loss == 'point': 
-        loss = tf.reduce_mean(1.0 - pos_score)
-      else: 
-        loss = melt.losses.hinge_cross(pos_score, neg_scores)
-      
       tf.add_to_collection('scores', scores)
+
+      loss = pairwise_loss(pos_score, neg_scores)
     return loss
 
   

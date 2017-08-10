@@ -16,6 +16,7 @@ python ./gen-distinct-texts.py --dir=$valid_output_path --shuffle $shuffle_texts
 cat $valid_data_path/* | \
   python ./gen-bidirectional-label-map.py  \
   --all_distinct_text_strs=$valid_output_path/'distinct_text_strs.npy' \
+  --all_distinct_image_names=$valid_output_path/'distinct_image_names.npy' \
   --image_names=$valid_output_path/'image_names.npy' \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \

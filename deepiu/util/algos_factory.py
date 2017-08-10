@@ -31,6 +31,9 @@ from deepiu.textsum.algos.seq2seq import Seq2seq, Seq2seqPredictor
 
 from deepiu.imtxt2txt.algos.imtxt2txt import Imtxt2txt, Imtxt2txtPredictor
 
+from deepiu.textsim.algos.dual_textsim import DualTextsim, DualTextsimPredictor
+
+
 class Algos:
   bow = 'bow'    #bow encode for text
   rnn = 'rnn'    #rnn encode for text
@@ -39,6 +42,8 @@ class Algos:
   show_and_tell = 'show_and_tell'   #lstm decode for text
   seq2seq = 'seq2seq'
   imtxt2txt = 'imtxt2txt'
+  dual_bow = 'dual_bow'
+  dual_rnn = 'dual_rnn'
 
 class AlgosType:
    discriminant = 0
@@ -51,6 +56,8 @@ AlgosTypeMap = {
   Algos.show_and_tell: AlgosType.generative,
   Algos.seq2seq : AlgosType.generative,
   Algos.imtxt2txt : AlgosType.generative,
+  Algos.dual_bow : AlgosType.discriminant,
+  Algos.dual_rnn : AlgosType.discriminant
 }
 
 def is_discriminant(algo):
@@ -73,6 +80,10 @@ def _gen_predictor(algo):
     return Seq2seqPredictor()
   elif algo == Algos.imtxt2txt:
     return Imtxt2txtPredictor()
+  elif algo == Algos.dual_bow:
+    return DualTextsimPredictor('bow')
+  elif algo == Algos.dual_rnn:
+    return DualTextsimPredictor('rnn')
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 
@@ -89,6 +100,10 @@ def _gen_trainer(algo):
     return Seq2seq()
   elif algo == Algos.imtxt2txt:
     return Imtxt2txt()
+  elif algo == Algos.dual_bow:
+    return DualTextsim('bow')
+  elif algo == Algos.dual_rnn:
+    return DualTextsim('rnn')
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 

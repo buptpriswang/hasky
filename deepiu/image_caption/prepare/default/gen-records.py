@@ -176,6 +176,7 @@ def deal_file(file):
           gtexts.append(word_ids)
           gtext_strs.append(text)
           
+          #Depreciated not use image_labels
           if img not in image_labels:
             image_labels[img] = set()
           image_labels[img].add(text)

@@ -19,20 +19,26 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('valid_resource_dir', '/home/gezi/temp/image-caption/flickr/seq-with-unk/valid/', '')
 flags.DEFINE_string('image_url_prefix', 'D:\\data\\\image-caption\\flickr\\imgs\\', 'http://b.hiphotos.baidu.com/tuba/pic/item/')
 flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images/', 'input images dir')
+
+#----------label fie dprecated
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
-flags.DEFINE_string('img2text', '', '')
+
+flags.DEFINE_string('img2text', '', 'img id to text labels ids')
+flags.DEFINE_string('text2img', '', 'text id to img labels ids')
+
+flags.DEFINE_string('image_name_bin', '', 'image names')
+flags.DEFINE_string('image_feature_bin', '', 'image features')
+
 flags.DEFINE_string('text2id', '', 'not used')
-flags.DEFINE_string('text2img', '', '')
 flags.DEFINE_string('img2id', '', 'not used')
-flags.DEFINE_string('image_name_bin', '', '')
-flags.DEFINE_string('image_feature_bin', '', '')
 
 flags.DEFINE_integer('num_metric_eval_examples', 1000, '')
 flags.DEFINE_integer('metric_eval_batch_size', 1000, '')
 flags.DEFINE_integer('metric_topn', 100, 'only consider topn results when calcing metrics')
 
 flags.DEFINE_integer('max_texts', 200000, '') 
+flags.DEFINE_integer('max_images', 20000, '') 
 
 flags.DEFINE_boolean('eval_img2text', True, '')
 flags.DEFINE_boolean('eval_text2img', False, '')
@@ -61,13 +67,9 @@ import math
 
 all_distinct_texts = None
 all_distinct_text_strs = None
-image_labels = None
 
 img2text = None
-text2id = None
-
 text2img = None
-img2id = None
 
 image_names = None
 image_features = None
@@ -90,7 +92,7 @@ def init():
       all_distinct_texts = []
     
     #to avoid outof gpu mem
-    all_distinct_texts = all_distinct_texts[:FLAGS.max_texts]
+    #all_distinct_texts = all_distinct_texts[:FLAGS.max_texts]
     print('all_distinct_texts len:', len(all_distinct_texts), file=sys.stderr)
     
     #--padd it as test data set might be smaller in shape[1]
@@ -102,90 +104,46 @@ def init():
     else:
       all_distinct_text_strs = []
 
+    init_labels()
 
 def init_labels():
-  """
-  assume to be in flickr format if is not npy binary file
-  """
-  global image_labels
-  if image_labels is None:
-    timer = gezi.Timer('init_labels from %s'%FLAGS.label_file)
-    if FLAGS.label_file.endswith('.npy'):
-      image_labels = np.load(FLAGS.label_file).item()
-    else:
-      image_labels = {}
-      for line in open(FLAGS.label_file):
-        l = line.rstrip().split('\t')
-        img = l[0][:l[0].index('#')]
-        text = l[-1]
-        if img not in image_labels:
-          image_labels[img] = set([text])
-        else:
-          image_labels[img].add(text)
-    timer.print()
+  get_bidrectional_lable_map()
+  get_bidrectional_lable_map_txt2im()
 
-def get_image_labels():
-  init_labels()
-  return image_labels
-
-def get_bidrectional_lable_map_txt2im():
-  global text2img, img2id
-  if text2img is None:
-    text2img = np.load(FLAGS.text2img).item()
-    img2id = np.load(FLAGS.img2id).item()
-  return text2img, img2id
+  get_image_names_and_features()
 
 def get_bidrectional_lable_map():
-  global img2text, text2id
+  global img2text
   if img2text is None:
-    if FLAGS.img2text and FLAGS.text2id:
-      img2text = np.load(FLAGS.img2text).item()
-      text2id = np.load(FLAGS.text2id).item()
+    img2text_path = os.path.join(FLAGS.valid_resource_dir, 'img2text.npy')
+    img2text = np.load(img2text_path).item()
+  return img2text 
+
+def get_bidrectional_lable_map_txt2im():
+  global text2img
+  if text2img is None:
+    text2img_path = os.path.join(FLAGS.valid_resource_dir, 'text2img.npy')
+    text2img = np.load(text2img_path).item()
+  return text2img
+
+def hack_image_features(image_features):
+  try:
+    if len(image_features[0]) == IMAGE_FEATURE_LEN and len(image_features[1]) == IMAGE_FEATURE_LEN:
+      return image_features 
     else:
-      img2text = text2id = {}
-      for i, text in enumerate(all_distinct_text_strs):
-        text2id[text] = i
-      
-      num_errors = 0
-      print('label_file:', FLAGS.label_file)
-      for line in open(FLAGS.label_file):
-        l = line.rstrip().split('\t')
-        img = l[0][:l[0].index('#')]
-        text = l[-1].strip()
-        if text not in text2id:
-          #print(text)
-          num_errors += 1
-          continue
-        id = text2id[text]
-
-        if img not in img2text:
-          img2text[img] = set([id])
-        else:
-          img2text[img].add(id)
-      print('num_errors:', num_errors)
-  return img2text, text2id
-
-def get_label(img):
-  image_labels = get_image_labels()
-  return list(image_labels[img])[0]
+      return np.array([gezi.nppad(x, TEXT_MAX_WORDS) for x in image_features])
+  except Exception:
+    return  np.array([gezi.nppad(x, TEXT_MAX_WORDS) for x in image_features])
 
 def get_image_names_and_features():
   global image_names, image_features
   if image_names is None:
+    image_feature_bin = os.path.join(FLAGS.valid_resource_dir, 'distinct_image_features.npy')
+    image_name_bin = os.path.join(FLAGS.valid_resource_dir, 'distinct_image_names.npy')
     timer = gezi.Timer('get_image_names_and_features')
-    if FLAGS.image_name_bin and FLAGS.image_feature_bin:
-      image_names = np.load(FLAGS.image_name_bin)
-      image_features = np.load(FLAGS.image_feature_bin)
-    else:
-      lines = open(FLAGS.image_feature_file).readlines()
-      image_names = np.array([line.split('\t')[0] for line in lines])
-      print('---------------------', IMAGE_FEATURE_LEN)
-      if FLAGS.pre_calc_image_feature:
-        image_features = np.array([[float(x) for x in line.split('\t')[1: 1 + IMAGE_FEATURE_LEN]] for line in lines])
-      else:
-        #image_features = np.array([read_image(FLAGS.image_dir + '/' + img) for img in image_names])
-        image_features = [melt.image.read_image(FLAGS.image_dir + '/' + img) for img in image_names]
-        image_features = np.array(image_features)
+    image_names = np.load(image_name_bin)
+    image_features = np.load(image_feature_bin)
+    image_features = hack_image_features(image_features)
     timer.print()
   return image_names, image_features
 
@@ -215,8 +173,9 @@ def print_neareast_texts_from_sorted(scores, indexes, img = None):
     predict_result = ''
     if img:
       init_labels()
-      if img in image_labels:
-        predict_result = 'er%d'%i if all_distinct_text_strs[index] not in image_labels[img] else 'ok%d'%i
+      if img in img2text:
+        hits = img2text[img]
+        predict_result = 'er%d'%i if index not in img2text[img] else 'ok%d'%i
       else:
         predict_result = 'un%d'%i 
     #notice may introduce error, offline scores is orinal scores! so need scores[index] but online input is max_scores will need scores[i]
@@ -341,10 +300,12 @@ score_op = None
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell
-  score = predictor.bulk_predict(img_features, all_distinct_texts)
+  texts = all_distinct_texts[:FLAGS.max_texts]
+  print('-----------------', len(texts), FLAGS.max_texts)
+  score = predictor.bulk_predict(img_features,texts)
   timer.print()
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', all_distinct_texts.shape, 'score_shape:', score.shape)
-  img2text, _ = get_bidrectional_lable_map()
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
+  img2text = get_bidrectional_lable_map()
   num_texts = all_distinct_texts.shape[0]
 
   for i, img in enumerate(imgs):
@@ -363,12 +324,13 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict text2im')
   _, img_features = get_image_names_and_features()
   # TODO gpu outofmem predict for showandtell
+  img_features = img_features[:FLAGS.max_images]
   score = predictor.bulk_predict(img_features, texts)
   score = score.transpose()
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
 
-  text2img, img2id = get_bidrectional_lable_map_txt2im()
+  text2img = get_bidrectional_lable_map_txt2im()
   num_imgs = img_features.shape[0]
 
   for i, text_str in enumerate(text_strs):

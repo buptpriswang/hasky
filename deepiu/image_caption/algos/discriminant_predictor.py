@@ -176,6 +176,10 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       return score
 
   def build_text_emb_sim_graph(self, text,  text2):
+    """
+    for bow is emb sim
+    for rnn is sim after rnn encoding
+    """
     with tf.variable_scope(self.scope):
       text_feature = self.gen_text_feature(text, self.emb)
       text_feature2 = self.gen_text_feature(text2, self.emb)

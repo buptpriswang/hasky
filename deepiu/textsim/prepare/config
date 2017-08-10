@@ -1,14 +1,11 @@
-input_path=/home/gezi/data/product/makeup/
-dir=/home/gezi/new/temp/textsim/makeup/tfrecord/seq-basic
+input_path=/home/gezi/data/product/makeup/tb/title2name/
+dir=/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic
 
 train_data_path=$input_path/train
-
-#valid_data_path=$input_path/valid 
-valid_data_path=/home/gezi/data/lijiaoshou/valid
+valid_data_path=$input_path/valid 
 
 train_output_path=$dir/train
-#valid_output_path=$dir/valid
-valid_output_path=$dir/valid.lijiaoshou
+valid_output_path=$dir/valid
 
 fixed_valid_output_path=$dir/fixed_valid
 

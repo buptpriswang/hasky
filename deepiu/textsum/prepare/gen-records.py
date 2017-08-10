@@ -106,18 +106,13 @@ def deal_file(file, thread_index):
         print(num)
       if FLAGS.max_lines and num >= FLAGS.max_lines:
         break
-      l = line.rstrip().split('\t')
+      l = line.strip().split('\t')
       #@TODO from text -> ids should move out so online code can share it for evaluation or use for feed dict
       #words = segmentor.Segment(text, FLAGS.seg_method)
       #word_ids = [vocabulary.id(word) for word in words if vocabulary.has(word) or ENCODE_UNK]
 
       #text is what to predict which is clickquery right now  decoder
       #input text is what to predict from, encoder, here will may be ct0, title, real_title
-
-      clickquery = l[-4]
-      ct0 = l[-3]
-      title = l[-2]
-      real_title = l[-1]
 
       if title.strip() is '':
         title = real_title

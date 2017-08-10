@@ -68,6 +68,10 @@ def mlp_forward_nobias(input, hidden, out, activation=tf.nn.relu, name=None):
     hidden_output = activation(matmul(input, hidden))
     return tf.matmul(hidden_output, out) 
 
+def element_wise_dot(a, b, keep_dims=True, name=None):
+  with tf.name_scope(name, 'element_wise_cosine_nonorm', [a, b]):
+    return tf.reduce_sum(tf.multiply(a, b), -1, keep_dims=keep_dims)
+
 def element_wise_cosine_nonorm(a, b, keep_dims=True, name=None):
   with tf.name_scope(name, 'element_wise_cosine_nonorm', [a, b]):
     return tf.reduce_sum(tf.multiply(a, b), -1, keep_dims=keep_dims)
