@@ -5,10 +5,10 @@ source $conf_path/config
 model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
+#--fixed_valid_input=$fixed_valid_output_path/'test-*' \
 python ./train.py \
   --train_input=$train_output_path/'train-*' \
   --valid_input=$valid_output_path/'test-*' \
-  --fixed_valid_input=$fixed_valid_output_path/'test-*' \
   --valid_resource_dir=$valid_output_path \
   --vocab=$dir/vocab.txt \
   --num_records_file=$train_output_path/num_records.txt \

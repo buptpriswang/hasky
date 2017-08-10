@@ -179,7 +179,7 @@ class InputApp(object):
 
         #melt.align only need if you use dynamic batch/padding
         if FLAGS.dynamic_batch_length:
-          fixed_ltext, eval_rtext = melt.align_col_padding2d(fixed_ltext, eval_ltext)
+          fixed_ltext, eval_ltext = melt.align_col_padding2d(fixed_ltext, eval_ltext)
           fixed_rtext, eval_rtext = melt.align_col_padding2d(fixed_rtext, eval_rtext)
         eval_ltext = tf.concat([fixed_ltext, eval_ltext], axis=0)
         eval_ltext_str = tf.concat([fixed_ltext_str, eval_ltext_str], axis=0)

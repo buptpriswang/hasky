@@ -301,7 +301,6 @@ def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell
   texts = all_distinct_texts[:FLAGS.max_texts]
-  print('-----------------', len(texts), FLAGS.max_texts)
   score = predictor.bulk_predict(img_features,texts)
   timer.print()
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
