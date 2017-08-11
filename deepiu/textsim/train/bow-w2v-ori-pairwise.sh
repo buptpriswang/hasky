@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/bow3
+model_dir=/home/gezi/new/temp/makeup/title2name/model/bow.w2v.ori.pairwise
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -46,11 +46,13 @@ python ./train.py \
   --num_negs 3 \
   --neg_left 1 \
   --neg_right 1 \
+  --mlp_dims 0 \
+  --word_embedding_file $dir/word2vec/word_embedding.npy \
+  --finetune_word_embedding 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.5 \
-  --loss pairwise_exp \
   --algo dual_bow \
   --combiner=sum \
   --exclude_zero_index 1 \

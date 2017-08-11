@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/bow3
+model_dir=/home/gezi/new/temp/makeup/title2name/model/bow.w2v.fix.constrasive.1rneg
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -43,14 +43,17 @@ python ./train.py \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
   --debug 0 \
-  --num_negs 3 \
-  --neg_left 1 \
+  --num_negs 1 \
+  --neg_left 0 \
   --neg_right 1 \
+  --mlp_dims 1024,256 \
+  --word_embedding_file $dir/word2vec/word_embedding.npy \
+  --finetune_word_embedding 0 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.5 \
-  --loss pairwise_exp \
+  --loss contrastive \
   --algo dual_bow \
   --combiner=sum \
   --exclude_zero_index 1 \

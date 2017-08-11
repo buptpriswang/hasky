@@ -76,7 +76,7 @@ def run():
   rtexts = [x.split('\t')[1] for x in rtexts]
   rtexts = list(set(rtexts))
   
-  rtexts = rtexts[:40000]
+  #rtexts = rtexts[:40000]
   values, indices = sim(ltexts, rtexts)
 
   for i in xrange(len(ltexts)):
@@ -90,7 +90,7 @@ def run():
   rtexts = [x.split('\t')[0] for x in rtexts]
   rtexts = list(set(rtexts))
 
-  rtexts = rtexts[:40000]
+  #rtexts = rtexts[:40000]
   values, indices = sim(ltexts, rtexts, tag='lsim_nearby')
 
   for i in xrange(len(ltexts)):

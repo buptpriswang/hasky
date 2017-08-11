@@ -190,8 +190,11 @@ def tf_train_flow(train_once_fn,
               num_bad_epochs += 1
               if num_bad_epochs > num_allowed_bad_epochs:
                 logging.warning('Evaluate loss not decrease for last %d epochs'% (num_allowed_bad_epochs + 1))
-                if early_stop:
-                  stop = True 
+                if not os.path.exists(os.path.join(epoch_dir,'model.cpkt-noimprove')):
+                  best_epoch_saver.save(sess, os.path.join(epoch_dir,'model.cpkt-noimprove'))
+                ##-------well remove it since 
+                #if early_stop:
+                #  stop = True 
             else:
               num_bad_epochs = 0
             pre_epoch_eval_loss = eval_loss

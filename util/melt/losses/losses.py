@@ -21,13 +21,35 @@ def reduce_loss(loss_matrix, combiner='mean'):
   else:
     return tf.reduce_sum(loss_matrix)
 
-def cross_entropy(scores, num_negs=1, combiner='mean', name=None):
+#https://stackoverflow.com/questions/37479119/doing-pairwise-distance-computation-with-tensorflow
+#https://hackernoon.com/one-shot-learning-with-siamese-networks-in-pytorch-8ddaab10340e
+#https://hackernoon.com/facial-similarity-with-siamese-networks-in-pytorch-9642aa9db2f7
+#http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+
+#there are different versions, one is not to use sqrt.. just square
+def contrastive(pos_score, neg_scores, margin=1.0, combiner='mean', name=None):
+  #relu same like hinge.. tf.max..
+  #neg_scores = tf.nn.relu(margin - neg_scores)
+  neg_scores = tf.nn.relu(margin - tf.sqrt(neg_scores))
+  
+  neg_scores = tf.square(neg_scores)
+
+  scores = tf.concat([pos_score, neg_scores], 1)
+  loss = reduce_loss(scores, combiner) * 0.5
+  return loss
+
+#this is cross entorpy for cosine same... scores must be -1 <-> 1 TODO
+def cross_entropy(scores, combiner='mean', name=None):
   with tf.name_scope(name, 'cross_entropy_loss', [scores]):
     batch_size = scores.get_shape()[0]
+    num_negs = scores.get_shape()[1] - 1
     targets = tf.concat([tf.ones([batch_size, 1], tf.float32), tf.zeros([batch_size, num_negs], tf.float32)], 1)
     #http://www.wildml.com/2016/07/deep-learning-for-chatbots-2-retrieval-based-model-tensorflow/ 
     #I think for binary is same for sigmoid or softmax
-    logits = tf.sigmoid(scores)
+    
+    #logits = tf.sigmoid(scores)
+    logits = (1. + scores) / 2.
+
     loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=targets)
     #loss_matrix = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=targets)
     loss = reduce_loss(loss_matrix, combiner)

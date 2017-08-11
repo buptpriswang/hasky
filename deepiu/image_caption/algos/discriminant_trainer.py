@@ -28,6 +28,7 @@ flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can spee
 
 flags.DEFINE_boolean('fix_image_embedding', False, 'image part all fixed, so just fintune text part')
 flags.DEFINE_boolean('fix_text_embedding', False, 'text part all fixed, so just fintune image part')
+
 flags.DEFINE_string('word_embedding_file', None, 'load pre trained word embedding from word2vec or glov if not None')
 flags.DEFINE_boolean('finetune_word_embedding', True, 'wether update word embedding')
 

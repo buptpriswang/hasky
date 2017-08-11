@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/bow3
+model_dir=/home/gezi/new/temp/makeup/title2name/model/bow2
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -50,7 +50,6 @@ python ./train.py \
   --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.5 \
-  --loss pairwise_exp \
   --algo dual_bow \
   --combiner=sum \
   --exclude_zero_index 1 \

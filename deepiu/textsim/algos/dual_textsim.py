@@ -12,13 +12,14 @@ from __future__ import division
 # from __future__ import print_function
 
 import sys
-import os
+import os, glob
 import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('mlp_dims', '256', '')
+flags.DEFINE_string('rtext_bow', False, 'rtext alwyas use bow')
 
 import melt
 logging = melt.logging
@@ -40,6 +41,55 @@ from deepiu.seq2seq.rnn_encoder import RnnEncoder
 
 from deepiu.util.rank_loss import pairwise_loss
 
+#from melt import dot
+
+#TODO pytorch has pairwise_distance  move to melt.ops
+#https://stackoverflow.com/questions/37009647/compute-pairwise-distance-in-a-batch-without-replicating-tensor-in-tensorflow
+#https://www.reddit.com/r/tensorflow/comments/58tq6j/how_to_compute_pairwise_distance_between_points/
+# qexpand = tf.expand_dims(q,1) # one olumn                                                                                                         
+# qTexpand = tf.expand_dims(q,0) # one row                                                                                                           
+# qtile = tf.tile(qexpand,[1,N,1])                                                                                                                   
+# qTtile = tf.tile(qTexpand,[N,1,1])                                                                                                                 
+# deltaQ = qtile - qTtile                                                                                                                            
+# deltaQ2 = deltaQ*deltaQ                                                                                                                            
+# d2Q = tf.reduce_sum(deltaQ2,2) 
+
+# def pairwise_l2_norm2(x, y, scope=None):
+#   with tf.op_scope([x, y], scope, 'pairwise_l2_norm2'):
+#     size_x = tf.shape(x)[0]
+#     size_y = tf.shape(y)[0]
+#     xx = tf.expand_dims(x, -1)
+#     xx = tf.tile(xx, tf.stack([1, 1, size_y]))
+
+#     yy = tf.expand_dims(y, -1)
+#     yy = tf.tile(yy, tf.stack([1, 1, size_x]))
+#     yy = tf.transpose(yy, perm=[2, 1, 0])
+
+#     diff = tf.subtract(xx, yy)
+#     square_diff = tf.square(diff)
+
+#     square_dist = tf.reduce_sum(square_diff, 1)
+
+#     return square_dist
+
+
+# def pairwise_distance(x, y):
+#   qexpand = tf.expand_dims(x,1) # one olumn                                                                                                         
+#   qTexpand = tf.expand_dims(y,0) # one row                                                                                                           
+#   qtile = tf.tile(qexpand,[1,N,1])                                                                                                                   
+#   qTtile = tf.tile(qTexpand,[N,1,1])                                                                                                                 
+#   deltaQ = qtile - qTtile                                                                                                                            
+#   deltaQ2 = deltaQ*deltaQ                                                                                                                            
+#   d2Q = tf.reduce_sum(deltaQ2,2)   
+#   return d2Q
+
+def dot(x, y):
+  if not FLAGS.loss == 'contrastive':
+    return melt.dot(x, y)
+  else:
+    #TODO ...
+    #return -tf.sqrt(pairwise_distance(x, y))
+    return melt.cosine(x, y)
 
 class DualTextsim(object):
   """
@@ -112,6 +162,7 @@ class DualTextsim(object):
 
   def encode(self, text):
     text_feature = self.encoder.encode(text, self.emb)
+    #rnn will return encode_feature, state
     if isinstance(text_feature, tuple):
       text_feature = text_feature[0]
     return text_feature
@@ -123,7 +174,10 @@ class DualTextsim(object):
     """
     text_feature = self.encode(text)
     text_feature = self.mlp_layers(text_feature)
-    text_feature = tf.nn.l2_normalize(text_feature, -1)
+    ##--well if not normalize will get big values.. then sigmod like 72 -> 1
+    #if not FLAGS.loss == 'cross':
+    if not FLAGS.loss == 'contrastive':
+      text_feature = tf.nn.l2_normalize(text_feature, -1)
     return text_feature
 
   def rforward(self, text):
@@ -131,12 +185,23 @@ class DualTextsim(object):
     Args:
     text: batch text [batch_size, max_text_len]
     """
-    text_feature = self.encode(text)
-    text_feature = tf.nn.l2_normalize(text_feature, -1)
+    if not FLAGS.rtext_bow:
+      text_feature = self.encode(text)
+    else:
+      text_feature = bow_encoder.encode(text, self.emb)
+    #if not FLAGS.loss == 'cross': 
+    if not FLAGS.loss == 'contrastive':
+      text_feature = tf.nn.l2_normalize(text_feature, -1)
     return text_feature
 
   def compute_sim(self, ltext_feature, rtext_feature):
-    return melt.element_wise_dot(ltext_feature, rtext_feature)
+    if not FLAGS.loss == 'contrastive':
+      #cosine loss with feature pre normed
+      sim = melt.element_wise_dot(ltext_feature, rtext_feature)
+    else:
+      # sim = tf.sqrt(tf.reduce_sum(tf.square(ltext_feature - rtext_feature), -1, keep_dims=True))
+      sim = tf.reduce_sum(tf.square(ltext_feature - rtext_feature), -1, keep_dims=True)
+    return sim
 
   def build_graph(self, ltext, rtext, neg_rtext, neg_ltext):
     assert (neg_ltext is not None) or (neg_rtext is not None)
@@ -239,21 +304,21 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
     with tf.variable_scope(self.scope):
       ltext_feature = self.lforward(ltext)
       rtext_feature = self.rforward(rtext)
-      score = melt.dot(ltext_feature, rtext_feature)
+      score = dot(ltext_feature, rtext_feature)
       return score
 
   def build_lsim_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
       ltext_feature = self.lforward(ltext)
       rtext_feature = self.lforward(rtext)
-      score = melt.dot(ltext_feature, rtext_feature)
+      score = dot(ltext_feature, rtext_feature)
       return score
 
   def build_rsim_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
       ltext_feature = self.rforward(ltext)
       rtext_feature = self.rforward(rtext)
-      score = melt.dot(ltext_feature, rtext_feature)
+      score = dot(ltext_feature, rtext_feature)
       return score
 
   def build_embsim_graph(self, ltext, rtext):
@@ -301,7 +366,7 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       text_feature = forward_fn(text)
       
       #[1, seq_len]
-      score = melt.dot(text_feature, word_feature)
+      score = dot(text_feature, word_feature)
       return score
 
   def build_lwords_importance_graph(self, text):
@@ -329,7 +394,7 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       image_feature = self.lforward(image_feature)
       #no need for embedding lookup
       word_feature = self.forward_word_feature()
-      score = melt.dot(image_feature, word_feature)
+      score = dot(image_feature, word_feature)
       return score
 
   def forward_word_feature(self):

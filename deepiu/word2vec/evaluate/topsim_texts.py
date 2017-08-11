@@ -35,23 +35,37 @@ itexts = ['ÑÅÊ«À¼÷ìË®ÈóËª', 'ÑÅÊ«À¼÷ìÐ¡×ØÆ¿', 'ÑÅÊ«À¼÷ìºìÊ¯Áñ', 'æÃÃÀ¿óÎïÈª²¹Ë®¾
 
 left_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in itexts]
 
-corpus_text = []
-for file in glob.glob(corpus_pattern):
-  corpus_text += open(file).readlines()
-
-corpus_text = [x.split()[0] for x in corpus_text]
-
-right_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in corpus_text] 
-
-print(len(corpus_text))
 
 lids_ = tf.placeholder(dtype=tf.int32, shape=[None, max_words]) 
 rids_ = tf.placeholder(dtype=tf.int32, shape=[None, max_words]) 
 nids_ = embsim.top_sim(lids_, rids_)
 sess = embsim._sess 
+
+corpus_text = []
+for file in glob.glob(corpus_pattern):
+  corpus_text += open(file).readlines()
+corpus_text = [x.strip() for x in corpus_text]
+
+r_text = [x.split('\t')[1] for x in corpus_text]
+r_text = list(set(r_text))
+right_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in r_text] 
+print(len(corpus_text))
+
 values, indices = sess.run(nids_, {lids_: left_ids, rids_ : right_ids})
 
 for i in xrange(len(itexts)):
   print('-----------[input]:', itexts[i])
   for index, value in zip(indices[i], values[i]):
-    print(corpus_text[index], value)
+    print(r_text[index], value)
+
+r_text = [x.split('\t')[0] for x in corpus_text]
+r_text = list(set(r_text))
+right_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in r_text] 
+print(len(corpus_text))
+
+values, indices = sess.run(nids_, {lids_: left_ids, rids_ : right_ids})
+
+for i in xrange(len(itexts)):
+  print('-----------[input]:', itexts[i])
+  for index, value in zip(indices[i], values[i]):
+    print(r_text[index], value)

@@ -28,16 +28,20 @@ def pairwise_loss(pos_score, neg_scores):
     #TODO seems work but not as good as hinge, maybe should be EMS loss not norm to use cosine, then cross ?
     #[batch_size, 1 + num_negs]
     scores = tf.concat([pos_score, neg_scores], 1)
-    loss = melt.losses.cross_entropy(scores, num_negs)
+    loss = melt.losses.cross_entropy(scores)
   #point losss is bad here for you finetune both text and image embedding, all 0 vec will loss minimize..
   #if use point loss you need to fix text embedding
   elif FLAGS.loss == 'point': 
-    loss = tf.reduce_mean(1.0 - pos_score)
+    #or might be (1 - pos_score) / 2 loss always 0 -1
+    #loss = tf.reduce_mean(1. - pos_score)
+    loss = tf.reduce_mean((1. - pos_score) / 2.)
   elif FLAGS.loss == 'pairwise_cross': 
     loss = melt.losses.pairwise_cross(pos_score, neg_scores)
   elif FLAGS.loss == 'pairwise_exp':
     loss = melt.losses.pairwise_exp(pos_score, neg_scores)
+  elif FLAGS.loss == 'contrastive':
+    loss = melt.losses.contrastive(pos_score, neg_scores)
   else:
-    raise ValueError('Not supported loss')
+    raise ValueError('Not supported loss: ', FLAGS.loss)
 
   return loss
