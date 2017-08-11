@@ -56,7 +56,7 @@ flags.DEFINE_boolean('dynamic_batch_length', True,
 
 flags.DEFINE_integer('num_negs', 1, '0 means no neg')
 
-flags.DEFINE_boolean('feed_dict', False, '')
+flags.DEFINE_boolean('feed_dict', False, 'depreciated, too complex, just prepare your data at first for simple')
 
 #---------- input dirs
 #@TODO will not use input pattern but use dir since hdfs now can not support glob well
@@ -112,3 +112,19 @@ flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/incept
 flags.DEFINE_string('one_image', '/home/gezi/data/flickr/flickr30k-images/1000092795.jpg', '')
 
 flags.DEFINE_string('image_feature_name', 'image_feature', '')
+
+
+#---------negative smapling
+flags.DEFINE_boolean('neg_left', False, 'ltext or image')
+flags.DEFINE_boolean('neg_right', True, 'rtext or text')
+
+
+#---------discriminant trainer
+flags.DEFINE_string('word_embedding_file', None, 'load pre trained word embedding from word2vec or glov if not None')
+flags.DEFINE_boolean('finetune_word_embedding', True, 'wether update word embedding')
+
+
+flags.DEFINE_string('activation', 'relu', 
+                    """relu/tanh/sigmoid  seems sigmoid will not work here not convergent
+                    and relu slightly better than tanh and convrgence speed faster""")
+flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ==============================================================================
-#          \file   discriminant_predictor.py
+#          \file   discriminant_self.py
 #        \author   chenghuige  
 #          \date   2016-09-22 22:39:41.260080
 #   \Description  
@@ -27,6 +27,8 @@ import gezi
 import melt
 
 logging = melt.logging
+
+from deepiu.util.rank_loss import dot, compute_sim, normalize
 
 #@TODO should not use conf... change to config file parse instead  @FIXME!! this will cause problem in deepiu package
 try:
@@ -82,6 +84,19 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     self.image_words_score = self.build_image_words_sim_graph()
     self.text_words_score = self.build_text_words_sim_graph(text_max_words)
     self.text_words_emb_score = self.build_text_words_emb_sim_graph(text_max_words)
+
+    tf.add_to_collection('score', self.score)
+    tf.add_to_collection('textsim', self.textsim_score)
+    tf.add_to_collection('text_emb_sim', self.text_emb_sim_score)
+    tf.add_to_collection('text_encode', self.text_encode)
+    tf.add_to_collection('image_encode', self.image_encode)
+    tf.add_to_collection('words_importance', self.words_importance)
+    if self.encoder_words_importance is not None:
+      tf.add_to_collection('encoder_words_importance', self.encoder_words_importance)
+
+    tf.add_to_collection('image_words_score', self.image_words_score)
+    tf.add_to_collection('text_words_score', self.text_words_score)
+    tf.add_to_collection('text_words_emb_score', self.text_words_emb_score)
 
     return self.score
 
@@ -164,7 +179,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     with tf.variable_scope(self.scope):
       image_feature = self.forward_image_feature(image_feature)
       text_feature = self.forward_text(text)
-      score = melt.dot(image_feature, text_feature)
+      score = dot(image_feature, text_feature)
       return score
 
   # TODO may consider better performance, reomve redudant like sim(a,b) not need to calc sim(b,a)
@@ -172,7 +187,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     with tf.variable_scope(self.scope):
       text_feature = self.forward_text(text)
       text_feature2 = self.forward_text(text2)
-      score = melt.dot(text_feature, text_feature2)
+      score = dot(text_feature, text_feature2)
       return score
 
   def build_text_emb_sim_graph(self, text,  text2):
@@ -207,7 +222,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     with tf.variable_scope(self.scope):
       image_feature = self.forward_image_feature(self.image_feature_feed)
       text_feature = melt.load_constant(text_feature_npy, self.sess)
-      score = melt.dot(image_feature, text_feature)
+      score = dot(image_feature, text_feature)
       return score
 
   #def build_fixed_text_graph(self, text_npy): 
@@ -268,7 +283,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       image_feature = self.forward_image_feature(image_feature)
       #no need for embedding lookup
       word_feature = self.forward_word_feature()
-      score = melt.dot(image_feature, word_feature)
+      score = dot(image_feature, word_feature)
       return score
 
   def build_evluate_fixed_image_word_graph(self):
@@ -322,7 +337,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       text_feature = self.forward_text(text)
       
       #[1, seq_len]
-      score = melt.dot(text_feature, word_feature)
+      score = dot(text_feature, word_feature)
       return score
   
   def build_encode_graph(self, text_max_words=TEXT_MAX_WORDS):
@@ -335,14 +350,14 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     with tf.variable_scope(self.scope):
       image_feature = self.forward_image_feature(self.get_image_feature_feed())
       word_feature = self.forward_word_feature()
-      score = melt.dot(image_feature, word_feature)
+      score = dot(image_feature, word_feature)
       return score
 
   def build_text_words_sim_graph(self, text_max_words=TEXT_MAX_WORDS):
     with tf.variable_scope(self.scope):
       text_feature = self.forward_text(self.get_text_feed(text_max_words))
       word_feature = self.forward_word_feature()
-      score = melt.dot(text_feature, word_feature)
+      score = dot(text_feature, word_feature)
       return score
 
   def build_text_words_emb_sim_graph(self, text_max_words=TEXT_MAX_WORDS):

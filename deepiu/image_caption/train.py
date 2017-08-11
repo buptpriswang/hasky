@@ -88,17 +88,13 @@ def tower_loss(trainer, input_app=None, input_results=None):
 
   #--------train neg
   if input_results[input_app.input_train_neg_name]:
-    try:
-      neg_text, neg_text_str = input_results[input_app.input_train_neg_name]
-      neg_image = None
-    except Exception:
-      neg_text, neg_text_str, neg_image = input_results[input_app.input_train_neg_name]
-  else:
-    neg_text, neg_text_str, neg_image = None, None, None
+    neg_image_name, neg_image_feature, neg_text, neg_text_str = input_results[input_app.input_train_neg_name]
 
-  if FLAGS.neg_image and not FLAGS.neg_both:
+  if not FLAGS.neg_left:
+    neg_image_feature = None 
+  if not FLAGS.neg_right:
     neg_text = None
-  loss = trainer.build_train_graph(image_feature, text, neg_text, neg_image)
+  loss = trainer.build_train_graph(image_feature, text, neg_image_feature, neg_text)
   return loss
 
 def gen_train_graph(input_app, input_results, trainer):
@@ -160,9 +156,7 @@ def gen_train_graph(input_app, input_results, trainer):
 
   return ops, deal_debug_results
 
-def gen_train(input_app, input_results, trainer):
-  input_gen_feed_dict = input_app.gen_feed_dict
-  
+def gen_train(input_app, input_results, trainer):  
   ops, deal_debug_results = gen_train_graph(input_app, input_results, trainer)
   
   #@NOTICE make sure global feed dict ops put at last
@@ -187,7 +181,7 @@ def gen_train(input_app, input_results, trainer):
 
 
   def _gen_feed_dict():
-    feed_dict = input_gen_feed_dict()
+    feed_dict = {}
     
     if feed_results:
       for op, result in zip(feed_ops, feed_results):
@@ -227,25 +221,21 @@ def gen_evalulate(input_app,
   return eval_ops, deal_eval_results
 
 def gen_validate(input_app, input_results, trainer, predictor):
-  gen_eval_feed_dict = input_app.gen_eval_feed_dict
+  gen_eval_feed_dict = None
   eval_ops = None
   train_with_validation = input_results[input_app.input_valid_name] is not None
   deal_eval_results = None
   if train_with_validation and not FLAGS.train_only:
     eval_image_name, eval_image_feature, eval_text, eval_text_str = input_results[input_app.input_valid_name]
     if input_results[input_app.input_valid_neg_name]:
-      try:
-        eval_neg_text, eval_neg_text_str = input_results[input_app.input_valid_neg_name]
-        eval_neg_image = None
-      except Exception:
-        eval_neg_text, eval_neg_text_str, eval_neg_image = input_results[input_app.input_valid_neg_name]
-    else:
-      eval_neg_text, eval_neg_text_str, eval_neg_image = None, None, None
+      eval_neg_image_name, eval_neg_image_feature, eval_neg_text, eval_neg_text_str = input_results[input_app.input_valid_neg_name]
 
-    if FLAGS.neg_image and not FLAGS.neg_both:
-      eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, None, eval_neg_image)
-    else:
-      eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text, eval_neg_image)
+    if not FLAGS.neg_left:
+      eval_neg_image = None 
+    eval_neg_text_ = eval_neg_text
+    if not FLAGS.neg_right:
+      eval_neg_text_ = None
+    eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_image_feature, eval_neg_text_)
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 
@@ -270,24 +260,8 @@ def gen_predict_graph(predictor):
   the probelm here is you can not change like beam size later...
   """
   #-----discriminant and generative
-  score = predictor.init_predict()
-  tf.add_to_collection('score', score)
-
-  if algos_factory.is_discriminant(FLAGS.algo):
-    tf.add_to_collection('textsim', predictor.textsim_score)
-    tf.add_to_collection('text_emb_sim', predictor.text_emb_sim_score)
-    tf.add_to_collection('text_encode', predictor.text_encode)
-    tf.add_to_collection('image_encode', predictor.image_encode)
-    tf.add_to_collection('words_importance', predictor.words_importance)
-    if predictor.encoder_words_importance is not None:
-      tf.add_to_collection('encoder_words_importance', predictor.encoder_words_importance)
-
-    tf.add_to_collection('image_words_score', predictor.image_words_score)
-    tf.add_to_collection('text_words_score', predictor.text_words_score)
-    tf.add_to_collection('text_words_emb_score', predictor.text_words_emb_score)
-  
-   #-----generateive
-   #-----TODO all move to predictor so train app file do not need to do again
+  predictor.init_predict() #here self add all score ops
+  #-----generateive
   if algos_factory.is_generative(FLAGS.algo):
     exact_score = predictor.init_predict(exact_loss=True)
     tf.add_to_collection('exact_score', exact_score)
@@ -374,7 +348,6 @@ def main(_):
   if not FLAGS.pre_calc_image_feature:
     melt.apps.image_processing.init()
 
-  InputApp.init()
   vocabulary.init()
   text2ids.init()
   evaluator.init()

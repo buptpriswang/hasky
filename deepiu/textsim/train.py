@@ -45,10 +45,6 @@ flags.DEFINE_string('vocab', '/home/gezi/new/temp/makeupe/title2name/tfrecord/se
 
 flags.DEFINE_boolean('debug', False, '')
 
-
-flags.DEFINE_boolean('neg_ltext', False, '')
-flags.DEFINE_boolean('neg_rtext', True, '')
-
 import sys, math
 import functools
 import gezi
@@ -81,10 +77,10 @@ def tower_loss(trainer, input_app=None, input_results=None):
   if input_results[input_app.input_train_neg_name]:
     neg_ltext_str, neg_ltext, neg_rtext, neg_rtext_str = input_results[input_app.input_train_neg_name]
 
-  if not FLAGS.neg_ltext:
+  if not FLAGS.neg_left:
     neg_ltext = None
 
-  if not FLAGS.neg_rtext:
+  if not FLAGS.neg_right:
     neg_rtext = None
 
   loss = trainer.build_train_graph(ltext, rtext, neg_ltext, neg_rtext)
@@ -160,11 +156,12 @@ def gen_validate(input_app, input_results, trainer, predictor):
     eval_ltext_str, eval_ltext, eval_rtext, eval_rtext_str = input_results[input_app.input_valid_name]
     if input_results[input_app.input_valid_neg_name]:
       eval_neg_ltext_str, eval_neg_ltext, eval_neg_rtext, eval_neg_rtext_str = input_results[input_app.input_valid_neg_name]
-      if not FLAGS.neg_ltext:
+      if not FLAGS.neg_left:
         eval_neg_ltext = None
-      if not FLAGS.neg_rtext:
-        eval_neg_rtext = None
-    eval_loss = trainer.build_train_graph(eval_ltext, eval_rtext, eval_neg_ltext, eval_neg_rtext)
+      eval_neg_rtext_ = eval_neg_rtext
+      if not FLAGS.neg_right:
+        eval_neg_rtext_ = None
+    eval_loss = trainer.build_train_graph(eval_ltext, eval_rtext, eval_neg_ltext, eval_neg_rtext_)
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 

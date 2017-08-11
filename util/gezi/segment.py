@@ -164,6 +164,8 @@ class Segmentor(object):
       return segment_en(text)
     elif method == 'char':
       return segment_char(text)
+    elif method == 'tab':
+      return text.strip().split('\t')
     else:
       raise ValueError('%s not supported'%method)
 

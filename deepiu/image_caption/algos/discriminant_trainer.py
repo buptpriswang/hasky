@@ -16,21 +16,14 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('hidden_size', 1024, 'hidden size, depreciated, use mlp_layer_dims instead')
 flags.DEFINE_string('image_mlp_dims', '1024,1024', '')
 flags.DEFINE_string('text_mlp_dims', '1024,1024', '')
 
-flags.DEFINE_string('activation', 'relu', 
-                    """relu/tanh/sigmoid  seems sigmoid will not work here not convergent
-                    and relu slightly better than tanh and convrgence speed faster""")
-
-flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
 
 flags.DEFINE_boolean('fix_image_embedding', False, 'image part all fixed, so just fintune text part')
 flags.DEFINE_boolean('fix_text_embedding', False, 'text part all fixed, so just fintune image part')
 
-flags.DEFINE_string('word_embedding_file', None, 'load pre trained word embedding from word2vec or glov if not None')
-flags.DEFINE_boolean('finetune_word_embedding', True, 'wether update word embedding')
+
 
 
 import functools, glob
@@ -42,7 +35,7 @@ import melt.slim
 
 from deepiu.util import vocabulary
 from deepiu.seq2seq import embedding
-from deepiu.util.rank_loss import pairwise_loss
+from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
 
 class DiscriminantTrainer(object):
   """
@@ -135,7 +128,7 @@ class DiscriminantTrainer(object):
     text_feature = self.forward_text_layers(text_feature)
     #for pointwise comment below
     #must be -1 not 1 for num_negs might > 1 if lookup onece..
-    text_feature = tf.nn.l2_normalize(text_feature, -1)
+    text_feature = normalize(text_feature)
     return text_feature	
 
   def forward_text(self, text):
@@ -155,7 +148,7 @@ class DiscriminantTrainer(object):
     image_feature = self.forward_image_layers(image_feature)
     
     #for point wise comment below
-    image_feature = tf.nn.l2_normalize(image_feature, -1)
+    image_feature = normalize(image_feature)
 
     return image_feature
 
@@ -168,23 +161,17 @@ class DiscriminantTrainer(object):
       #not only stop internal text ebmeddding but also mlp part so fix final text embedding
       normed_text_feature = tf.stop_gradient(normed_text_feature)
     
-    #for point wise comment below
-    #[batch_size,1] <= [batch_size, hidden_size],[batch_size, hidden_size]
-    return melt.element_wise_dot(normed_image_feature, normed_text_feature)
+    return compute_sim(normed_image_feature, normed_text_feature)
 
-
-    #point wise
-    #return -tf.losses.mean_squared_error(normed_image_feature, normed_text_feature, reduction='none')
-
-  def build_graph(self, image_feature, text, neg_text, neg_image=None, lookup_negs_once=False):
+  def build_graph(self, image_feature, text, neg_image_feature, neg_text, lookup_negs_once=False):
     """
     Args:
     image_feature: [batch_size, IMAGE_FEATURE_LEN]
     text: [batch_size, MAX_TEXT_LEN]
     neg_text: [batch_size, num_negs, MAXT_TEXT_LEN]
-    neg_image: None or [batch_size, num_negs, IMAGE_FEATURE_LEN]
+    neg_image_feature: None or [batch_size, num_negs, IMAGE_FEATURE_LEN]
     """
-    assert (neg_text is not None) or (neg_image is not None)
+    assert (neg_text is not None) or (neg_image_feature is not None)
     with tf.variable_scope(self.scope) as scope:
       #-------------get image feature
       #[batch_size, hidden_size] <= [batch_size, IMAGE_FEATURE_LEN] 
@@ -213,11 +200,11 @@ class DiscriminantTrainer(object):
             neg_text_feature_i = self.forward_text(neg_text[:, i, :])
           neg_scores_i = self.compute_image_text_sim(image_feature, neg_text_feature_i)
           neg_scores_list.append(neg_scores_i)
-      if neg_image is not None:
-        num_negs = neg_image.get_shape()[1]
+      if neg_image_feature is not None:
+        num_negs = neg_image_feature.get_shape()[1]
         for i in xrange(num_negs):
-          neg_image_feature_i = self.forward_image_feature(neg_image[:, i, :])
-          neg_scores_i =  self.compute_image_text_sim(neg_image_feature_i, text_feature)
+          neg_image_feature_feature_i = self.forward_image_feature(neg_image_feature[:, i, :])
+          neg_scores_i =  self.compute_image_text_sim(neg_image_feature_feature_i, text_feature)
           neg_scores_list.append(neg_scores_i)
 
       #[batch_size, num_negs]

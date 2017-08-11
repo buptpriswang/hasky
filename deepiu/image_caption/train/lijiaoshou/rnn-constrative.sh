@@ -1,8 +1,8 @@
-conf_path=./prepare
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/rnn
 mkdir -p $model_dir
 
 python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
@@ -24,9 +24,9 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --eval_text2img 1 \
   --show_eval 1 \
   --metric_eval 1 \
-  --max_texts 10000 \
   --metric_eval_interval_steps 1000 \
   --model_dir=$model_dir \
+  --show_eval 1 \
   --train_only 0 \
   --save_model 1 \
   --optimizer adagrad \
@@ -37,12 +37,10 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
   --num_negs 1 \
-  --neg_left 1 \
-  --neg_right 1 \
-  --mlp_dims 512 \
+  --neg_image 1 \
   --debug 0 \
   --feed_dict 0 \
-  --algo dual_rnn \
+  --algo rnn \
   --interval 100 \
   --eval_interval 1000 \
   --margin 0.1 \

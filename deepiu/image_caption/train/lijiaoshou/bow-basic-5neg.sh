@@ -44,7 +44,8 @@ python ./train.py \
   --metric_eval_batch_size 1000 \
   --debug 0 \
   --num_negs 5 \
-  --neg_image 1 \
+  --neg_left 1 \
+  --neg_right 0 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \

@@ -39,57 +39,10 @@ import deepiu
 from deepiu.seq2seq import bow_encoder
 from deepiu.seq2seq.rnn_encoder import RnnEncoder
 
-from deepiu.util.rank_loss import pairwise_loss
+from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
+
 
 #from melt import dot
-
-#TODO pytorch has pairwise_distance  move to melt.ops
-#https://stackoverflow.com/questions/37009647/compute-pairwise-distance-in-a-batch-without-replicating-tensor-in-tensorflow
-#https://www.reddit.com/r/tensorflow/comments/58tq6j/how_to_compute_pairwise_distance_between_points/
-# qexpand = tf.expand_dims(q,1) # one olumn                                                                                                         
-# qTexpand = tf.expand_dims(q,0) # one row                                                                                                           
-# qtile = tf.tile(qexpand,[1,N,1])                                                                                                                   
-# qTtile = tf.tile(qTexpand,[N,1,1])                                                                                                                 
-# deltaQ = qtile - qTtile                                                                                                                            
-# deltaQ2 = deltaQ*deltaQ                                                                                                                            
-# d2Q = tf.reduce_sum(deltaQ2,2) 
-
-# def pairwise_l2_norm2(x, y, scope=None):
-#   with tf.op_scope([x, y], scope, 'pairwise_l2_norm2'):
-#     size_x = tf.shape(x)[0]
-#     size_y = tf.shape(y)[0]
-#     xx = tf.expand_dims(x, -1)
-#     xx = tf.tile(xx, tf.stack([1, 1, size_y]))
-
-#     yy = tf.expand_dims(y, -1)
-#     yy = tf.tile(yy, tf.stack([1, 1, size_x]))
-#     yy = tf.transpose(yy, perm=[2, 1, 0])
-
-#     diff = tf.subtract(xx, yy)
-#     square_diff = tf.square(diff)
-
-#     square_dist = tf.reduce_sum(square_diff, 1)
-
-#     return square_dist
-
-
-# def pairwise_distance(x, y):
-#   qexpand = tf.expand_dims(x,1) # one olumn                                                                                                         
-#   qTexpand = tf.expand_dims(y,0) # one row                                                                                                           
-#   qtile = tf.tile(qexpand,[1,N,1])                                                                                                                   
-#   qTtile = tf.tile(qTexpand,[N,1,1])                                                                                                                 
-#   deltaQ = qtile - qTtile                                                                                                                            
-#   deltaQ2 = deltaQ*deltaQ                                                                                                                            
-#   d2Q = tf.reduce_sum(deltaQ2,2)   
-#   return d2Q
-
-def dot(x, y):
-  if not FLAGS.loss == 'contrastive':
-    return melt.dot(x, y)
-  else:
-    #TODO ...
-    #return -tf.sqrt(pairwise_distance(x, y))
-    return melt.cosine(x, y)
 
 class DualTextsim(object):
   """
@@ -176,8 +129,12 @@ class DualTextsim(object):
     text_feature = self.mlp_layers(text_feature)
     ##--well if not normalize will get big values.. then sigmod like 72 -> 1
     #if not FLAGS.loss == 'cross':
-    if not FLAGS.loss == 'contrastive':
-      text_feature = tf.nn.l2_normalize(text_feature, -1)
+    ## contrastive loss work both norm or not norm, for simplicity here not norm
+    ##https://www.quora.com/When-training-siamese-networks-how-does-one-determine-the-margin-for-contrastive-loss-How-do-you-convert-this-loss-to-accuracy
+    ##You can just normalize features using L2 before using Contrastive Loss. 
+    ##Then the margin can be constant while training because the distance between features will be normalized. 
+    #if not FLAGS.loss == 'contrastive':  
+    text_feature = normalize(text_feature)
     return text_feature
 
   def rforward(self, text):
@@ -190,25 +147,16 @@ class DualTextsim(object):
     else:
       text_feature = bow_encoder.encode(text, self.emb)
     #if not FLAGS.loss == 'cross': 
-    if not FLAGS.loss == 'contrastive':
-      text_feature = tf.nn.l2_normalize(text_feature, -1)
+    #if not FLAGS.loss == 'contrastive':
+    text_feature = normalize(text_feature)
     return text_feature
-
-  def compute_sim(self, ltext_feature, rtext_feature):
-    if not FLAGS.loss == 'contrastive':
-      #cosine loss with feature pre normed
-      sim = melt.element_wise_dot(ltext_feature, rtext_feature)
-    else:
-      # sim = tf.sqrt(tf.reduce_sum(tf.square(ltext_feature - rtext_feature), -1, keep_dims=True))
-      sim = tf.reduce_sum(tf.square(ltext_feature - rtext_feature), -1, keep_dims=True)
-    return sim
-
-  def build_graph(self, ltext, rtext, neg_rtext, neg_ltext):
+ 
+  def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
     assert (neg_ltext is not None) or (neg_rtext is not None)
     with tf.variable_scope(self.scope) as scope:
       ltext_feature = self.lforward(ltext)
       rtext_feature = self.rforward(rtext)
-      pos_score = self.compute_sim(ltext_feature, rtext_feature)
+      pos_score = compute_sim(ltext_feature, rtext_feature)
 
       scope.reuse_variables()
 
@@ -217,13 +165,13 @@ class DualTextsim(object):
         num_negs = neg_rtext.get_shape()[1]
         for i in xrange(num_negs):
           neg_rtext_feature_i = self.rforward(neg_rtext[:, i, :])
-          neg_scores_i = self.compute_sim(ltext_feature, neg_rtext_feature_i)
+          neg_scores_i = compute_sim(ltext_feature, neg_rtext_feature_i)
           neg_scores_list.append(neg_scores_i)
       if neg_ltext is not None:
         num_negs = neg_ltext.get_shape()[1]
         for i in xrange(num_negs):
           neg_ltext_feature_i = self.lforward(neg_ltext[:, i, :])
-          neg_scores_i = self.compute_sim(neg_ltext_feature_i, rtext_feature)
+          neg_scores_i = compute_sim(neg_ltext_feature_i, rtext_feature)
           neg_scores_list.append(neg_scores_i)
     
       #[batch_size, num_negs]

@@ -68,7 +68,9 @@ def run():
   corpus_pattern = os.path.join('/home/gezi/data/product/makeup/tb/title2name/valid/*')
 
   max_words = 50
-  ltexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  #ltexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  ltexts = ['婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  #ltexts = ['去黑头祛螨洁面乳泊舒控油祛痘除螨洗面奶学生男女士深层清洁抗痘']
 
   rtexts = []
   for file in glob.glob(corpus_pattern):

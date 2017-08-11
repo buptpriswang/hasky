@@ -30,32 +30,6 @@ try:
 except Exception:
   from deepiu.image_caption.conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN 
 
-texts2ids = None
-def init():
-  global texts2ids
-  if texts2ids is None:
-    texts2ids = lambda x: text2ids.texts2ids(x, 
-                                             seg_method=FLAGS.seg_method, 
-                                             feed_single=FLAGS.feed_single)
-
-def text_placeholder(name):
-  #@TODO make [None, None], but not ergent, also write records can change to sparse without padding, so more flexible
-  #'last dimension shape must be known but is None'
-  #so if use feed mode must set fixed length, may be use buket like tf seq2seq example @TODO
-  return tf.placeholder(tf.int64, [None, TEXT_MAX_WORDS], name=name) 
-
-def image_feature_placeholder(name):
-  if FLAGS.pre_calc_image_feature:
-    return tf.placeholder(tf.float32, [None, IMAGE_FEATURE_LEN], name=name) 
-  else:
-    return tf.placeholder(tf.string, [None,], name=name)
-
-def image_name_placeholder(name):
-  return tf.placeholder(tf.string, None, name=name)
-
-def text_str_placeholder(name):
-  return tf.placeholder(tf.string, None, name=name)
-
 def print_input_results(input_results):
   print('input_results:')
   for name, tensors in input_results.items():
@@ -83,69 +57,6 @@ class InputApp(object):
     self.eval_fixed_images = None
 
     # self.step = 0
-
-  def gen_feed_dict(self):
-    feed_dict = {}
-    if FLAGS.feed_dict:
-      image_feature, text_str, neg_text_str = \
-        self.sess.run([self.image_feature, self.text_str, self.neg_text_str])
-      feed_dict = {
-        self.image_feature_place: image_feature, 
-        self.text_place: texts2ids(text_str),
-        self.neg_text_place: texts2ids(neg_text_str)
-        }
-      
-      #print(texts2ids(text_str)[0], len(text_str), text_str[0], text2ids.ids2text(texts2ids(text_str)[0]))
-      #print(texts2ids(text_str).shape)
-      #print(texts2ids(neg_text_str)[0], len(neg_text_str), neg_text_str[0], text2ids.ids2text(texts2ids(neg_text_str)[0]))
-      #print(texts2ids(neg_text_str).shape)
-  
-      # if self.step == 42:
-      #   for text, text_str, seg_text in zip(texts2ids(neg_text_str), neg_text_str, text2ids.idslist2texts(texts2ids(neg_text_str))):
-      #     print(text, text_str, seg_text)
-      # self.step += 1
-
-    return feed_dict
-
-  #but when eval will also need to feed those in gen_feed_dict..
-  def gen_eval_feed_dict(self):
-    eval_feed_dict = {}
-    if FLAGS.feed_dict:
-      if self.train_with_validation:
-        if not self.eval_fixed_images:
-          eval_image_feature, eval_text_str, eval_neg_text_str = \
-            self.sess.run([self.eval_image_feature, self.eval_text_str, self.eval_neg_text_str])
-          eval_feed_dict = {
-            self.image_feature_place: eval_image_feature,
-            self.text_place: texts2ids(eval_text_str),
-            self.neg_text_place: texts2ids(eval_neg_text_str)
-            }
-        else:
-          eval_image_feature, eval_text_str, eval_neg_text_str, \
-          fixed_image_feature, fixed_text_str,  \
-          eval_image_name, eval_text_str,  \
-          fixed_image_name, fixed_text_str, \
-          eval_neg_text_str \
-            = self.sess.run([self.eval_image_feature, self.eval_text_str, self.eval_neg_text_str, \
-                             self.fixed_image_feature, self.fixed_text_str, \
-                             self.eval_image_name, self.eval_text_str, \
-                             self.fixed_image_name, self.fixed_text_str, \
-                             self.eval_neg_text_str])
-
-          eval_feed_dict = {
-            self.image_feature_place: eval_image_feature,
-            self.text_place: texts2ids(eval_text_str),
-            self.neg_text_place: texts2ids(eval_neg_text_str),
-            self.fixed_image_feature_place: fixed_image_feature,
-            self.fixed_text_place: texts2ids(fixed_text_str),
-            self.eval_image_name_place: eval_image_name,
-            self.eval_text_str_place: eval_text_str,
-            self.fixed_image_name_place: fixed_image_name,
-            self.fixed_text_str_place: fixed_text_str,
-            self.eval_neg_text_str_place: eval_neg_text_str,
-            }
-         
-    return eval_feed_dict
 
   def gen_train_input(self, inputs, decode_fn):
      #--------------------- train
@@ -181,15 +92,6 @@ class InputApp(object):
       min_after_dequeue=FLAGS.min_after_dequeue,
       name=self.input_train_name)
 
-    if FLAGS.feed_dict:
-      self.text_place =  text_placeholder('text_place')
-      self.text_str = text_str
-      text = self.text_place
-
-      self.image_feature_place = image_feature_placeholder('image_feature_place') 
-      self.image_feature = image_feature
-      image_feature = self.image_feature_place
-    
     if FLAGS.monitor_level > 1:
       lengths = melt.length(text)
       melt.scalar_summary("text/batch_min", tf.reduce_min(lengths))
@@ -212,24 +114,8 @@ class InputApp(object):
       #fix_sequence=FLAGS.fix_sequence,
       name=self.input_train_neg_name)
 
-    if FLAGS.neg_image:
-      neg_text, neg_text_str, neg_image = results
-    else:
-      neg_text, neg_text_str = results
-
-    if FLAGS.feed_dict:
-      self.neg_text_place = text_placeholder('neg_text_place')
-      self.neg_text_str = neg_text_str
-      neg_text = self.neg_text_place
-
-    if FLAGS.neg_image:
-      neg_text, neg_text_str, neg_image = input.reshape_neg_tensors(
-        [neg_text, neg_text_str, neg_image], FLAGS.batch_size, FLAGS.num_negs)
-      return neg_text, neg_text_str, neg_image
-    else:
-      neg_text, neg_text_str = input.reshape_neg_tensors(
-        [neg_text, neg_text_str], FLAGS.batch_size, FLAGS.num_negs)
-      return neg_text, neg_text_str
+    results = input.reshape_neg_tensors(results, FLAGS.batch_size, FLAGS.num_negs)
+    return results
 
   def gen_valid_input(self, inputs, decode_fn):
     #---------------------- valid  
@@ -248,21 +134,6 @@ class InputApp(object):
       min_after_dequeue=FLAGS.min_after_dequeue,
       fix_sequence=FLAGS.fix_sequence,
       name=self.input_valid_name)
-    if FLAGS.feed_dict:
-      self.eval_text_str = eval_text_str
-      eval_text = self.text_place
-
-      self.eval_image_feature = eval_image_feature
-      eval_image_feature = self.image_feature_place
-
-      if FLAGS.show_eval:
-        self.eval_image_name_place = image_name_placeholder('eval_image_name_place')
-        self.eval_image_name = eval_image_name
-        eval_image_name = self.eval_image_name_place
-
-        self.eval_text_str_place = text_str_placeholder('eval_text_str_place')
-        self.eval_text_str = eval_text_str
-        eval_text_str = self.eval_text_str_place
 
     eval_batch_size = FLAGS.eval_batch_size
    
@@ -288,23 +159,6 @@ class InputApp(object):
           num_prefetch_batches=FLAGS.num_prefetch_batches,
           min_after_dequeue=FLAGS.min_after_dequeue,
           name=self.fixed_input_valid_name)
-        
-        if FLAGS.feed_dict:
-          self.fixed_text_place = text_placeholder('fixed_text_place')
-          self.fixed_text_str = fixed_text_str
-          fixed_text = self.fixed_text_place
-          
-          self.fixed_image_feature_place = image_feature_placeholder('fixed_image_feature_place')
-          self.fixed_image_feature = fixed_image_feature
-          fixed_image_feature = self.fixed_image_feature_place
-          
-          self.fixed_image_name_place = image_name_placeholder('fixed_image_name_place')
-          self.fixed_image_name = fixed_image_name
-          fixed_image_name = self.fixed_image_name_place
-
-          self.fixed_text_str_place = text_str_placeholder('fixed_text_str_place')
-          self.fixed_text_str = fixed_text_str
-          fixed_text_str = self.fixed_text_str_place
 
         #-------------shrink fixed image input as input batch might large then what we want to show, only choose top num_fixed_evaluate_examples
         fixed_image_name = melt.first_nrows(fixed_image_name, FLAGS.num_fixed_evaluate_examples)
@@ -356,35 +210,12 @@ class InputApp(object):
       fix_sequence=FLAGS.fix_sequence,
       name=self.input_valid_neg_name)
 
-    if not FLAGS.neg_image:
-      eval_neg_text, eval_neg_text_str = results
-    else:
-      eval_neg_text, eval_neg_text_str, eval_neg_image = results
-    if FLAGS.feed_dict:
-      self.eval_neg_text_str = eval_neg_text_str
-      eval_neg_text = self.neg_text_place
-
-      if FLAGS.show_eval:
-        self.eval_neg_text_str_place = text_str_placeholder('eval_neg_text_str_place')
-        self.eval_neg_text_str = eval_neg_text_str
-        eval_neg_text_str = self.eval_neg_text_str_place
-      
-    if FLAGS.neg_image:
-        eval_neg_text, eval_neg_text_str, eval_neg_image = input.reshape_neg_tensors(
-                                                            [eval_neg_text, eval_neg_text_str, eval_neg_image], 
-                                                            eval_batch_size, 
-                                                            FLAGS.num_negs)
-    else:
-      eval_neg_text, eval_neg_text_str = input.reshape_neg_tensors([eval_neg_text, eval_neg_text_str], 
-                                                              eval_batch_size, 
-                                                              FLAGS.num_negs)
     #[batch_size, num_negs, 1] -> [batch_size, num_negs], notice tf.squeeze will get [batch_size] when num_negs == 1
-    eval_neg_text_str = tf.squeeze(eval_neg_text_str, squeeze_dims=[-1])
+    results = input.reshape_neg_tensors(results, eval_batch_size, FLAGS.num_negs)
+    results[0] = tf.squeeze(results[0], squeeze_dims=[-1]) #ltext_str
+    results[-1] = tf.squeeze(results[-1], squeeze_dims=[-1]) #rtext_str
 
-    if FLAGS.neg_image:
-      return eval_neg_text, eval_neg_text_str, eval_neg_image
-    else:
-      return eval_neg_text, eval_neg_text_str
+    return results
 
   def gen_input(self, train_only=False):
     timer = gezi.Timer('gen input')

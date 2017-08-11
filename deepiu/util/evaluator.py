@@ -41,7 +41,7 @@ flags.DEFINE_integer('max_texts', 200000, '')
 flags.DEFINE_integer('max_images', 20000, '') 
 
 flags.DEFINE_boolean('eval_img2text', True, '')
-flags.DEFINE_boolean('eval_text2img', False, '')
+flags.DEFINE_boolean('eval_text2img', True, '')
 
 import sys, os
 import gezi.nowarning
@@ -144,6 +144,7 @@ def get_image_names_and_features():
     image_names = np.load(image_name_bin)
     image_features = np.load(image_feature_bin)
     image_features = hack_image_features(image_features)
+    print('all_distinct_images len:', len(image_features), file=sys.stderr)
     timer.print()
   return image_names, image_features
 
@@ -299,8 +300,9 @@ score_op = None
 
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
-  # TODO gpu outofmem predict for showandtell
+  # TODO gpu outofmem predict for showandtell#
   texts = all_distinct_texts[:FLAGS.max_texts]
+  
   score = predictor.bulk_predict(img_features,texts)
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
@@ -324,9 +326,10 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
   _, img_features = get_image_names_and_features()
   # TODO gpu outofmem predict for showandtell
   img_features = img_features[:FLAGS.max_images]
+  
   score = predictor.bulk_predict(img_features, texts)
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   score = score.transpose()
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
 
   text2img = get_bidrectional_lable_map_txt2im()
@@ -356,10 +359,8 @@ def evaluate_scores(predictor, random=False):
       imgs = imgs[index]
       img_features = img_features[index]
 
-    text_max_words = all_distinct_texts.shape[1]
     rank_metrics = gezi.rank_metrics.RecallMetrics()
 
-    print('text_max_words:', text_max_words)
     start = 0
     while start < num_metric_eval_examples:
       end = start + step

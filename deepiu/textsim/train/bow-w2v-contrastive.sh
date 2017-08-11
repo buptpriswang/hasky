@@ -54,6 +54,7 @@ python ./train.py \
   --feed_dict 0 \
   --margin 0.5 \
   --loss contrastive \
+  --loss dist_norm 1 \
   --algo dual_bow \
   --combiner=sum \
   --exclude_zero_index 1 \

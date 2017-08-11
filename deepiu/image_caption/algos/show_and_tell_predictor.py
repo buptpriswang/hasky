@@ -66,6 +66,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     self.score = self.build_predict_graph(self.image_feature_feed, 
                                           self.text_feed, 
                                           exact_loss=exact_loss)
+    tf.add_to_collection('score', self.score)
     return self.score
  
 

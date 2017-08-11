@@ -1,22 +1,22 @@
-conf_path=./prepare
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic.5neg.left
 mkdir -p $model_dir
 
-#--fixed_valid_input=$fixed_valid_output_path/'test-*' \
 python ./train.py \
   --train_input=$train_output_path/'train-*' \
   --valid_input=$valid_output_path/'test-*' \
+  --fixed_valid_input=$fixed_valid_output_path/'test-*' \
   --valid_resource_dir=$valid_output_path \
   --vocab=$dir/vocab.txt \
   --num_records_file=$train_output_path/num_records.txt \
   --image_url_prefix='D:\data\image-text-sim\evaluate\imgs\' \
   --label_file=$valid_output_path/'image_labels.npy' \
   --image_feature_file=$valid_data_path/'test' \
-  --image_name_bin=$valid_output_path/'image_names.npy' \
-  --image_feature_bin=$valid_output_path/'image_features.npy' \
+  --image_name_bin=$valid_output_path/'distinct_image_names.npy' \
+  --image_feature_bin=$valid_output_path/'distinct_image_features.npy' \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \
@@ -43,14 +43,14 @@ python ./train.py \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
   --debug 0 \
-  --num_negs 3 \
+  --num_negs 5 \
   --neg_left 1 \
-  --neg_right 1 \
+  --neg_right 0 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
-  --margin 0.5 \
-  --algo dual_bow \
+  --margin 0.1 \
+  --algo bow \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
@@ -60,4 +60,4 @@ python ./train.py \
   --num_records 0 \
   --min_records 12 \
   --log_device 0 
-
+ 

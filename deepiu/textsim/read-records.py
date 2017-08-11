@@ -34,30 +34,34 @@ flags.DEFINE_string('name', 'train', 'records name')
 flags.DEFINE_boolean('dynamic_batch_length', True, '')
 flags.DEFINE_boolean('shuffle_then_decode', True, '')
 
-def read_once(sess, step, ops):
+def read_once(sess, step, ops, neg_ops):
   global max_index
   if not hasattr(read_once, "timer"):
     read_once.timer = Timer()
 
-  ltext_str, ltext, rtext, rtext_str = sess.run(ops)
+  (ltext_str, ltext, rtext, rtext_str), (neg_ltext_str, neg_ltext, neg_rtext, neg_rtext_str) = sess.run([ops, neg_ops])
   
   if step % 100 == 0:
     print('step:', step)
     print('duration:', read_once.timer.elapsed())
-    print('name:', ltext_str[0])
     
     print('ltext:', ltext[0])
     print('ltext_str:', ltext_str[0])
 
     print('rtext:', rtext[0])
     print('rtext_str:', rtext_str[0])
-    print('len(rtext_str):', len(rtext_str[0]))
+    
+    print('neg_ltext:', neg_ltext[0])
+    print('neg_ltext_str:', neg_ltext_str[0])
+
+    print('neg_rtext:', neg_rtext[0])
+    print('neg_rtext_str:', neg_rtext_str[0])
 
 
 from melt.flow import tf_flow
 import input
 def read_records():
-  inputs, decode, _ = input.get_decodes()
+  inputs, decode, decode_neg = input.get_decodes()
 
   ops = inputs(
     FLAGS.input,
@@ -74,10 +78,26 @@ def read_records():
     #no_random=True,
     allow_smaller_final_batch=True,
     )
+  
+  neg_ops = inputs(
+    FLAGS.input,
+    decode_fn=decode_neg,
+    batch_size=FLAGS.batch_size,
+    num_epochs=FLAGS.num_epochs, 
+    num_threads=FLAGS.num_threads,
+    #num_threads=1,
+    batch_join=FLAGS.batch_join,
+    shuffle_batch=FLAGS.shuffle_batch,
+    shuffle_files=FLAGS.shuffle,
+    #fix_random=True,
+    #fix_sequence=True,
+    #no_random=True,
+    allow_smaller_final_batch=True,
+    )
   print(ops) 
   
   timer = Timer()
-  tf_flow(lambda sess, step: read_once(sess, step, ops))
+  tf_flow(lambda sess, step: read_once(sess, step, ops, neg_ops))
   print('max_index:', max_index)
   print(timer.elapsed())
     

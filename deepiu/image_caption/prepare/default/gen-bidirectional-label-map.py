@@ -65,8 +65,10 @@ for line in sys.stdin:
       else:
         text2img[text].add(img_id)
 
-print('img per text:', sum([len(text2img[x]) for x in text2img]) / len(text2img))
-print('text per image:', sum([len(img2text[x]) for x in img2text]) / len(img2text))
+img_per_text = sum([len(text2img[x]) for x in text2img]) / len(text2img)
+print('img per text:', img_per_text)
+text_per_img = sum([len(img2text[x]) for x in img2text]) / len(img2text)
+print('text per image:', text_per_img)
 
 np.save(FLAGS.img2text, img2text)
 np.save(FLAGS.text2id, text2id)

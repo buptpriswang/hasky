@@ -27,16 +27,25 @@ def reduce_loss(loss_matrix, combiner='mean'):
 #http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
 
 #there are different versions, one is not to use sqrt.. just square
-def contrastive(pos_score, neg_scores, margin=1.0, combiner='mean', name=None):
+#input score not l2 distance withou sqrt
+def contrastive(pos_score, neg_scores, margin=1.0, use_square=True, combiner='mean', name=None,):
   #relu same like hinge.. tf.max..
   #neg_scores = tf.nn.relu(margin - neg_scores)
   neg_scores = tf.nn.relu(margin - tf.sqrt(neg_scores))
+  if use_square:  
+    neg_scores = tf.square(neg_scores)
+  else:
+    pos_score = tf.sqrt(pos_score)
   
-  neg_scores = tf.square(neg_scores)
-
   scores = tf.concat([pos_score, neg_scores], 1)
   loss = reduce_loss(scores, combiner) * 0.5
   return loss
+
+def triplet(pos_score, neg_scores, margin=1.0, combiner='mean', name=None,):
+  #margin small then loss turn to zero quick, margin big better diff hard images but hard to converge
+  #if pos_score(dist) is smaller then neg_score more then margin then loss is zero
+  scores = tf.nn.relu(margin - (neg_scores - pos_score))
+  return reduce_loss(scores, combiner)
 
 #this is cross entorpy for cosine same... scores must be -1 <-> 1 TODO
 def cross_entropy(scores, combiner='mean', name=None):
@@ -58,7 +67,9 @@ def cross_entropy(scores, combiner='mean', name=None):
 #---------below pairwise
 def hinge(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
   with tf.name_scope(name, 'hinge_loss', [pos_score, neg_score]):
-    loss_matrix = tf.maximum(0., margin - (pos_score - neg_score))
+    ##so if set 0.5 margin , will begin loss from 0.5 since pos and neg sore most the same at begin
+    #loss_matrix = tf.maximum(0., margin - (pos_score - neg_score))
+    loss_matrix = tf.nn.relu(margin - (pos_score - neg_score))
     loss = reduce_loss(loss_matrix, combiner)
     return loss
 
