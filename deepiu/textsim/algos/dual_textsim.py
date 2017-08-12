@@ -196,8 +196,7 @@ class DualTextsim(object):
     assert (neg_ltext is not None) or (neg_rtext is not None)
     with tf.variable_scope(self.scope) as scope:
       ltext_feature = self.lforward(ltext)
-      scope.reuse_variables()
-
+      scope.reuse_variables() #rfword share same rnn or cnn..
       rtext_feature = self.rforward(rtext)
       pos_score = compute_sim(ltext_feature, rtext_feature)
 
@@ -293,7 +292,15 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def build_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
       ltext_feature = self.lforward(ltext)
+      #make to cpu ? for mem issue of cnn? if not perf hurt much?
+      #reidctor.bulk_predict duration: 125.557517052
+      #cpu is slow evaluate_scores duration: 135.078355074
+      #if self.encoder_type != 'cnn':
       rtext_feature = self.rforward(rtext)
+      #else:
+      #with tf.device('/cpu:0'):
+      #rtext_feature = self.rforward(rtext)
+
       score = dot(ltext_feature, rtext_feature)
       return score
 
@@ -373,9 +380,9 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
         import numpy as np
         #text_npy = np.load(text_npy)
         text_npy = text_npy[:5000]
-        self.text = melt.load_constant_cpu(text_npy, self.sess)
-      else:
-        self.text = melt.load_constant(text_npy, self.sess)
+        #self.text = melt.load_constant_cpu(text_npy, self.sess)
+      #else:
+      self.text = melt.load_constant(text_npy, self.sess)
 
   def build_evaluate_fixed_text_graph(self, image_feature): 
     """

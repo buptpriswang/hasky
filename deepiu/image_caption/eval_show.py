@@ -87,6 +87,7 @@ def gen_eval_show_ops(input_app, input_results, predictor, eval_scores, eval_neg
   evaluate_neg_text = eval_neg_text[:num_evaluate_examples, 0, :]
   #--all from image to text show, only need num_evaluate_examples to calc to show!
   eval_score = predictor.build_evaluate_fixed_text_graph(evaluate_image_feature[:num_evaluate_examples, :])
+  print('---------eval_score:', eval_score)
   eval_max_score, eval_max_index = tf.nn.top_k(eval_score, FLAGS.num_text_topn)
   eval_word_score = predictor.build_evaluate_image_word_graph(evaluate_image_feature)
   eval_word_max_score, eval_word_max_index = tf.nn.top_k(eval_word_score, FLAGS.num_word_topn)

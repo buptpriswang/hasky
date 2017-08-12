@@ -35,6 +35,8 @@ flags.DEFINE_string('img2id', '', 'not used')
 
 flags.DEFINE_integer('num_metric_eval_examples', 1000, '')
 flags.DEFINE_integer('metric_eval_batch_size', 1000, '')
+flags.DEFINE_integer('metric_eval_texts_size', 0, ' <=0 means not limit')
+flags.DEFINE_integer('metric_eval_images_size', 0, ' <=0 means not limit')
 flags.DEFINE_integer('metric_topn', 100, 'only consider topn results when calcing metrics')
 
 flags.DEFINE_integer('max_texts', 200000, '') 
@@ -301,9 +303,33 @@ score_op = None
 def predicts(imgs, img_features, predictor, rank_metrics):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell#
-  texts = all_distinct_texts[:FLAGS.max_texts]
-  
-  score = predictor.bulk_predict(img_features,texts)
+
+  random = True
+  need_shuffle = False
+  if FLAGS.max_texts > 0 and len(all_distinct_texts) > FLAGS.max_texts:
+    if not random:
+      texts = all_distinct_texts[:FLAGS.max_texts]
+    else:
+      need_shuffle = True
+      index = np.random.choice(len(all_distinct_texts), FLAGS.max_texts, replace=False)
+      texts = all_distinct_texts[index]
+  else:
+    texts = all_distinct_texts
+
+  step = len(texts)
+  if FLAGS.metric_eval_texts_size > 0 and FLAGS.metric_eval_texts_size < step:
+    step = FLAGS.metric_eval_texts_size
+  start = 0
+  scores = []
+  while start < len(texts):
+    end = start + step 
+    if end > len(texts):
+      end = len(texts)
+    print('predicts texts start:', start, 'end:', end, file=sys.stderr)
+    score = predictor.bulk_predict(img_features,texts[start: end])
+    scores.append(score)
+    start = end
+  score = np.concatenate(scores, 1)
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
   img2text = get_bidrectional_lable_map()
@@ -317,7 +343,11 @@ def predicts(imgs, img_features, predictor, rank_metrics):
     #notice only work for recall@ or precision@ not work for ndcg@, if ndcg@ must use all
     #num_positions = min(num_texts, FLAGS.metric_topn)
     num_positions = num_texts
-    labels = [indexes[j] in hits for j in xrange(num_positions)]
+
+    if not need_shuffle:
+      labels = [indexes[j] in hits for j in xrange(num_positions)]
+    else:
+      labels = [index[indexes[j]] in hits for j in xrange(num_positions)]
 
     rank_metrics.add(labels)
 
@@ -327,7 +357,21 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
   # TODO gpu outofmem predict for showandtell
   img_features = img_features[:FLAGS.max_images]
   
-  score = predictor.bulk_predict(img_features, texts)
+  step = len(img_features)
+  if FLAGS.metric_eval_images_size > 0 and FLAGS.metric_eval_images_size < step:
+    step = FLAGS.metric_eval_images_size
+  start = 0
+  scores = []
+  while start < len(img_features):
+    end = start + step 
+    if end > len(img_features):
+      end = len(img_features)
+    print('predicts images start:', start, 'end:', end, file=sys.stderr)
+    score = predictor.bulk_predict(img_features[start: end], texts)
+    scores.append(score)
+    start = end
+  #score = predictor.bulk_predict(img_features, texts)
+  score = np.concatenate(scores, 0)
   score = score.transpose()
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
@@ -366,7 +410,7 @@ def evaluate_scores(predictor, random=False):
       end = start + step
       if end > num_metric_eval_examples:
         end = num_metric_eval_examples
-      print('predicts start:', start, 'end:', end, file=sys.stderr)
+      print('predicts image start:', start, 'end:', end, file=sys.stderr)
       predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics)
       start = end
       

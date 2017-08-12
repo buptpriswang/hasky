@@ -21,13 +21,16 @@ python ./train.py \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \
   --img2id=$valid_output_path/'img2id.npy' \
-  --eval_text2img 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
   --show_eval 1 \
+  --eval_text2img 0 \
+  --max_texts -1 \
+  --metric_eval_batch_size 1000 \
+  --metric_eval_texts_size 5000 \
   --train_only 0 \
-  --metric_eval 0 \
+  --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 64 \
@@ -40,7 +43,6 @@ python ./train.py \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
   --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 200 \
   --debug 0 \
   --num_negs 3 \
   --neg_left 1 \
