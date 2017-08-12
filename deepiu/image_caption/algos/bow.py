@@ -6,6 +6,7 @@
 #   \Description  
 # ==============================================================================
 
+#TODO remove bow, cn.. ,just use discrinant_trainer with encoder as class member like DualSim
   
 from __future__ import absolute_import
 from __future__ import division

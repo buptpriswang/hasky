@@ -44,6 +44,7 @@ class Algos:
   imtxt2txt = 'imtxt2txt'
   dual_bow = 'dual_bow'
   dual_rnn = 'dual_rnn'
+  dual_cnn = 'dual_cnn'
 
 class AlgosType:
    discriminant = 0
@@ -57,7 +58,8 @@ AlgosTypeMap = {
   Algos.seq2seq : AlgosType.generative,
   Algos.imtxt2txt : AlgosType.generative,
   Algos.dual_bow : AlgosType.discriminant,
-  Algos.dual_rnn : AlgosType.discriminant
+  Algos.dual_rnn : AlgosType.discriminant,
+  Algos.dual_cnn : AlgosType.discriminant
 }
 
 def is_discriminant(algo):
@@ -84,6 +86,8 @@ def _gen_predictor(algo):
     return DualTextsimPredictor('bow')
   elif algo == Algos.dual_rnn:
     return DualTextsimPredictor('rnn')
+  elif algo == Algos.dual_cnn:
+    return DualTextsimPredictor('cnn')
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 
@@ -104,6 +108,8 @@ def _gen_trainer(algo):
     return DualTextsim('bow')
   elif algo == Algos.dual_rnn:
     return DualTextsim('rnn')
+  elif algo == Algos.dual_cnn:
+    return DualTextsim('cnn')
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 

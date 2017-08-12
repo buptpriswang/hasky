@@ -97,44 +97,45 @@ def deal_file(file):
       if len(l) != 2:
         continue
 
-      ltext, rtext = l 
+      ltext, rtext_list = l 
 
-      lword_ids = _text2ids(ltext, TEXT_MAX_WORDS)
-      rword_ids = _text2ids(rtext, TEXT_MAX_WORDS)
+      for rtext in rtext_list.split('\x01'):
+        lword_ids = _text2ids(ltext, TEXT_MAX_WORDS)
+        rword_ids = _text2ids(rtext, TEXT_MAX_WORDS)
 
-      if not lword_ids or not rword_ids:
-        continue
-      
-      if num % 1000 == 0:
-        print(ltext, lword_ids, text2ids.ids2text(lword_ids), file=sys.stderr)
-        print(rtext, rword_ids, text2ids.ids2text(rword_ids), file=sys.stderr)
-      
-      example = tf.train.Example(features=tf.train.Features(feature={
-        'ltext_str': melt.bytes_feature(ltext),
-        'ltext': melt.int_feature(lword_ids),
-        'rtext_str': melt.bytes_feature(rtext),
-        'rtext': melt.int_feature(rword_ids),
-        }))
-      writer.write(example)
+        if not lword_ids or not rword_ids:
+          continue
+        
+        if num % 1000 == 0:
+          print(ltext, lword_ids, text2ids.ids2text(lword_ids), file=sys.stderr)
+          print(rtext, rword_ids, text2ids.ids2text(rword_ids), file=sys.stderr)
+        
+        example = tf.train.Example(features=tf.train.Features(feature={
+          'ltext_str': melt.bytes_feature(ltext),
+          'ltext': melt.int_feature(lword_ids),
+          'rtext_str': melt.bytes_feature(rtext),
+          'rtext': melt.int_feature(rword_ids),
+          }))
+        writer.write(example)
 
-      if FLAGS.np_save:
-        assert FLAGS.threads == 1
-        ltexts.append(lword_ids)
-        ltext_strs.append(ltext)
-        rtexts.append(rword_ids)
-        rtext_strs.append(rtext)
-      
-      global counter, max_num_words, sum_words
-      with counter.get_lock():
-        counter.value += 1
-      
-      word_ids = lword_ids
-      word_ids_length = len(word_ids)
-      if word_ids_length > max_num_words.value:
-        with max_num_words.get_lock():
-          max_num_words.value = word_ids_length
-      with sum_words.get_lock():
-        sum_words.value += word_ids_length
+        if FLAGS.np_save:
+          assert FLAGS.threads == 1
+          ltexts.append(lword_ids)
+          ltext_strs.append(ltext)
+          rtexts.append(rword_ids)
+          rtext_strs.append(rtext)
+        
+        global counter, max_num_words, sum_words
+        with counter.get_lock():
+          counter.value += 1
+        
+        word_ids = lword_ids
+        word_ids_length = len(word_ids)
+        if word_ids_length > max_num_words.value:
+          with max_num_words.get_lock():
+            max_num_words.value = word_ids_length
+        with sum_words.get_lock():
+          sum_words.value += word_ids_length
       num += 1
 
 

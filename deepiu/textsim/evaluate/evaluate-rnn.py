@@ -16,7 +16,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/rnn', '')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/bow4', '')
 
 flags.DEFINE_string('vocab', '/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
 
@@ -44,8 +44,8 @@ def _text2ids(text, max_words):
   word_ids = text2ids.text2ids(text, 
                                seg_method=FLAGS.seg_method_, 
                                feed_single=FLAGS.feed_single_, 
-                               append_start=True,
-                               append_end=True,
+                               append_start=False,
+                               append_end=False,
                                allow_all_zero=True, 
                                pad=True,
                                max_words=max_words)
@@ -68,7 +68,9 @@ def run():
   corpus_pattern = os.path.join('/home/gezi/data/product/makeup/tb/title2name/valid/*')
 
   max_words = 50
-  ltexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  #ltexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  ltexts = ['婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  #ltexts = ['去黑头祛螨洁面乳泊舒控油祛痘除螨洗面奶学生男女士深层清洁抗痘']
 
   rtexts = []
   for file in glob.glob(corpus_pattern):
@@ -76,7 +78,7 @@ def run():
   rtexts = [x.split('\t')[1] for x in rtexts]
   rtexts = list(set(rtexts))
   
-  rtexts = rtexts[:1000]
+  #rtexts = rtexts[:40000]
   values, indices = sim(ltexts, rtexts)
 
   for i in xrange(len(ltexts)):
@@ -90,7 +92,7 @@ def run():
   rtexts = [x.split('\t')[0] for x in rtexts]
   rtexts = list(set(rtexts))
 
-  rtexts = rtexts[:1000]
+  #rtexts = rtexts[:40000]
   values, indices = sim(ltexts, rtexts, tag='lsim_nearby')
 
   for i in xrange(len(ltexts)):
@@ -98,9 +100,6 @@ def run():
     for index, value in zip(indices[i], values[i]):
       print(rtexts[index], value)
    
-
-
-
 
 def main(_):
   text2ids.init()

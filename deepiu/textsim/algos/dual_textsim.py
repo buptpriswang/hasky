@@ -36,8 +36,7 @@ from deepiu.util import vocabulary
 from deepiu.seq2seq import embedding
 import deepiu
 
-from deepiu.seq2seq import bow_encoder
-from deepiu.seq2seq.rnn_encoder import RnnEncoder
+from deepiu.seq2seq import encoder_factory
 
 from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
 
@@ -55,10 +54,7 @@ class DualTextsim(object):
     self.is_training = is_training
     self.is_predict = is_predict
 
-    if encoder_type == 'bow':
-      self.encoder = bow_encoder
-    elif encoder_type == 'rnn':
-      self.encoder = RnnEncoder()
+    self.encoder = encoder_factory.get_encoder(encoder_type, is_training, is_predict)
 
     emb_dim = FLAGS.emb_dim
     init_width = 0.5 / emb_dim
@@ -100,6 +96,8 @@ class DualTextsim(object):
     self.scope = 'dual_textsim'
 
     self.build_train_graph = self.build_graph
+
+    self.encoder_type = encoder_type
 
   def mlp_layers(self, text_feature):
     dims = self.mlp_dims
@@ -146,19 +144,64 @@ class DualTextsim(object):
       text_feature = self.encode(text)
     else:
       text_feature = bow_encoder.encode(text, self.emb)
-    #if not FLAGS.loss == 'cross': 
-    #if not FLAGS.loss == 'contrastive':
     text_feature = normalize(text_feature)
     return text_feature
+
+  #not work since ltext and rtext can have different length..
+  def forword(self, ltext, rtext):
+    assert not FLAGS.rtext_bow
+    text = tf.concat([ltext, rtext], 0)
+    text_feature = self.encode(text)
+    ltext_feature, rtext_feature = tf.split(text_feature, 2, 0)
+    ltext_feature = self.mlp_layers(ltext_feature)
+    ltext_feature = normalize(ltext_feature)
+    rtext_feature = normalize(rtext_feature)
+    return ltext_feature, rtext_feature
  
+  # def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
+  #   assert (neg_ltext is not None) or (neg_rtext is not None)
+  #   with tf.variable_scope(self.scope) as scope:
+  #     ltext_feature = self.lforward(ltext)
+  #     rtext_feature = self.rforward(rtext)
+  #     pos_score = compute_sim(ltext_feature, rtext_feature)
+
+  #     scope.reuse_variables()
+
+  #     neg_scores_list = []
+  #     if neg_rtext is not None:
+  #       num_negs = neg_rtext.get_shape()[1]
+  #       for i in xrange(num_negs):
+  #         neg_rtext_feature_i = self.rforward(neg_rtext[:, i, :])
+  #         neg_scores_i = compute_sim(ltext_feature, neg_rtext_feature_i)
+  #         neg_scores_list.append(neg_scores_i)
+  #     if neg_ltext is not None:
+  #       num_negs = neg_ltext.get_shape()[1]
+  #       for i in xrange(num_negs):
+  #         neg_ltext_feature_i = self.lforward(neg_ltext[:, i, :])
+  #         neg_scores_i = compute_sim(neg_ltext_feature_i, rtext_feature)
+  #         neg_scores_list.append(neg_scores_i)
+    
+  #     #[batch_size, num_negs]
+  #     neg_scores = tf.concat(neg_scores_list, 1)
+  #     #---------------rank loss
+  #     #[batch_size, 1 + num_negs]
+  #     scores = tf.concat([pos_score, neg_scores], 1)
+  #     tf.add_to_collection('scores', scores)
+
+  #     loss = pairwise_loss(pos_score, neg_scores)
+
+  #   return loss
+
   def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
     assert (neg_ltext is not None) or (neg_rtext is not None)
     with tf.variable_scope(self.scope) as scope:
       ltext_feature = self.lforward(ltext)
+      scope.reuse_variables()
+
       rtext_feature = self.rforward(rtext)
       pos_score = compute_sim(ltext_feature, rtext_feature)
 
-      scope.reuse_variables()
+      #scope.reuse_variables()
 
       neg_scores_list = []
       if neg_rtext is not None:
@@ -184,8 +227,6 @@ class DualTextsim(object):
       loss = pairwise_loss(pos_score, neg_scores)
 
     return loss
-
-
 class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def __init__(self, encoder_type='bow'):
     melt.PredictorBase.__init__(self)
@@ -247,7 +288,8 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       }
     score = self.sess.run(self.score, feed_dict)
     return score
-
+  
+  #TODO may be speedup by cocant [ltex, rtext] as one batch and co forward then split 
   def build_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
       ltext_feature = self.lforward(ltext)
@@ -327,7 +369,13 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def init_evaluate_constant_text(self, text_npy):
     #self.text = tf.constant(text_npy)
     if self.text is None:
-      self.text = melt.load_constant(text_npy, self.sess)
+      if self.encoder_type == 'cnn':
+        import numpy as np
+        #text_npy = np.load(text_npy)
+        text_npy = text_npy[:5000]
+        self.text = melt.load_constant_cpu(text_npy, self.sess)
+      else:
+        self.text = melt.load_constant(text_npy, self.sess)
 
   def build_evaluate_fixed_text_graph(self, image_feature): 
     """
@@ -350,7 +398,13 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
     # du -h comment_feature_final.npy 
     #3.6G comment_feature_final.npy  so 100w 4G, 800w 32G, 1500w word will exceed cpu 
     MAX_EMB_WORDS = 20000
+    if self.encoder_type == 'cnn':
+      MAX_EMB_WORDS = 1000
     num_words = min(self.vocab_size - 1, MAX_EMB_WORDS)
     word_index = tf.reshape(tf.range(num_words), [num_words, 1])
+    #for cnn might be need to conv so 1 might be less then window size
+    if self.encoder_type == 'cnn':
+      #--20 not work ?
+      word_index = tf.concat([word_index, tf.zeros([num_words, TEXT_MAX_WORDS - 1], tf.int32)], 1)
     word_feature = self.rforward(word_index)
     return word_feature

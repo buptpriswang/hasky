@@ -16,7 +16,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/bow4', '')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/bow', '')
 
 flags.DEFINE_string('vocab', '/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
 
@@ -69,8 +69,18 @@ def run():
 
   max_words = 50
   #ltexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
-  ltexts = ['婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+  ltexts = ['婷美矿物泉补水精华', 
+            '日本代购POLA宝丽珊瑚化石鲨鱼软骨精华护骨钙片3个月量', 
+            'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】',
+            'lancome/兰蔻Miracle真爱奇迹女士香水EDP~30/50ML香港正品代购']
+
+  ltexts = ['美宝莲bb霜/cc霜 BB霜 气垫BB 粉饼 象牙白替换装*2+气垫外盒', 
+            '【京东超市】美宝莲（MAYBELLINE）超然无瑕轻垫霜01亮肤色 14g（巨遮瑕 轻薄裸妆 滋润保湿 隔离）']
   #ltexts = ['去黑头祛螨洁面乳泊舒控油祛痘除螨洗面奶学生男女士深层清洁抗痘']
+
+  ltexts = ['【京东超市】亚缇克兰（Urtekram）洁面乳 源生水漾洁面慕斯150ml']
+
+  ltexts = ['亚缇克兰柔采凝肌洁面慕丝150ml 深层清洁毛孔补水保湿改善暗黄泡沫莹润洗面奶女士洁面']
 
   rtexts = []
   for file in glob.glob(corpus_pattern):

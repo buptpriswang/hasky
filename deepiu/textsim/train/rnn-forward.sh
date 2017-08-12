@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn
+model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn.forward
 mkdir -p $model_dir
 
 python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
@@ -39,7 +39,7 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --num_negs 1 \
   --neg_left 0 \
   --neg_right 1 \
-  --mlp_dims 512 \
+  --mlp_dims 256 \
   --debug 0 \
   --feed_dict 0 \
   --algo dual_rnn \
@@ -52,7 +52,7 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --dynamic_batch_length 1 \
   --batch_size 64 \
   --eval_batch_size 1024 \
-  --rnn_method bidirectional \
+  --rnn_method forward \
   --rnn_output_method max \
   --emb_dim 256 \
   --rnn_hidden_size 256 \
