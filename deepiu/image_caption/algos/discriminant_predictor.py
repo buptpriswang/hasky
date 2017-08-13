@@ -290,12 +290,23 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     score = self.build_evaluate_image_word_graph(self.image_feature)
     return score
 
-  def build_evaluate_fixed_text_graph(self, image_feature): 
+  def build_evaluate_fixed_text_graph(self, image_feature, step=None): 
     """
     text features directly load to graph,
     used in evaluate.py for both fixed text and fixed words
     """
-    score = self.build_graph(image_feature, self.text)
+    #score = self.build_graph(image_feature, self.text)
+    if not step:
+      score = self.build_graph(image_feature, self.text)
+    else:
+      num_texts = self.text.get_shape()[0]
+      start = 0
+      scores = []
+      while start < num_texts:
+        end = start + step 
+        scores.append(self.build_graph(image_feature, self.text[start:end, :]))
+        start = end 
+      score = tf.concat(scores, 1)
     return score
 
   #@TODO for evaluate random data, choose image_feature, and use all text to calc score, and show ori_text, predicted text

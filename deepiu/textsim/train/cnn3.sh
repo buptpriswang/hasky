@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/cnn
+model_dir=/home/gezi/new/temp/makeup/title2name/model/cnn3
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -28,12 +28,12 @@ python ./train.py \
   --eval_text2img 0 \
   --max_texts -1 \
   --metric_eval_batch_size 1000 \
-  --metric_eval_texts_size 1000 \
+  --metric_eval_texts_size 100 \
   --train_only 0 \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 64 \
+  --batch_size 256 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
@@ -42,7 +42,7 @@ python ./train.py \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
-  --num_metric_eval_examples 1000 \
+  --num_metric_eval_examples 100 \
   --debug 0 \
   --num_negs 3 \
   --neg_left 1 \
@@ -54,7 +54,7 @@ python ./train.py \
   --algo dual_cnn \
   --combiner=sum \
   --exclude_zero_index 1 \
-  --dynamic_batch_length 1 \
+  --dynamic_batch_length 0 \
   --emb_dim 128 \
   --mlp_dims 128 \
   --hidden_size 1024 \

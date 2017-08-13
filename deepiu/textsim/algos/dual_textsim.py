@@ -376,20 +376,30 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def init_evaluate_constant_text(self, text_npy):
     #self.text = tf.constant(text_npy)
     if self.text is None:
-      if self.encoder_type == 'cnn':
-        import numpy as np
-        #text_npy = np.load(text_npy)
-        text_npy = text_npy[:5000]
-        #self.text = melt.load_constant_cpu(text_npy, self.sess)
-      #else:
+      #if self.encoder_type == 'cnn':
+      #  import numpy as np
+      #  #text_npy = np.load(text_npy)
+      #  text_npy = text_npy[:5000]
+      #  #self.text = melt.load_constant_cpu(text_npy, self.sess)
+      ##else:
       self.text = melt.load_constant(text_npy, self.sess)
 
-  def build_evaluate_fixed_text_graph(self, image_feature): 
+  def build_evaluate_fixed_text_graph(self, image_feature, step=None): 
     """
     text features directly load to graph,
     used in evaluate.py for both fixed text and fixed words
     """
-    score = self.build_graph(image_feature, self.text)
+    if not step:
+      score = self.build_graph(image_feature, self.text)
+    else:
+      num_texts = self.text.get_shape()[0]
+      start = 0
+      scores = []
+      while start < num_texts:
+        end = start + step 
+        scores.append(self.build_graph(image_feature, self.text[start:end, :]))
+        start = end 
+      score = tf.concat(scores, 1)
     return score
 
   def build_evaluate_image_word_graph(self, image_feature):
@@ -406,7 +416,7 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
     #3.6G comment_feature_final.npy  so 100w 4G, 800w 32G, 1500w word will exceed cpu 
     MAX_EMB_WORDS = 20000
     if self.encoder_type == 'cnn':
-      MAX_EMB_WORDS = 1000
+      MAX_EMB_WORDS = 500
     num_words = min(self.vocab_size - 1, MAX_EMB_WORDS)
     word_index = tf.reshape(tf.range(num_words), [num_words, 1])
     #for cnn might be need to conv so 1 might be less then window size

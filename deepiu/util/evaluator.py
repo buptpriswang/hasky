@@ -325,7 +325,7 @@ def predicts(imgs, img_features, predictor, rank_metrics):
     end = start + step 
     if end > len(texts):
       end = len(texts)
-    print('predicts texts start:', start, 'end:', end, file=sys.stderr)
+    print('predicts texts start:', start, 'end:', end, end='\r', file=sys.stderr)
     score = predictor.bulk_predict(img_features,texts[start: end])
     scores.append(score)
     start = end
