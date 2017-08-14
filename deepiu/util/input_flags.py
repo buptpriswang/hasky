@@ -51,7 +51,9 @@ flags.DEFINE_string('buckets', '', 'empty meaning not use, other wise looks like
 flags.DEFINE_boolean('dynamic_batch_length', True, 
                      """very important False means all batch same size! 
                         otherwise use dynamic batch size
-                        Now only not sequence_example data will support dyanmic_batch_length=False""")
+                        Now only not sequence_example data will support dyanmic_batch_length=False
+                        Also for cnn you might need to set to False to make all equal length batch used
+                        """)
   
 
 flags.DEFINE_integer('num_negs', 1, '0 means no neg')
@@ -128,3 +130,5 @@ flags.DEFINE_string('activation', 'relu',
                     """relu/tanh/sigmoid  seems sigmoid will not work here not convergent
                     and relu slightly better than tanh and convrgence speed faster""")
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
+
+flags.DEFINE_boolean('position_embedding', False, 'wether use postion embedding')

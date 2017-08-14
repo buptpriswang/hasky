@@ -19,9 +19,8 @@ import tensorflow as tf
 
 import melt
 
-from deepiu.image_caption.algos.bow import Bow, BowPredictor 
-from deepiu.image_caption.algos.rnn import Rnn, RnnPredictor
-from deepiu.image_caption.algos.pooling import Pooling, PoolingPredictor
+from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
+from deepiu.image_caption.algos.discriminant_predictor import DiscriminantPredictor
 
 
 from deepiu.image_caption.algos.show_and_tell import ShowAndTell 
@@ -53,6 +52,7 @@ class AlgosType:
 AlgosTypeMap = {
   Algos.bow: AlgosType.discriminant,
   Algos.rnn: AlgosType.discriminant,
+  Algos.cnn: AlgosType.discriminant,
   Algos.pooling: AlgosType.discriminant,
   Algos.show_and_tell: AlgosType.generative,
   Algos.seq2seq : AlgosType.generative,
@@ -71,13 +71,13 @@ def is_generative(algo):
 #TODO this is c++ way, use yaxml python way pass BowPredictor.. like this directly
 def _gen_predictor(algo):
   if algo == Algos.bow:
-    return BowPredictor()
+    return DiscriminantPredictor('bow')
+  elif algo == Algos.rnn:
+    return DiscriminantPredictor('rnn')
+  elif algo == Algos.cnn:
+    return DiscriminantPredictor('cnn')
   elif algo == Algos.show_and_tell:
     return ShowAndTellPredictor()
-  elif algo == Algos.rnn:
-    return RnnPredictor()
-  elif algo == Algos.pooling:
-    return PoolingPredictor()
   elif algo == Algos.seq2seq:
     return Seq2seqPredictor()
   elif algo == Algos.imtxt2txt:
@@ -93,15 +93,15 @@ def _gen_predictor(algo):
 
 def _gen_trainer(algo):
   if algo == Algos.bow:
-    return Bow()
-  elif algo == Algos.show_and_tell:
-    return ShowAndTell()
+    return DiscriminantTrainer('bow')
   elif algo == Algos.rnn:
-    return Rnn()
-  elif algo == Algos.pooling:
-    return Pooling()
+    return DiscriminantTrainer('rnn')
+  elif algo == Algos.cnn:
+    return DiscriminantTrainer('cnn')
   elif algo == Algos.seq2seq:
     return Seq2seq()
+  elif algo == Algos.show_and_tell:
+    return ShowAndTell()
   elif algo == Algos.imtxt2txt:
     return Imtxt2txt()
   elif algo == Algos.dual_bow:

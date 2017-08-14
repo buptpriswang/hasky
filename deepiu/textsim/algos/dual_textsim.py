@@ -26,17 +26,13 @@ logging = melt.logging
 
 import melt.slim
 
-from deepiu.util import vocabulary
-from deepiu.seq2seq import embedding
+import deepiu
 
 from deepiu.textsim import conf
 from deepiu.textsim.conf import TEXT_MAX_WORDS
 
 from deepiu.util import vocabulary
-from deepiu.seq2seq import embedding
-import deepiu
-
-from deepiu.seq2seq import encoder_factory
+from deepiu.seq2seq import embedding, encoder_factory
 
 from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
 
@@ -55,6 +51,7 @@ class DualTextsim(object):
     self.is_predict = is_predict
 
     self.encoder = encoder_factory.get_encoder(encoder_type, is_training, is_predict)
+    self.encoder_type = encoder_type
 
     emb_dim = FLAGS.emb_dim
     init_width = 0.5 / emb_dim
@@ -78,6 +75,12 @@ class DualTextsim(object):
       self.emb = melt.load_constant_cpu(
           FLAGS.word_embedding_file, name='emb', trainable=FLAGS.finetune_word_embedding)
 
+    if FLAGS.position_embedding:
+      logging.info('Using position embedding')
+      self.pos_emb = embedding.get_embedding_cpu(name='pos_emb', height=TEXT_MAX_WORDS)
+    else:
+      self.pos_emb = None
+
     melt.visualize_embedding(self.emb, FLAGS.vocab)
     if is_training and FLAGS.monitor_level > 0:
       melt.monitor_embedding(self.emb, vocabulary.vocab, vocab_size)
@@ -97,8 +100,6 @@ class DualTextsim(object):
 
     self.build_train_graph = self.build_graph
 
-    self.encoder_type = encoder_type
-
   def mlp_layers(self, text_feature):
     dims = self.mlp_dims
     if not dims:
@@ -112,7 +113,10 @@ class DualTextsim(object):
                          scope='text_mlp')
 
   def encode(self, text):
-    text_feature = self.encoder.encode(text, self.emb)
+    if self.pos_emb is None:
+      text_feature = self.encoder.encode(text, self.emb)
+    else:
+      text_feature = self.encoder.encode(text, self.emb, self.pos_emb)
     #rnn will return encode_feature, state
     if isinstance(text_feature, tuple):
       text_feature = text_feature[0]
@@ -421,7 +425,6 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
     word_index = tf.reshape(tf.range(num_words), [num_words, 1])
     #for cnn might be need to conv so 1 might be less then window size
     if self.encoder_type == 'cnn':
-      #--20 not work ?
       word_index = tf.concat([word_index, tf.zeros([num_words, TEXT_MAX_WORDS - 1], tf.int32)], 1)
     word_feature = self.rforward(word_index)
     return word_feature

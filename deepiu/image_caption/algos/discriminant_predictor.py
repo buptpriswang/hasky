@@ -40,10 +40,10 @@ except Exception:
 from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
 
 class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
-  def __init__(self, sess=None):
+  def __init__(self, encoder_type='bow', sess=None):
     #super(DiscriminantPredictor, self).__init__()
     melt.PredictorBase.__init__(self, sess=sess)
-    DiscriminantTrainer.__init__(self, is_training=False, is_predict=True)
+    DiscriminantTrainer.__init__(self, encoder_type=encoder_type, is_training=False, is_predict=True)
 
     self.text = None
     self.text_feed = None

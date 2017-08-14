@@ -24,8 +24,6 @@ flags.DEFINE_boolean('fix_image_embedding', False, 'image part all fixed, so jus
 flags.DEFINE_boolean('fix_text_embedding', False, 'text part all fixed, so just fintune image part')
 
 
-
-
 import functools, glob
 
 import tensorflow.contrib.slim as slim
@@ -34,21 +32,20 @@ logging = melt.logging
 import melt.slim 
 
 from deepiu.util import vocabulary
-from deepiu.seq2seq import embedding
+from deepiu.seq2seq import embedding, encoder_factory
 from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
 
 class DiscriminantTrainer(object):
-  """
-  Only need to set self.gen_text_feature
-  """
-  def __init__(self, is_training=True, is_predict=False):
+  def __init__(self, encoder_type='bow', is_training=True, is_predict=False):
     super(DiscriminantTrainer, self).__init__()
     self.is_training = is_training
     self.is_predict = is_predict
-    self.gen_text_feature = None
 
     logging.info('emb_dim:{}'.format(FLAGS.emb_dim))
     logging.info('margin:{}'.format(FLAGS.margin))
+
+    self.encoder = encoder_factory.get_encoder(encoder_type, is_training, is_predict)
+    self.encoder_type = encoder_type
 
     emb_dim = FLAGS.emb_dim
     init_width = 0.5 / emb_dim
@@ -93,6 +90,22 @@ class DiscriminantTrainer(object):
     self.text_mlp_dims = [int(x) for x in FLAGS.text_mlp_dims.split(',')] if FLAGS.text_mlp_dims is not '0' else None
 
     self.scope = 'image_text_sim'
+
+  def gen_text_feature(self, text, emb):
+    """
+    this common interface, ie may be lstm will use other way to gnerate text feature
+    """
+    text_feature = self.encoder.encode(text, emb)
+    #rnn will return encode_feature, state
+    if isinstance(text_feature, tuple):
+      text_feature = text_feature[0]
+    return text_feature
+
+  def encoder_words_importance(self, text, emb):
+    try:
+      return self.encoder.words_importance_encode(text, emb=emb)
+    except Exception:
+      return None
 
   def forward_image_layers(self, image_feature):
     if not FLAGS.pre_calc_image_feature:
@@ -162,6 +175,12 @@ class DiscriminantTrainer(object):
       normed_text_feature = tf.stop_gradient(normed_text_feature)
     
     return compute_sim(normed_image_feature, normed_text_feature)
+
+  def build_train_graph(self, image_feature, text, neg_image_feature, neg_text):
+    if self.encoder_type == 'bow':
+      return self.build_graph(image_feature, text, neg_image_feature, neg_text, lookup_negs_once=True)
+    else:
+      return self.build_graph(image_feature, text, neg_image_feature, neg_text)
 
   def build_graph(self, image_feature, text, neg_image_feature, neg_text, lookup_negs_once=False):
     """

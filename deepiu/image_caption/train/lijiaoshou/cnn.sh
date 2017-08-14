@@ -1,14 +1,14 @@
-conf_path=./prepare
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic 
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/cnn
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/cnn
 mkdir -p $model_dir
 
-#--fixed_valid_input=$fixed_valid_output_path/'test-*' \
 python ./train.py \
   --train_input=$train_output_path/'train-*' \
   --valid_input=$valid_output_path/'test-*' \
+  --fixed_valid_input=$fixed_valid_output_path/'test-*' \
   --valid_resource_dir=$valid_output_path \
   --vocab=$dir/vocab.txt \
   --num_records_file=$train_output_path/num_records.txt \
@@ -21,19 +21,17 @@ python ./train.py \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \
   --img2id=$valid_output_path/'img2id.npy' \
+  --eval_text2img 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
   --show_eval 1 \
-  --eval_text2img 0 \
-  --max_texts -1 \
-  --metric_eval_batch_size 1000 \
-  --metric_eval_texts_size 100000 \
   --train_only 0 \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
+  --eval_batch_size 1013 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
@@ -43,23 +41,22 @@ python ./train.py \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
   --num_metric_eval_examples 1000 \
+  --metric_eval_batch_size 1000 \
   --debug 0 \
-  --num_negs 3 \
-  --neg_left 1 \
-  --neg_right 1 \
+  --num_negs 1 \
+  --neg_image 1 \
   --interval 100 \
-  --eval_batch_size 1000 \
+  --eval_batch_size 100 \
   --feed_dict 0 \
-  --margin 0.5 \
-  --algo dual_cnn \
+  --margin 0.1 \
+  --algo cnn \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
-  --emb_dim 128 \
-  --mlp_dims 128 \
+  --emb_dim 256 \
   --hidden_size 1024 \
   --model_dir $model_dir \
   --num_records 0 \
   --min_records 12 \
   --log_device 0 
-
+ 
