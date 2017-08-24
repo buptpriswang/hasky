@@ -166,7 +166,8 @@ class InputApp(object):
 
         #-------------shrink fixed image input as input batch might large then what we want to show, only choose top num_fixed_evaluate_examples
         fixed_ltext = melt.first_nrows(fixed_ltext, FLAGS.num_fixed_evaluate_examples)
-        fixed_ltext = melt.make_batch_compat(fixed_ltext)
+        if FLAGS.dynamic_batch_length:
+          fixed_ltext = melt.make_batch_compat(fixed_ltext)
         fixed_ltext_str = melt.first_nrows(fixed_ltext_str, FLAGS.num_fixed_evaluate_examples)
         
         fixed_rtext = melt.first_nrows(fixed_rtext, FLAGS.num_fixed_evaluate_examples)

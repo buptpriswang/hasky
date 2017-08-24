@@ -44,11 +44,13 @@ def get_tensor_from_key(key, index=-1):
     return key
 
 class Predictor(object):
-  def __init__(self, model_dir=None, meta_graph=None, model_name=None, debug=False):
+  def __init__(self, model_dir=None, meta_graph=None, model_name=None, debug=False, sess=None):
     super(Predictor, self).__init__()
-    self.sess = tf.InteractiveSession()
-    if debug:
-      self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
+    self.sess = sess
+    if self.sess is None:
+      self.sess = tf.InteractiveSession()
+      if debug:
+        self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
     #ops will be map and internal list like
     #{ text : [op1, op2], text2 : [op3, op4, op5], text3 : [op6] }
     if model_dir is not None:

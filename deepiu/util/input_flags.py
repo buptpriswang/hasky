@@ -132,3 +132,5 @@ flags.DEFINE_string('activation', 'relu',
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
 
 flags.DEFINE_boolean('position_embedding', False, 'wether use postion embedding')
+
+flags.DEFINE_boolean('elementwise_predict', False, '')

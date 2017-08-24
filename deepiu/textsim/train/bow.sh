@@ -43,6 +43,7 @@ python ./train.py \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 1000 \
   --debug 0 \
+  --elementwise_predict 0 \
   --num_negs 3 \
   --neg_left 1 \
   --neg_right 1 \

@@ -147,9 +147,10 @@ def main(_):
   text2ids.init()
   global predictor
   predictor = melt.Predictor(FLAGS.model_dir)
+  predictor2 = melt.Predictor('/home/gezi/new/temp/makeup/title2name/model/cnn.hic/')
+  print(predictor, predictor2)
   print(tf.get_default_graph().get_all_collection_keys())
   print(tf.get_collection('score'))
-  run()
 
 if __name__ == '__main__':
   tf.app.run()

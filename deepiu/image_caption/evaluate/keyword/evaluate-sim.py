@@ -34,8 +34,8 @@ import melt
 logging = melt.logging
 import gezi
 
-from deepiu.image_caption import evaluator
-from deepiu.image_caption.algos import algos_factory
+from deepiu.util import evaluator
+from deepiu.util.algos import algos_factory
 
 
 def evaluate_score():

@@ -21,6 +21,9 @@ flags.DEFINE_bool('dist_normalize', False,
                   """for dist based loss like constrastive or triplet by default will not l2 norm, 
                      can force l2 norm setting dist_normalize
                      for cosine same based loss will always norm""")
+flags.DEFINE_bool('no_dist_normalize', False, '')
+flags.DEFINE_bool('concat_sim', False, '')
+
 
 import melt
 
@@ -47,9 +50,23 @@ def get_dist_type(loss_type):
   else:
     return DistType.cosine
 
+def concat_sim_score(u, v):
+  #feature = tf.concat([left_feature, right_feature], 1)
+  #feature = tf.abs(left_feature - right_feature)
+  #feature = tf.multiply(left_feature, right_feature)
+  #must name layers for share! otherwise dense_1 dense_2 ...
+  #return tf.sigmoid(tf.layers.dense(feature, 1, name='compute_sim_dense'))
+  feature = tf.concat((u, v, tf.abs(u-v), u*v), 1)
+  score = melt.slim.mlp(feature,
+                 [1024, 1],
+                 activation_fn=tf.nn.tanh,
+                 scope='concat_same_mlp')
+  return tf.sigmoid(score)
 
 #[batch, dim] [batch_dim] -> [batch, 1]
 def compute_sim(left_feature, right_feature):
+  if FLAGS.concat_sim:
+    return concat_sim_score(left_feature, right_feature)
   loss_type = FLAGS.loss
   if get_dist_type(loss_type) == DistType.euclidean:
     #l2 distance the smaller the better
@@ -100,6 +117,9 @@ def compute_sim(left_feature, right_feature):
 
 #-------pairwise result of compute_sim
 def dot(x, y):
+  if FLAGS.concat_sim:
+    return concat_sim_score(x, y)
+
   if FLAGS.dist_normalize or get_dist_type(FLAGS.loss) == DistType.cosine:
     #has already normalized
     return melt.dot(x, y)
@@ -107,10 +127,20 @@ def dot(x, y):
     #TODO ... 
     #return -tf.sqrt(pairwise_distance(x, y))
     ##not normalized before but for contrastive will it be better to use pairwise_distance like in pytorch ?
+
+    #distance_L1 = tf.reduce_sum(tf.abs(tf.subtract(vocab, tf.expand_dims(batch,1))), axis=2)
+
     return melt.cosine(x, y)
 
 def normalize(feature):
   #TODO it is better t normalize for contstive or not ?
+  
+  #if FLAGS.concat_same:
+  #  return feature
+
+  if FLAGS.no_dist_normalize:
+    return feature
+
   if FLAGS.dist_normalize or get_dist_type(FLAGS.loss) == DistType.cosine:
     return tf.nn.l2_normalize(feature, -1)
   else:

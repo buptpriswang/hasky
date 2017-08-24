@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic.negimage
 mkdir -p $model_dir
 
 python ./train.py \
@@ -15,8 +15,8 @@ python ./train.py \
   --image_url_prefix='D:\data\image-text-sim\evaluate\imgs\' \
   --label_file=$valid_output_path/'image_labels.npy' \
   --image_feature_file=$valid_data_path/'test' \
-  --image_name_bin=$valid_output_path/'image_names.npy' \
-  --image_feature_bin=$valid_output_path/'image_features.npy' \
+  --image_name_bin=$valid_output_path/'distinct_image_names.npy' \
+  --image_feature_bin=$valid_output_path/'distinct_image_features.npy' \
   --img2text=$valid_output_path/'img2text.npy' \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \

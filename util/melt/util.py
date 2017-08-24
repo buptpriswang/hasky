@@ -12,7 +12,6 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python import debug as tf_debug
 
 import sys, os, glob
 import inspect
@@ -56,6 +55,7 @@ global or inside function global sess will cause this but not big problem for co
     #config.operation_timeout_in_ms=50000   # terminate on long hangs
     get_session.sess = tf.Session(config=config)
     if debug:
+      from tensorflow.python import debug as tf_debug
       get_session.sess = tf_debug.LocalCLIDebugWrapperSession(get_session.sess)
   return get_session.sess
 
@@ -280,6 +280,15 @@ def restore(sess, model_dir, var_list=None, model_name=None):
 
 def restore_from_path(sess, model_path, var_list=None):
   saver = tf.train.Saver(var_list)
+  saver.restore(sess, model_path)
+  print('restore ok:', model_path)
+  sess.run(tf.local_variables_initializer())
+  return saver
+
+def restore_scope_from_path(sess, model_path, scope):
+  variables = tf.get_collection(
+    tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
+  saver = tf.train.Saver(variables)
   saver.restore(sess, model_path)
   print('restore ok:', model_path)
   sess.run(tf.local_variables_initializer())

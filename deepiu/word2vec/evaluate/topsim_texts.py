@@ -31,7 +31,9 @@ embsim = melt.EmbeddingSim(os.path.join(dir, 'word2vec'), name='w_in')
 corpus_pattern = os.path.join('/home/gezi/data/product/makeup/tb/title2name/valid/*')
 
 max_words = 50
-itexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+#itexts = ['雅诗兰黛水润霜', '雅诗兰黛小棕瓶', '雅诗兰黛红石榴', '婷美矿物泉补水精华', 'Adidas阿迪达斯男士香水男士古龙淡香水 冰点男香100ml【京东超市】']
+
+itexts = ['雅诗兰黛anr修护肌透精华露']
 
 left_ids = [text2ids.text2ids(x, seg_method='basic', feed_single=True, max_words=max_words) for x in itexts]
 

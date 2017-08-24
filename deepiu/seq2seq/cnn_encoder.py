@@ -213,7 +213,8 @@ Hierarchical ConvNet
 """
 #https://github.com/chenghuige/InferSent/blob/master/models.py
 def convnet_encode(word_vectors):
-	num_filters = 128
+	#num_filters = 128
+	num_filters = 256
 	x = tf.layers.conv1d(word_vectors, num_filters, 3, padding='same', activation=tf.nn.relu)
 	u1 = tf.reduce_max(x, 1)
 	x = tf.layers.conv1d(x, num_filters, 3, padding='same', activation=tf.nn.relu)

@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic/ 
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic.1negall
 mkdir -p $model_dir
 
 python ./train.py \
@@ -45,7 +45,7 @@ python ./train.py \
   --debug 0 \
   --num_negs 1 \
   --neg_left 1 \
-  --neg_right 0 \
+  --neg_right 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \

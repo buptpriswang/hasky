@@ -16,7 +16,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/cnn3', '')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/cnn.hic', '')
 
 flags.DEFINE_string('vocab', '/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
 

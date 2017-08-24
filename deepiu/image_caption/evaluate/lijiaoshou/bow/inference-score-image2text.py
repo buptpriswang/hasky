@@ -26,11 +26,15 @@ flags.DEFINE_string('image_feature_name_', 'bow/main/image_feature:0', 'model_in
 flags.DEFINE_string('text_name', 'bow/main/text:0', 'model_init_1 because predictor after trainer init')
 
 
-flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.special.txt', '')
+flags.DEFINE_string('image_file', '/home/gezi/data/lijiaoshou/test_image.txt', '')
 #flags.DEFINE_string('image_feature_dir', '/home/gezi/data/lijiaoshou/train/', '')
 #flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/valid/part-00000', 'valid data')
 #flags.DEFINE_string('image_feature_pattern', '/home/gezi/new/data/keyword/valid/part*', 'valid data')
 flags.DEFINE_string('image_feature_pattern', '/home/gezi/data/lijiaoshou/candidate_feature.txt', 'train data')
+
+flags.DEFINE_string('all_text_strs', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/valid/distinct_text_strs.npy', '')
+flags.DEFINE_string('all_texts', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/valid/distinct_texts.npy', '')
+
 flags.DEFINE_integer('num_files', 2, '')
 flags.DEFINE_integer('batch_size_', 100000, '')
 flags.DEFINE_integer('text_max_words', 50, '')
@@ -49,30 +53,15 @@ from deepiu.util import text2ids
 
 import glob 
 import conf
-from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK 
-
-ENCODE_UNK = True
+from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK
 
 predictor = None 
 
-img_html = '<p> <td><a href={0} target=_blank><img src={0} height=250 width=250></a></p> {1} {2}, <br /> {3}<td>'
+ENCODE_UNK = True
 
-def _text2ids(text, max_words):
-  word_ids = text2ids.text2ids(text, 
-                               seg_method=FLAGS.seg_method_, 
-                               feed_single=FLAGS.feed_single_, 
-                               allow_all_zero=True, 
-                               pad=False)
-  word_ids = word_ids[:max_words]
-  word_ids = gezi.pad(word_ids, max_words, 0)
+img_html = '<p> <td><a href={0} target=_blank><img src={0} height=250 width=250></a></p> <td>'
 
-  return word_ids
-
-def predicts(image_features, text):
-  #TODO may be N texts to speed up as bow support this
-  word_ids_list = [_text2ids(text, FLAGS.text_max_words or TEXT_MAX_WORDS)] 
-
-  #print('word_ids:', word_ids_list)
+def predicts(image_features, word_ids_list):
   score = predictor.inference('score', 
                               feed_dict= {
                                       FLAGS.image_feature_name_: image_features,
@@ -81,65 +70,38 @@ def predicts(image_features, text):
   
   score = score.squeeze()
 
-  return score.tolist()
+  #return score.tolist()
+  return score
   
-def top_images(text):
-  image_set = set()
-  images = []
-  image_features = []
-  scores = []
-  itexts = []
-  num = 0
-  for file in glob.glob(FLAGS.image_feature_pattern):
-    print(file, file=sys.stderr)
-    for line in open(file):
-      l = line.strip().split('\t')
-      image = l[0].strip()
-      itext = l[1].strip()
-      if image in image_set:
-        continue
-      else:
-        image_set.add(image)
-      image_feature = l[-1].split('\x01')
-      image_feature = [float(x) for x in image_feature]
-
-      image_features.append(image_feature)
-
-      images.append(image)
-
-      itexts.append(itext)
-    
-      if len(image_features) == FLAGS.batch_size_:
-        scores += predicts(image_features, text)
-        image_features = []
-    num += 1
-    if num == FLAGS.num_files:
-      break
-
-  if image_features:
-    scores += predicts(image_features, text)
-
-  image_scores = zip(scores, images, itexts)
-  image_scores.sort(reverse=True)
-
-  print('<p><font size="5" color="red"><B>%s</B></font></p>'%text)
-  for i, (score, image, itext) in enumerate(image_scores[:50]):
-    if i % 5 == 0:
-      print('<table><tr>')
-    itext = ''
-    print(img_html.format(image, i, score, itext))
-    if (i + 1) % 5 == 0:
-      print('</tr></table>')
-
-  #print(scores)
 
 
 def run():
-  for i, line in enumerate(open(FLAGS.text_file)):
-    text = line.split('\t')[0].strip()
+  m = {}
+  files = glob.glob(FLAGS.image_feature_pattern)
+  for file in files:
+    for line in open(file):
+      l = line.strip().split('\t')
+      m[l[0]] = l[-1]
+
+  for i, line in enumerate(open(FLAGS.image_file)):
+    image = line.strip()
+    if image not in m:
+      print('image not find in ', FLAGS.image_feature_pattern)
+      exit(0)
+    image_feature = m[image].split('\x01')
+    image_feature = [float(x) for x in image_feature] 
     timer = gezi.Timer()
-    top_images(text)
-    print(i, text, timer.elapsed(), file=sys.stderr)
+    word_ids_list = np.load(FLAGS.all_texts)
+    all_text_strs = np.load(FLAGS.all_text_strs)
+    scores = predicts([image_feature], word_ids_list)
+    print(img_html.format(image))
+    topn = 50
+    indexes = (-scores).argsort()[:topn]
+    for i, index in enumerate(indexes):
+      print(i, all_text_strs[index], scores[index])
+      print('<br>')
+
+    print(i, image, timer.elapsed(), file=sys.stderr)
 
 
 def main(_):

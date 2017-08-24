@@ -116,7 +116,7 @@ def deal_file(file):
       
       #assert len(image_feature) == IMAGE_FEATURE_LEN, '%s %d'%(img, len(image_feature))
       if len(image_feature) != IMAGE_FEATURE_LEN:
-        print('bad line:', line, file=sys.stderr)
+        print('bad line check image_feature num: %d expect:%d'%(len(image_feature), IMAGE_FEATURE_LEN), file=sys.stderr)
         continue
 
       is_top_text = True

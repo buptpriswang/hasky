@@ -16,13 +16,20 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('valid_resource_dir', '/home/gezi/temp/image-caption/flickr/seq-with-unk/valid/', '')
+flags.DEFINE_string('valid_resource_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/valid/', '')
 flags.DEFINE_string('image_url_prefix', 'D:\\data\\\image-caption\\flickr\\imgs\\', 'http://b.hiphotos.baidu.com/tuba/pic/item/')
 flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images/', 'input images dir')
 
 #----------label fie dprecated
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
+
+flags.DEFINE_string('assistant_model_dir', None, '')
+flags.DEFINE_string('assistant_algo', None, '')
+flags.DEFINE_string('assistant_key', 'score', '')
+flags.DEFINE_string('assistant_ltext_key', 'dual_bow/main/ltext:0', '')
+flags.DEFINE_string('assistant_rtext_key', 'dual_bow/main/rtext:0', '')
+
 
 flags.DEFINE_string('img2text', '', 'img id to text labels ids')
 flags.DEFINE_string('text2img', '', 'text id to img labels ids')
@@ -43,7 +50,7 @@ flags.DEFINE_integer('max_texts', 200000, '')
 flags.DEFINE_integer('max_images', 20000, '') 
 
 flags.DEFINE_boolean('eval_img2text', True, '')
-flags.DEFINE_boolean('eval_text2img', True, '')
+flags.DEFINE_boolean('eval_text2img', False, '')
 
 import sys, os
 import gezi.nowarning
@@ -64,6 +71,8 @@ except Exception:
   print('Warning, no conf.py in current path use util conf')
   from deepiu.util.conf import TEXT_MAX_WORDS, IMAGE_FEATURE_LEN
 
+from deepiu.util import algos_factory
+
 import numpy as np
 import math
 
@@ -76,9 +85,28 @@ text2img = None
 image_names = None
 image_features = None
 
+assistant_predictor = None
+
+inited = False
+
 def init():
+  global inited
+
+  if inited:
+    return
+
   #for evaluation without train will also use evaluator so only set log path in train.py
   #logging.set_logging_path(FLAGS.model_dir)
+  if FLAGS.assistant_model_dir:
+    global assistant_predictor
+    #assistant_predictor = algos_factory.gen_predictor(FLAGS.assistant_algo)
+    #melt.restore_scope_from_path(melt.get_session(), FLAGS.assistant_model_dir, FLAGS.assistant_algo)
+    assistant_predictor = melt.Predictor(FLAGS.assistant_model_dir)
+    print('assistant_predictor', assistant_predictor)
+    #https://github.com/tensorflow/tensorflow/issues/9747
+    tf.get_default_graph().clear_collection("queue_runners")
+    tf.get_default_graph().clear_collection("local_variables")
+
   test_dir = FLAGS.valid_resource_dir
   global all_distinct_texts, all_distinct_text_strs
   global vocab, vocab_size
@@ -107,6 +135,8 @@ def init():
       all_distinct_text_strs = []
 
     init_labels()
+
+    inited = True
 
 def init_labels():
   get_bidrectional_lable_map()
@@ -300,9 +330,16 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
 
 score_op = None
 
-def predicts(imgs, img_features, predictor, rank_metrics):
+def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None):
   timer = gezi.Timer('preidctor.bulk_predict')
   # TODO gpu outofmem predict for showandtell#
+
+  if exact_predictor is None:
+    if assistant_predictor is not None:
+      exact_predictor = predictor
+      predictor = assistant_predictor
+
+  print(predictor, exact_predictor)
 
   random = True
   need_shuffle = False
@@ -326,17 +363,42 @@ def predicts(imgs, img_features, predictor, rank_metrics):
     if end > len(texts):
       end = len(texts)
     print('predicts texts start:', start, 'end:', end, end='\r', file=sys.stderr)
-    score = predictor.bulk_predict(img_features,texts[start: end])
+    try:
+      score = predictor.bulk_predict(img_features, texts[start: end])
+    except Exception:
+      #assistant predictor use index 0, and must be inited before main graph..
+      feed_dict={ FLAGS.assistant_ltext_key: img_features, 
+                  FLAGS.assistant_rtext_key: texts[start: end] }
+      score = predictor.inference(FLAGS.assistant_key, index=0, feed_dict=feed_dict)
     scores.append(score)
     start = end
   score = np.concatenate(scores, 1)
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape, end='\r')
   timer.print()
   img2text = get_bidrectional_lable_map()
   num_texts = texts.shape[0]
 
   for i, img in enumerate(imgs):
     indexes = (-score[i]).argsort()
+
+    #rerank
+    if exact_predictor:
+      if i == 0:
+        print('rerank using exact_predictor')
+      top_indexes = indexes[:100]
+      exact_texts = texts[top_indexes]
+      exact_score = exact_predictor.elementwise_bulk_predict([img_features[i]], exact_texts)
+      exact_score = exact_score[0]
+      #print(exact_score)
+      exact_indexes = (-exact_score).argsort()
+
+      #print(exact_indexes)
+      
+      new_indexes = [x for x in indexes]
+      for j in range(len(exact_indexes)):
+        new_indexes[j] = indexes[exact_indexes[j]]
+      indexes = new_indexes
+    
     
     hits = img2text[img]
 
@@ -351,8 +413,13 @@ def predicts(imgs, img_features, predictor, rank_metrics):
 
     rank_metrics.add(labels)
 
-def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
+def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=None):
   timer = gezi.Timer('preidctor.bulk_predict text2im')
+  if exact_predictor is None:
+    if assistant_predictor:
+      exact_predictor = predictor
+      predictor = assistant_predictor
+
   _, img_features = get_image_names_and_features()
   # TODO gpu outofmem predict for showandtell
   img_features = img_features[:FLAGS.max_images]
@@ -366,14 +433,22 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
     end = start + step 
     if end > len(img_features):
       end = len(img_features)
-    print('predicts images start:', start, 'end:', end, file=sys.stderr)
-    score = predictor.bulk_predict(img_features[start: end], texts)
+    print('predicts images start:', start, 'end:', end, file=sys.stderr, end='\r')
+    
+    try:
+      score = predictor.bulk_predict(img_features[start: end], texts)
+    except Exception:
+      #assistant predictor use index 0, and must be inited before main graph..
+      feed_dict={ FLAGS.assistant_ltext_key: img_features[start: end],
+                  FLAGS.assistant_rtext_key: texts}
+      score = predictor.inference(FLAGS.assistant_key, index=0, feed_dict=feed_dict)
+   
     scores.append(score)
     start = end
   #score = predictor.bulk_predict(img_features, texts)
   score = np.concatenate(scores, 0)
   score = score.transpose()
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape, end='\r')
   timer.print()
 
   text2img = get_bidrectional_lable_map_txt2im()
@@ -381,6 +456,18 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
 
   for i, text_str in enumerate(text_strs):
     indexes = (-score[i]).argsort()
+
+    #rerank
+    if exact_predictor:
+      top_indexes = indexes[:100]
+      exact_imgs = img_features[top_indexes]
+      exact_score = exact_predictor.elementwise_bulk_predict(exact_imgs, [texts[i]])
+      exact_score = exact_score[0]
+      exact_indexes = (-exact_score).argsort()
+      new_indexes = [x for x in indexes]
+      for j in range(len(exact_indexes)):
+        new_indexes[j] = indexes[exact_indexes[j]]
+      indexes = new_indexes
     
     hits = text2img[text_str]
 
@@ -390,12 +477,15 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics):
 
     rank_metrics.add(labels)
 
-def evaluate_scores(predictor, random=False):
+def evaluate_scores(predictor, random=False, exact_predictor=None):
   timer = gezi.Timer('evaluate_scores')
   init()
   if FLAGS.eval_img2text:
     imgs, img_features = get_image_names_and_features()
-    num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs))
+    num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs)) 
+    if num_metric_eval_examples <= 0:
+      num_metric_eval_examples = len(imgs)
+
     step = FLAGS.metric_eval_batch_size
 
     if random:
@@ -410,8 +500,8 @@ def evaluate_scores(predictor, random=False):
       end = start + step
       if end > num_metric_eval_examples:
         end = num_metric_eval_examples
-      print('predicts image start:', start, 'end:', end, file=sys.stderr)
-      predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics)
+      print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
+      predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics, exact_predictor=exact_predictor)
       start = end
       
     melt.logging_results(
@@ -425,10 +515,14 @@ def evaluate_scores(predictor, random=False):
 
   if FLAGS.eval_text2img:
     num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(all_distinct_texts))
+
     if random:
       index = np.random.choice(len(all_distinct_texts), num_metric_eval_examples, replace=False)
       text_strs = all_distinct_text_strs[index]
       texts = all_distinct_texts[index]
+    else:
+      text_strs = all_distinct_text_strs
+      texts = all_distinct_texts
 
     rank_metrics2 = gezi.rank_metrics.RecallMetrics()
 
@@ -437,8 +531,8 @@ def evaluate_scores(predictor, random=False):
       end = start + step
       if end > num_metric_eval_examples:
         end = num_metric_eval_examples
-      print('predicts start:', start, 'end:', end, file=sys.stderr)
-      predicts_txt2im(text_strs[start: end], texts[start: end], predictor, rank_metrics2)
+      print('predicts start:', start, 'end:', end, file=sys.stderr, end='\r')
+      predicts_txt2im(text_strs[start: end], texts[start: end], predictor, rank_metrics2, exact_predictor=exact_predictor)
       start = end
     
     melt.logging_results(

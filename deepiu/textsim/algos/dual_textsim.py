@@ -36,6 +36,8 @@ from deepiu.seq2seq import embedding, encoder_factory
 
 from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
 
+import numpy as np
+
 
 #from melt import dot
 
@@ -144,10 +146,7 @@ class DualTextsim(object):
     Args:
     text: batch text [batch_size, max_text_len]
     """
-    if not FLAGS.rtext_bow:
-      text_feature = self.encode(text)
-    else:
-      text_feature = bow_encoder.encode(text, self.emb)
+    text_feature = self.encode(text)
     text_feature = normalize(text_feature)
     return text_feature
 
@@ -162,49 +161,15 @@ class DualTextsim(object):
     rtext_feature = normalize(rtext_feature)
     return ltext_feature, rtext_feature
  
-  # def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
-  #   assert (neg_ltext is not None) or (neg_rtext is not None)
-  #   with tf.variable_scope(self.scope) as scope:
-  #     ltext_feature = self.lforward(ltext)
-  #     rtext_feature = self.rforward(rtext)
-  #     pos_score = compute_sim(ltext_feature, rtext_feature)
-
-  #     scope.reuse_variables()
-
-  #     neg_scores_list = []
-  #     if neg_rtext is not None:
-  #       num_negs = neg_rtext.get_shape()[1]
-  #       for i in xrange(num_negs):
-  #         neg_rtext_feature_i = self.rforward(neg_rtext[:, i, :])
-  #         neg_scores_i = compute_sim(ltext_feature, neg_rtext_feature_i)
-  #         neg_scores_list.append(neg_scores_i)
-  #     if neg_ltext is not None:
-  #       num_negs = neg_ltext.get_shape()[1]
-  #       for i in xrange(num_negs):
-  #         neg_ltext_feature_i = self.lforward(neg_ltext[:, i, :])
-  #         neg_scores_i = compute_sim(neg_ltext_feature_i, rtext_feature)
-  #         neg_scores_list.append(neg_scores_i)
-    
-  #     #[batch_size, num_negs]
-  #     neg_scores = tf.concat(neg_scores_list, 1)
-  #     #---------------rank loss
-  #     #[batch_size, 1 + num_negs]
-  #     scores = tf.concat([pos_score, neg_scores], 1)
-  #     tf.add_to_collection('scores', scores)
-
-  #     loss = pairwise_loss(pos_score, neg_scores)
-
-  #   return loss
-
   def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
     assert (neg_ltext is not None) or (neg_rtext is not None)
     with tf.variable_scope(self.scope) as scope:
       ltext_feature = self.lforward(ltext)
-      scope.reuse_variables() #rfword share same rnn or cnn..
+      #scope.reuse_variables() #rfword share same rnn or cnn..
       rtext_feature = self.rforward(rtext)
       pos_score = compute_sim(ltext_feature, rtext_feature)
 
-      #scope.reuse_variables()
+      scope.reuse_variables()
 
       neg_scores_list = []
       if neg_rtext is not None:
@@ -228,8 +193,8 @@ class DualTextsim(object):
       tf.add_to_collection('scores', scores)
 
       loss = pairwise_loss(pos_score, neg_scores)
-
     return loss
+    
 class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def __init__(self, encoder_type='bow'):
     melt.PredictorBase.__init__(self)
@@ -257,9 +222,10 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       rtext_feed = self.get_rtext_feed(text_max_words)
       score = self.score = self.build_graph(ltext_feed, rtext_feed)
       tf.get_variable_scope().reuse_variables()
-      nearby = self.build_nearby_graph(ltext_feed, rtext_feed)
-      lsim_nearby = self.build_lsim_nearby_graph(ltext_feed, rtext_feed)
-      rsim_nearby = self.build_rsim_nearby_graph(ltext_feed, rtext_feed)
+      if not FLAGS.elementwise_predict:
+        nearby = self.build_nearby_graph(ltext_feed, rtext_feed)
+        lsim_nearby = self.build_lsim_nearby_graph(ltext_feed, rtext_feed)
+        rsim_nearby = self.build_rsim_nearby_graph(ltext_feed, rtext_feed)
       lscore = self.build_lsim_graph(ltext_feed, rtext_feed)
       rscore = self.build_rsim_graph(ltext_feed, rtext_feed)
       emb_score = self.build_embsim_graph(ltext_feed, rtext_feed)
@@ -267,12 +233,13 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       rwords_importance = self.build_rwords_importance_graph(rtext_feed)
       
       tf.add_to_collection('score', score)
-      tf.add_to_collection('nearby_values', nearby.values)
-      tf.add_to_collection('nearby_indices', nearby.indices)
-      tf.add_to_collection('lsim_nearby_values', lsim_nearby.values)
-      tf.add_to_collection('lsim_nearby_indices', lsim_nearby.indices)
-      tf.add_to_collection('rsim_nearby_values', rsim_nearby.values)
-      tf.add_to_collection('rsim_nearby_indices', rsim_nearby.indices)
+      if not FLAGS.elementwise_predict:
+        tf.add_to_collection('nearby_values', nearby.values)
+        tf.add_to_collection('nearby_indices', nearby.indices)
+        tf.add_to_collection('lsim_nearby_values', lsim_nearby.values)
+        tf.add_to_collection('lsim_nearby_indices', lsim_nearby.indices)
+        tf.add_to_collection('rsim_nearby_values', rsim_nearby.values)
+        tf.add_to_collection('rsim_nearby_indices', rsim_nearby.indices)
       tf.add_to_collection('lscore', lscore)
       tf.add_to_collection('rscore', rscore)
       tf.add_to_collection('emb_score', emb_score)
@@ -280,17 +247,43 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       tf.add_to_collection('rwords_importance', rwords_importance)
     return score
 
+  def predict(self, ltexts, rtexts):
+    feed_dict = {
+      self.ltext_feed: ltexts,
+      self.rtext_feed: rtexts
+      }
+    
+    score = self.sess.run(self.score, feed_dict)
+    if FLAGS.elementwise_predict and self.is_predict:
+      ##--TODO
+      #score = self.sess.run(self.elemetwise_score, feed_dict)
+      score = score.reshape((len(rtexts),))
+
+    return score
+
+  def elementwise_bulk_predict(self, ltexts, rtexts):
+    scores = []
+    if len(rtexts) >= len(ltexts):
+      for ltext in ltexts:
+        stacked_ltexts = np.array([ltext] * len(rtexts))
+        score = self.predict(stacked_ltexts, rtexts)
+        scores.append(score)
+    else:
+      for rtext in rtexts:
+        stacked_rtexts = np.array([rtext] * len(ltexts))
+        score = self.predict(ltexts, stacked_rtexts)
+        scores.append(score)
+    return np.array(scores)  
+
   def bulk_predict(self, ltexts, rtexts):
     """
     input images features [m, ] , texts feature [n,] will
     outut [m, n], for each image output n scores for each text  
     """
-    feed_dict = {
-      self.ltext_feed: ltexts,
-      self.rtext_feed: rtexts
-      }
-    score = self.sess.run(self.score, feed_dict)
-    return score
+    if FLAGS.elementwise_predict:
+      return self.elementwise_bulk_predict(ltexts, rtexts)
+    return self.predict(ltexts, rtexts)
+    
   
   #TODO may be speedup by cocant [ltex, rtext] as one batch and co forward then split 
   def build_graph(self, ltext, rtext):
@@ -306,6 +299,9 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       #rtext_feature = self.rforward(rtext)
 
       score = dot(ltext_feature, rtext_feature)
+      
+      #if FLAGS.elementwise_predict and self.is_predict:
+      #  self.elemetwise_score = melt.element_wise_dot(ltext_feature, rtext_feature)
       return score
 
   def build_lsim_graph(self, ltext, rtext):

@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic
+conf_path=./prepare/default/app-conf/lijiaoshou/seq-basic 
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/bow.basic
+model_dir=/home/gezi/new/temp/image-caption/lijiaoshou/model/cnn.8batch
 mkdir -p $model_dir
 
 python ./train.py \
@@ -30,7 +30,7 @@ python ./train.py \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 16 \
   --eval_batch_size 1013 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
@@ -44,13 +44,13 @@ python ./train.py \
   --metric_eval_batch_size 1000 \
   --debug 0 \
   --num_negs 1 \
-  --neg_left 1 \
-  --neg_right 0 \
+  --neg_left 0 \
+  --neg_right 1 \
   --interval 100 \
   --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.1 \
-  --algo bow \
+  --algo cnn \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \

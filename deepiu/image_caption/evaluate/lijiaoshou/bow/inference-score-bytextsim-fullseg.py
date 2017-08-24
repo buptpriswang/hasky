@@ -20,7 +20,7 @@ flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/m
 #flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou/', '')
 #flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow', '')
 
-flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
+flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/bow/vocab.txt', 'vocabulary file')
 #flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/vocab.txt', 'vocabulary file')
 
 flags.DEFINE_string('image_feature_name_', 'bow/main/image_feature:0', 'model_init_1 because predictor after trainer init')
@@ -34,8 +34,8 @@ flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/candidate
 
 flags.DEFINE_integer('batch_size_', 10000, '')
 
-flags.DEFINE_string('seg_method_', 'basic', '')
-flags.DEFINE_bool('feed_single_', True, '')
+flags.DEFINE_string('seg_method_', 'full', '')
+flags.DEFINE_bool('feed_single_', False, '')
 
 
 import sys, os, math
@@ -64,8 +64,8 @@ def _text2ids(text, max_words):
 
 def predicts(image_features, input_texts, text):
   #TODO may be N texts to speed up as bow support this
-  word_ids_list = [_text2ids(text, 50)] 
-  input_word_ids_list = [_text2ids(input_text, 50) for input_text in input_texts]
+  word_ids_list = [_text2ids(text, TEXT_MAX_WORDS)] 
+  input_word_ids_list = [_text2ids(input_text, TEXT_MAX_WORDS) for input_text in input_texts]
 
   score = predictor.inference('textsim', 
                               feed_dict= {

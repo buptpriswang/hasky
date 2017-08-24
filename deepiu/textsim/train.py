@@ -242,7 +242,8 @@ def main(_):
   vocabulary.init()
   text2ids.init()
   
-  #evaluator.init()
+  #must init before main graph
+  evaluator.init()
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))
@@ -253,6 +254,8 @@ def main(_):
  
   global sess
   sess = melt.get_session(log_device_placement=FLAGS.log_device_placement)
+
+  print('------------', global_scope)
   with tf.variable_scope(global_scope):
     train()
  

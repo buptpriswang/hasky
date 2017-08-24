@@ -16,27 +16,30 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/model/bow/', '')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/model/cnn/', '')
 #flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow.lijiaoshou/', '')
 #flags.DEFINE_string('model_dir', '/home/gezi/new/temp/image-caption/keyword/model/bow', '')
-
-flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
 #flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/bow/vocab.txt', 'vocabulary file')
+flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
 
-flags.DEFINE_string('image_feature_name_', 'bow/main/image_feature:0', 'model_init_1 because predictor after trainer init')
-flags.DEFINE_string('text_name', 'bow/main/text:0', '')
-flags.DEFINE_string('text2_name', 'bow/main/text2:0', '')
+flags.DEFINE_string('image_feature_name_', 'cnn/main/image_feature:0', 'model_init_1 because predictor after trainer init')
+flags.DEFINE_string('text_name', 'cnn/main/text:0', 'model_init_1 because predictor after trainer init')
+
 
 flags.DEFINE_string('text_file', '/home/gezi/data/lijiaoshou/wenan.special.txt', '')
-#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/train/shoubai_feature.txt_0', 'train data')
-#flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/toutiao_feature.txt', 'train data')
-flags.DEFINE_string('image_feature_file_', '/home/gezi/data/lijiaoshou/candidate_feature.txt', 'train data')
-
-flags.DEFINE_integer('batch_size_', 10000, '')
+#flags.DEFINE_string('image_feature_dir', '/home/gezi/data/lijiaoshou/train/', '')
+#flags.DEFINE_string('image_feature_file_', '/home/gezi/new/data/keyword/valid/part-00000', 'valid data')
+#flags.DEFINE_string('image_feature_pattern', '/home/gezi/new/data/keyword/valid/part*', 'valid data')
+flags.DEFINE_string('image_feature_pattern', '/home/gezi/data/lijiaoshou/candidate_feature.txt', 'train data')
+flags.DEFINE_integer('num_files', 2, '')
+flags.DEFINE_integer('batch_size_', 100000, '')
+flags.DEFINE_integer('text_max_words', 50, '')
 
 flags.DEFINE_string('seg_method_', 'basic', '')
 flags.DEFINE_bool('feed_single_', True, '')
 
+#flags.DEFINE_string('seg_method_', 'full', '')
+#flags.DEFINE_bool('feed_single_', False, '')
 
 import sys, os, math
 import gezi, melt
@@ -44,6 +47,7 @@ import numpy as np
 
 from deepiu.util import text2ids
 
+import glob 
 import conf
 from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK
 
@@ -62,15 +66,14 @@ def _text2ids(text, max_words):
 
   return word_ids
 
-def predicts(image_features, input_texts, text):
+def predicts(image_features, text):
   #TODO may be N texts to speed up as bow support this
-  word_ids_list = [_text2ids(text, 50)] 
-  input_word_ids_list = [_text2ids(input_text, 50) for input_text in input_texts]
+  word_ids_list = [_text2ids(text, FLAGS.text_max_words or TEXT_MAX_WORDS)] 
 
-  score = predictor.inference('textsim', 
+  score = predictor.inference('score', 
                               feed_dict= {
-                                      FLAGS.text_name: input_word_ids_list,
-                                      FLAGS.text2_name: word_ids_list
+                                      FLAGS.image_feature_name_: image_features,
+                                      FLAGS.text_name: word_ids_list
                                       })
   
   score = score.squeeze()
@@ -80,34 +83,38 @@ def predicts(image_features, input_texts, text):
 def top_images(text):
   image_set = set()
   images = []
-  itexts = []
   image_features = []
-  input_texts = []
   scores = []
-  for line in open(FLAGS.image_feature_file_):
-    l = line.strip().split('\t')
-    image = l[0].strip()
-    if image in image_set:
-      continue
-    else:
-      image_set.add(image)
-    input_text = l[1].split('\x01')[0].strip()
-    image_feature = l[-1].split('\x01')
-    image_feature = [float(x) for x in image_feature]
+  itexts = []
+  num = 0
+  for file in glob.glob(FLAGS.image_feature_pattern):
+    print(file, file=sys.stderr)
+    for line in open(file):
+      l = line.strip().split('\t')
+      image = l[0].strip()
+      itext = l[1].strip()
+      if image in image_set:
+        continue
+      else:
+        image_set.add(image)
+      image_feature = l[-1].split('\x01')
+      image_feature = [float(x) for x in image_feature]
 
-    image_features.append(image_feature)
-    images.append(image)
-    input_texts.append(input_text)
-    itexts.append(input_text)
+      image_features.append(image_feature)
 
+      images.append(image)
+
+      itexts.append(itext)
     
-    if len(image_features) == FLAGS.batch_size_:
-      scores += predicts(image_features, input_texts, text)
-      image_features = []
-      input_texts = []
+      if len(image_features) == FLAGS.batch_size_:
+        scores += predicts(image_features, text)
+        image_features = []
+    num += 1
+    if num == FLAGS.num_files:
+      break
 
   if image_features:
-    scores += predicts(image_features, input_texts, text)
+    scores += predicts(image_features, text)
 
   image_scores = zip(scores, images, itexts)
   image_scores.sort(reverse=True)
@@ -116,6 +123,7 @@ def top_images(text):
   for i, (score, image, itext) in enumerate(image_scores[:50]):
     if i % 5 == 0:
       print('<table><tr>')
+    #itext = ''
     print(img_html.format(image, i, score, itext))
     if (i + 1) % 5 == 0:
       print('</tr></table>')
