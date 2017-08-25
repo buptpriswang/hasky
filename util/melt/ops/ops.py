@@ -787,3 +787,11 @@ def max_pooling(outputs, sequence_length, axis=1, reduce_func=tf.reduce_max):
 
 def argmax_pooling(outputs, sequence_length, axis=1):
   return max_pooling(outputs, sequence_length, axis, reduce_func=tf.argmax)
+
+
+def slim_batch(sequence, sequence_length=None):
+  if sequence_length is None:
+    sequence_length = length(sequence)
+  num_steps = tf.cast(tf.reduce_max(sequence_length), dtype=tf.int32)
+  sequence = tf.slice(sequence, [0,0], [-1, num_steps]) 
+  return sequence  

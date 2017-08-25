@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/bow.elementwise
+model_dir=/home/gezi/new/temp/makeup/title2name/model/cnn.elementwise
 assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 #--assistant_model_dir $assistant_model_dir \
 mkdir -p $model_dir
@@ -51,17 +51,17 @@ python ./train.py \
   --eval_batch_size 1000 \
   --feed_dict 0 \
   --margin 0.5 \
-  --algo dual_bow \
+  --algo dual_cnn \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
   --emb_dim 256 \
   --hidden_size 1024 \
   --model_dir $model_dir \
-  --global_scope dual_bow2 \
+  --global_scope dual_cnn2 \
   --elementwise_predict 1 \
   --concat_sim 1 \
-  --no_dist_norm 0 \
+  --no_dist_norm 1 \
   --num_records 0 \
   --min_records 12 \
   --log_device 0 

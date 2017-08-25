@@ -32,6 +32,8 @@ from deepiu.imtxt2txt.algos.imtxt2txt import Imtxt2txt, Imtxt2txtPredictor
 
 from deepiu.textsim.algos.dual_textsim import DualTextsim, DualTextsimPredictor
 
+from deepiu.textsim.algos.decomposable_nli import DecomposableNLI, DecomposableNLIPredictor
+
 
 class Algos:
   bow = 'bow'    #bow encode for text
@@ -44,6 +46,7 @@ class Algos:
   dual_bow = 'dual_bow'
   dual_rnn = 'dual_rnn'
   dual_cnn = 'dual_cnn'
+  decomposable_nli = 'decomposable_nli'
 
 class AlgosType:
    discriminant = 0
@@ -59,7 +62,8 @@ AlgosTypeMap = {
   Algos.imtxt2txt : AlgosType.generative,
   Algos.dual_bow : AlgosType.discriminant,
   Algos.dual_rnn : AlgosType.discriminant,
-  Algos.dual_cnn : AlgosType.discriminant
+  Algos.dual_cnn : AlgosType.discriminant,
+  Algos.decomposable_nli: AlgosType.discriminant
 }
 
 def is_discriminant(algo):
@@ -88,6 +92,8 @@ def _gen_predictor(algo):
     return DualTextsimPredictor('rnn')
   elif algo == Algos.dual_cnn:
     return DualTextsimPredictor('cnn')
+  elif algo == Algos.decomposable_nli:
+    return DecomposableNLIPredictor()
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 
@@ -110,6 +116,8 @@ def _gen_trainer(algo):
     return DualTextsim('rnn')
   elif algo == Algos.dual_cnn:
     return DualTextsim('cnn')
+  elif algo == Algos.decomposable_nli:
+    return DecomposableNLI()
   else:
     raise ValueError('Unsupported algo %s'%algo) 
 

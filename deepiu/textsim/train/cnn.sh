@@ -28,7 +28,7 @@ python ./train.py \
   --eval_text2img 0 \
   --max_texts -1 \
   --metric_eval_batch_size 1000 \
-  --metric_eval_texts_size 100000 \
+  --metric_eval_texts_size 1000 \
   --train_only 0 \
   --metric_eval 1 \
   --monitor_level 2 \
@@ -54,9 +54,9 @@ python ./train.py \
   --algo dual_cnn \
   --combiner=sum \
   --exclude_zero_index 1 \
-  --dynamic_batch_length 1 \
-  --emb_dim 128 \
-  --mlp_dims 128 \
+  --dynamic_batch_length 0 \
+  --emb_dim 256 \
+  --mlp_dims 256 \
   --hidden_size 1024 \
   --model_dir $model_dir \
   --num_records 0 \

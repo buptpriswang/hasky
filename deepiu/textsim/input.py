@@ -36,7 +36,9 @@ def _decode(example, parse):
 
   #for attention to be numeric stabel and since encoding not affect speed, dynamic rnn encode just pack zeros at last
   #input_maxlen = 0 if dynamic_batch_length else INPUT_TEXT_MAX_WORDS
-  lmaxlen = TEXT_MAX_WORDS
+  #lmaxlen = TEXT_MAX_WORDS
+  #TODO... check affect..  for decomposable_nli as use masked softmax must use dynamic batch length for all!
+  lmaxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS
   ltext = melt.sparse_tensor_to_dense(ltext, lmaxlen)
   
   rmaxlen = 0 if FLAGS.dynamic_batch_length else TEXT_MAX_WORDS

@@ -21,7 +21,7 @@ python ./train.py \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \
   --img2id=$valid_output_path/'img2id.npy' \
-  --eval_text2img 1 \
+  --eval_text2img 0 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
@@ -31,7 +31,7 @@ python ./train.py \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
-  --eval_batch_size 1013 \
+  --eval_batch_size 1000 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
@@ -48,7 +48,6 @@ python ./train.py \
   --neg_left 1 \
   --neg_right 1 \
   --interval 100 \
-  --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.5 \
   --algo dual_bow \

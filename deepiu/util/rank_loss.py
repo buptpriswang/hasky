@@ -56,12 +56,15 @@ def concat_sim_score(u, v):
   #feature = tf.multiply(left_feature, right_feature)
   #must name layers for share! otherwise dense_1 dense_2 ...
   #return tf.sigmoid(tf.layers.dense(feature, 1, name='compute_sim_dense'))
+  #return melt.element_wise_dot(u, v)
   feature = tf.concat((u, v, tf.abs(u-v), u*v), 1)
   score = melt.slim.mlp(feature,
-                 [1024, 1],
+                 [512, 512, 1],
                  activation_fn=tf.nn.tanh,
+                 #activation_fn=None,
                  scope='concat_same_mlp')
-  return tf.sigmoid(score)
+  #return tf.sigmoid(score)
+  return score
 
 #[batch, dim] [batch_dim] -> [batch, 1]
 def compute_sim(left_feature, right_feature):

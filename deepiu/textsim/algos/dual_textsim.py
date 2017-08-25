@@ -122,6 +122,7 @@ class DualTextsim(object):
     #rnn will return encode_feature, state
     if isinstance(text_feature, tuple):
       text_feature = text_feature[0]
+
     return text_feature
 
   def lforward(self, text):
@@ -160,13 +161,16 @@ class DualTextsim(object):
     ltext_feature = normalize(ltext_feature)
     rtext_feature = normalize(rtext_feature)
     return ltext_feature, rtext_feature
- 
+
+
   def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
-    assert (neg_ltext is not None) or (neg_rtext is not None)
+    #assert (neg_ltext is not None) or (neg_rtext is not None)
     with tf.variable_scope(self.scope) as scope:
-      ltext_feature = self.lforward(ltext)
-      #scope.reuse_variables() #rfword share same rnn or cnn..
-      rtext_feature = self.rforward(rtext)
+      with tf.variable_scope('encode') as encode_scope:
+        ltext_feature = self.lforward(ltext)
+        encode_scope.reuse_variables()
+        #scope.reuse_variables() #rfword share same rnn or cnn..
+        rtext_feature = self.rforward(rtext)
       pos_score = compute_sim(ltext_feature, rtext_feature)
 
       scope.reuse_variables()
@@ -175,13 +179,15 @@ class DualTextsim(object):
       if neg_rtext is not None:
         num_negs = neg_rtext.get_shape()[1]
         for i in xrange(num_negs):
-          neg_rtext_feature_i = self.rforward(neg_rtext[:, i, :])
+          with tf.variable_scope('encode') as encode_scope:
+            neg_rtext_feature_i = self.rforward(neg_rtext[:, i, :])
           neg_scores_i = compute_sim(ltext_feature, neg_rtext_feature_i)
           neg_scores_list.append(neg_scores_i)
       if neg_ltext is not None:
         num_negs = neg_ltext.get_shape()[1]
         for i in xrange(num_negs):
-          neg_ltext_feature_i = self.lforward(neg_ltext[:, i, :])
+          with tf.variable_scope('encode') as encode_scope:
+            neg_ltext_feature_i = self.lforward(neg_ltext[:, i, :])
           neg_scores_i = compute_sim(neg_ltext_feature_i, rtext_feature)
           neg_scores_list.append(neg_scores_i)
     
@@ -267,11 +273,13 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       for ltext in ltexts:
         stacked_ltexts = np.array([ltext] * len(rtexts))
         score = self.predict(stacked_ltexts, rtexts)
+        score = np.squeeze(score) 
         scores.append(score)
     else:
       for rtext in rtexts:
         stacked_rtexts = np.array([rtext] * len(ltexts))
         score = self.predict(ltexts, stacked_rtexts)
+        score = np.squeeze(score) 
         scores.append(score)
     return np.array(scores)  
 
@@ -288,12 +296,13 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   #TODO may be speedup by cocant [ltex, rtext] as one batch and co forward then split 
   def build_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
-      ltext_feature = self.lforward(ltext)
-      #make to cpu ? for mem issue of cnn? if not perf hurt much?
-      #reidctor.bulk_predict duration: 125.557517052
-      #cpu is slow evaluate_scores duration: 135.078355074
-      #if self.encoder_type != 'cnn':
-      rtext_feature = self.rforward(rtext)
+      with tf.variable_scope('encode') as encode_scope:
+        ltext_feature = self.lforward(ltext)
+        #make to cpu ? for mem issue of cnn? if not perf hurt much?
+        #reidctor.bulk_predict duration: 125.557517052
+        #cpu is slow evaluate_scores duration: 135.078355074
+        #if self.encoder_type != 'cnn':
+        rtext_feature = self.rforward(rtext)
       #else:
       #with tf.device('/cpu:0'):
       #rtext_feature = self.rforward(rtext)
@@ -306,15 +315,17 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
 
   def build_lsim_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
-      ltext_feature = self.lforward(ltext)
-      rtext_feature = self.lforward(rtext)
+      with tf.variable_scope('encode') as encode_scope:
+        ltext_feature = self.lforward(ltext)
+        rtext_feature = self.lforward(rtext)
       score = dot(ltext_feature, rtext_feature)
       return score
 
   def build_rsim_graph(self, ltext, rtext):
     with tf.variable_scope(self.scope):
-      ltext_feature = self.rforward(ltext)
-      rtext_feature = self.rforward(rtext)
+      with tf.variable_scope('encode') as encode_scope:
+        ltext_feature = self.rforward(ltext)
+        rtext_feature = self.rforward(rtext)
       score = dot(ltext_feature, rtext_feature)
       return score
 
@@ -325,8 +336,9 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
     """
     #TODO imporve speed by concat pos and all negs to one batch
     with tf.variable_scope(self.scope):
-      ltext_feature = self.encode(ltext)
-      rtext_feature = self.encode(rtext)
+      with tf.variable_scope('encode') as encode_scope:
+        ltext_feature = self.encode(ltext)
+        rtext_feature = self.encode(rtext)
       score = melt.cosine(ltext_feature, rtext_feature)
       return score
 
@@ -356,11 +368,12 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
 
       # text batch_size must be 1! currently [1, seq_len] -> [seq_len, 1]
       words = tf.transpose(text2, [1, 0])
-      #[seq_len, 1] -> [seq_len, emb_dim]
-      word_feature = forward_fn(words)
+      with tf.variable_scope('encode') as encode_scope:
+        #[seq_len, 1] -> [seq_len, emb_dim]
+        word_feature = forward_fn(words)
 
-      #[batch_size, seq_len] -> [batch_size, emb_dim]  [1, emb_dim]
-      text_feature = forward_fn(text)
+        #[batch_size, seq_len] -> [batch_size, emb_dim]  [1, emb_dim]
+        text_feature = forward_fn(text)
       
       #[1, seq_len]
       score = dot(text_feature, word_feature)
@@ -404,9 +417,10 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
 
   def build_evaluate_image_word_graph(self, image_feature):
     with tf.variable_scope(self.scope):
-      image_feature = self.lforward(image_feature)
-      #no need for embedding lookup
-      word_feature = self.forward_word_feature()
+      with tf.variable_scope('encode') as encode_scope:
+        image_feature = self.lforward(image_feature)
+        #no need for embedding lookup
+        word_feature = self.forward_word_feature()
       score = dot(image_feature, word_feature)
       return score
 
