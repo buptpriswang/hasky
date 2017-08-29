@@ -340,7 +340,7 @@ def train():
   logging.info('trainer:{}'.format(trainer))
   logging.info('predictor:{}'.format(predictor))
   train_process(trainer, predictor)
-
+  
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))

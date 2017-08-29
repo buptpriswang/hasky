@@ -63,6 +63,15 @@ class PredictorBase(object):
     saver = tf.train.import_meta_graph(meta_filename)
     self.restore_from_graph()
     saver.restore(self.sess, model_path)
+    #---TODO not work remove can run but hang  FIXME add predictor + exact_predictor during train will face
+    #@gauravsindhwani , can you still run the code successfully after you remove these two collections since they are actually part of the graph. 
+    #I try your way but find the program is stuck after restoring."
+    #https://github.com/tensorflow/tensorflow/issues/9747
+    #tf.get_default_graph().clear_collection("queue_runners")
+    #tf.get_default_graph().clear_collection("local_variables")
+    #--for num_epochs not 0
+    #self.sess.run(tf.local_variables_initializer())
+
     return self.sess
 
   def run(self, key, feed_dict=None):

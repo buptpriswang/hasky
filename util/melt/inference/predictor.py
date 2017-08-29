@@ -21,6 +21,8 @@ from tensorflow.python import debug as tf_debug
 
 import os, sys
 
+import melt 
+
 def get_model_dir_and_path(model_dir, model_name=None):
   model_path = model_dir
   ckpt = tf.train.get_checkpoint_state(model_dir)
@@ -48,7 +50,8 @@ class Predictor(object):
     super(Predictor, self).__init__()
     self.sess = sess
     if self.sess is None:
-      self.sess = tf.InteractiveSession()
+      #self.sess = tf.InteractiveSession()
+      self.sess = melt.get_session() #make sure use one same global/share sess in your graph
       if debug:
         self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
     #ops will be map and internal list like
@@ -93,6 +96,21 @@ class Predictor(object):
     print('restore meta grpah and model ok %s'%model_path, file=sys.stderr)
     if random_seed is not None:
       tf.set_random_seed(random_seed)
+
+    #---so maybe do not use num_epochs or not save num_epochs variable!!!! can set but input producer not use, stop by my flow loop
+    #---TODO not work remove can run but hang  FIXME add predictor + exact_predictor during train will face
+    #@gauravsindhwani , can you still run the code successfully after you remove these two collections since they are actually part of the graph. 
+    #I try your way but find the program is stuck after restoring."
+    #https://github.com/tensorflow/tensorflow/issues/9747
+    #tf.get_default_graph().clear_collection("queue_runners")
+    #tf.get_default_graph().clear_collection("local_variables")
+    #--for num_epochs not 0
+    #tf.get_default_graph().clear_collection("local_variables")
+    #self.sess.run(tf.local_variables_initializer())
+
+    #https://stackoverflow.com/questions/44251666/how-to-initialize-tensorflow-variable-that-wasnt-saved-other-than-with-tf-globa
+    #melt.initialize_uninitialized_vars(self.sess)
+
     return self.sess
 
 

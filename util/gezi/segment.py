@@ -23,7 +23,6 @@ import gezi
 #should use full path
 from gezi.libgezi_util import get_single_cns
 
-
 #TODO need improve
 def segment_char(text):
   l = []
@@ -197,7 +196,7 @@ def segments(texts, segmentor):
   return results
 
 #seems multiprocessing same as above ?
-#segmentor resource only init once! whyï¼Ÿ @TODO
+#segmentor resource only init once! whyï¼? @TODO
 import multiprocessing
 from multiprocessing import Manager 
 def segments_multiprocess(texts, segmentor):

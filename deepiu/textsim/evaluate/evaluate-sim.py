@@ -38,6 +38,8 @@ flags.DEFINE_string('exact_rkey', 'dual_bow2/main/rtext:0', '')
 
 flags.DEFINE_float('exact_ratio', 1., '')
 
+flags.DEFINE_integer('np_seed', 1024, '0 random otherwise fixed random')
+
 import sys 
 import numpy as np
 import melt
@@ -76,15 +78,16 @@ def evaluate_score():
   if FLAGS.use_exact_predictor:
     exact_predictor = Predictor(FLAGS.exact_model_dir, FLAGS.exact_key, FLAGS.exact_lkey, FLAGS.exact_rkey, index=-1)
   print(tf.get_collection(FLAGS.key))
-  index = evaluator.random_predict_index()
+  seed = FLAGS.np_seed if FLAGS.np_seed else None
+  index = evaluator.random_predict_index(seed=seed)
   evaluator.evaluate_scores(predictor, random=True, index=index)
   if exact_predictor is not None:
+    ##well for seq2seq did experiment and for makeup title2name score(average time per step) is much better then ori_score
+    ##so just juse score will be fine
     #exact_predictor._key = 'ori_score'
     #evaluator.evaluate_scores(predictor, random=True, exact_predictor=exact_predictor, index=index)
     #exact_predictor._key = 'score'
     evaluator.evaluate_scores(predictor, random=True, exact_predictor=exact_predictor, exact_ratio=FLAGS.exact_ratio, index=index)
-
-
 
 
 def main(_):

@@ -62,6 +62,6 @@ python ./train.py \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \ 
+  --clip_gradients 1 \
   --work_mode full \
 

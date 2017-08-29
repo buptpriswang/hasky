@@ -117,6 +117,7 @@ def train_flow(ops,
                debug=False,
                summary_excls=None,
                init_fn=None,
+               restore_scope=None,
                sess=None):
 
   if sess is None:
@@ -232,4 +233,5 @@ def train_flow(ops,
              no_log=FLAGS.no_log,
              summary_excls=summary_excls,
              init_fn=init_fn,
+             restore_scope=restore_scope,
              sess=sess)

@@ -30,7 +30,6 @@ flags.DEFINE_string('assistant_key', 'score', '')
 flags.DEFINE_string('assistant_ltext_key', 'dual_bow/main/ltext:0', '')
 flags.DEFINE_string('assistant_rtext_key', 'dual_bow/main/rtext:0', '')
 
-
 flags.DEFINE_string('img2text', '', 'img id to text labels ids')
 flags.DEFINE_string('text2img', '', 'text id to img labels ids')
 
@@ -105,9 +104,6 @@ def init():
     #melt.restore_scope_from_path(melt.get_session(), FLAGS.assistant_model_dir, FLAGS.assistant_algo)
     assistant_predictor = melt.Predictor(FLAGS.assistant_model_dir)
     print('assistant_predictor', assistant_predictor)
-    #https://github.com/tensorflow/tensorflow/issues/9747
-    tf.get_default_graph().clear_collection("queue_runners")
-    tf.get_default_graph().clear_collection("local_variables")
 
   test_dir = FLAGS.valid_resource_dir
   global all_distinct_texts, all_distinct_text_strs
@@ -376,7 +372,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     scores.append(score)
     start = end
   score = np.concatenate(scores, 1)
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape, end='\r')
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
   img2text = get_bidrectional_lable_map()
   num_texts = texts.shape[0]
@@ -459,7 +455,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
   #score = predictor.predict(img_features, texts)
   score = np.concatenate(scores, 0)
   score = score.transpose()
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape, end='\r')
+  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
 
   text2img = get_bidrectional_lable_map_txt2im()
@@ -489,11 +485,13 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
 
     rank_metrics.add(labels)
 
-def random_predict_index():
+def random_predict_index(seed=None):
   imgs, img_features = get_image_names_and_features()
   num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs)) 
   if num_metric_eval_examples <= 0:
     num_metric_eval_examples = len(imgs)
+  if seed:
+    np.random.seed(seed)
   return  np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
 
 def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, exact_ratio=1.):

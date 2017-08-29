@@ -3,6 +3,7 @@ cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
 model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.gencopy
+assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
 #num_sampled=256
@@ -63,6 +64,8 @@ python ./train.py --length_norm=1 \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \ 
+  --clip_gradients 1 \
   --work_mode full \
+  --assistant_algo dual_bow \
+  --assistant_model_dir $assistant_model_dir \
 

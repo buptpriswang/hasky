@@ -389,9 +389,6 @@ class RnnDecoder(Decoder):
         targets = tf.reshape(targets, [-1])
 
     tf.add_to_collection('logits', logits)
-    
-    #if input_text is not None:
-    #  logits = outputs
 
     mask = tf.cast(tf.sign(targets), dtype=tf.float32)
 
@@ -433,7 +430,7 @@ class RnnDecoder(Decoder):
 
     self.ori_loss = loss
     if self.is_predict:
-      #note use avg_loss not to change loss pointer
+      #note use avg_loss not to change loss pointer, avg_loss is same as average time step=True is length_normalize_fator=1.0
       avg_loss = self.normalize_length(loss, sequence_length)
       return avg_loss
     

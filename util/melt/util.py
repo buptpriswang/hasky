@@ -23,6 +23,19 @@ import melt
 
 import melt.utils.logging as logging
 
+
+#https://stackoverflow.com/questions/44251666/how-to-initialize-tensorflow-variable-that-wasnt-saved-other-than-with-tf-globa
+def initialize_uninitialized_vars(sess):
+  import itertools
+  from itertools import compress
+  global_vars = tf.global_variables()
+  is_not_initialized = sess.run([~(tf.is_variable_initialized(var)) \
+                                  for var in global_vars])
+  not_initialized_vars = list(compress(global_vars, is_not_initialized))
+
+  if len(not_initialized_vars):
+    sess.run(tf.variables_initializer(not_initialized_vars))
+
 #In [3]: tf.contrib.layers.OPTIMIZER_CLS_NAMES
 #Out[3]: 
 #{'Adagrad': tensorflow.python.training.adagrad.AdagradOptimizer,

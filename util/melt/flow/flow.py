@@ -86,6 +86,7 @@ def tf_train_flow(train_once_fn,
                   restore_from_latest=True,
                   metric_eval_fn=None,
                   init_fn=None,
+                  restore_scope=None,
                   sess=None):
   """
   similary flow as tf_flow, but add model try reload and save
@@ -97,9 +98,11 @@ def tf_train_flow(train_once_fn,
   print('max_models_keep:', max_models_keep)
   print('save_interval_seconds:', save_interval_seconds)
   
+  var_list = None if not restore_scope else tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=restore_scope)
   saver = tf.train.Saver(
     max_to_keep=max_models_keep, 
-    keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0)
+    keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0,
+    var_list=var_list)
   
   epoch_saver = tf.train.Saver()
   best_epoch_saver = tf.train.Saver(max_to_keep=1000) 
@@ -121,13 +124,17 @@ def tf_train_flow(train_once_fn,
       pre_step *= num_steps_per_epoch
     #for non 0 eopochs  without this will be
     #Attempting to use uninitialized value input/input_producer/limit_epochs/epochs
+    #but add this might face 'Tensor' object has no attribute 'initializer' for import meta graph might be bug
     sess.run(tf.local_variables_initializer())
+    #https://stackoverflow.com/questions/44251666/how-to-initialize-tensorflow-variable-that-wasnt-saved-other-than-with-tf-globa
+    #melt.initialize_uninitialized_vars(sess)
   else:
     print('Train all start step 0', file=sys.stderr)
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
     sess.run(init_op)
 
+    #like use image model, build image graph, reload first train, and then will go to same checkpoint all varaible just restore will ok
     if init_fn is not None:
       init_fn(sess)
   

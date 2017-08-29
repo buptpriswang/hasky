@@ -92,7 +92,6 @@ class InputApp(object):
       trainset, 
       decode_fn=decode_fn,
       batch_size=FLAGS.batch_size,
-      num_epochs=FLAGS.num_epochs, 
       #seed=seed,
       num_threads=FLAGS.num_threads,
       batch_join=FLAGS.batch_join,

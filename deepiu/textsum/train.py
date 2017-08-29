@@ -65,6 +65,7 @@ from deepiu.textsum.algos import seq2seq
 from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod
 
 sess = None
+global_scope = ''
 
 #TODO do not consider feed dict support right now for tower loss!
 def tower_loss(trainer, input_app=None, input_results=None):
@@ -245,67 +246,10 @@ def train_process(trainer, predictor=None):
                          num_steps_per_epoch=input_app.num_steps_per_epoch,
                          model_dir=FLAGS.model_dir,
                          metric_eval_fn=metric_eval_fn,
+                         restore_scope=global_scope, #only restore global scope as might evaluator has another predictor in graph with another scope name like dual_bow
                          sess=sess)#notice if use melt.constant in predictor then must pass sess
-  else: #test predict
-    predictor.load(FLAGS.model_dir)
-    import conf  
-    from conf import TEXT_MAX_WORDS, INPUT_TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK
-
-    #TODO: now copy from prpare/gen-records.py
-    def _text2ids(text, max_words):
-      word_ids = text2ids.text2ids(text, 
-                                   seg_method=FLAGS.seg_method, 
-                                   feed_single=FLAGS.feed_single, 
-                                   allow_all_zero=True, 
-                                   pad=False)
-      word_ids_length = len(word_ids)
-      word_ids = word_ids[:max_words]
-      word_ids = gezi.pad(word_ids, max_words, 0)
-      return word_ids
-
-    input_texts = [
-                   #'����������һ�Ը�Ů�ڿ������ջ�͸����˿¶�δ����������ڿ�Ů��-�Ա���',
-                   '����������ʵ��С��ô��,����������ʵ��С���δ�ʩ',
-                   ]
-
-    for input_text in input_texts:
-      word_ids = _text2ids(input_text, INPUT_TEXT_MAX_WORDS)
-      print('word_ids', word_ids, 'len:', len(word_ids))
-      print(text2ids.ids2text(word_ids))
-      #similar as inference.py this is only ok for no attention mode TODO FIXME
-      texts, scores = sess.run([tf.get_collection('text')[0], tf.get_collection('text_score')[0]], 
-                             feed_dict={'seq2seq/model_init_1/input_text:0' : [word_ids]})
-      print(texts[0], text2ids.ids2text(texts[0]), scores[0])
-
-      texts, scores  = sess.run([beam_text, beam_text_score], 
-                               feed_dict={predictor.input_text_feed: [word_ids]})
-
-      texts = texts[0]
-      scores = scores[0]
-      for text, score in zip(texts, scores):
-        print(text, text2ids.ids2text(text), score)
-    
-    input_texts = [
-                   '����������ʵ��С��ô��,����������ʵ��С���δ�ʩ',
-                   #'����������һ�Ը�Ů�ڿ������ջ�͸����˿¶�δ����������ڿ�Ů��-�Ա���',
-                   "����̫����ô����",
-                   '����������ʵ��С��ô��,����������ʵ��С���δ�ʩ',
-                   #'����������ʵ��С��ô��,����������ʵ��С���δ�ʩ',
-                   #'�޺콨�ǰ���˹��',
-                   ]
-
-    word_ids_list = [_text2ids(input_text, INPUT_TEXT_MAX_WORDS) for input_text in input_texts]
-    timer = gezi.Timer()
-    texts_list, scores_list = sess.run([beam_text, beam_text_score], 
-                               feed_dict={predictor.input_text_feed: word_ids_list})
-    
-    for texts, scores in zip(texts_list, scores_list):
-      for text, score in zip(texts, scores):
-        print(text, text2ids.ids2text(text), score, math.log(score))
-
-    print('beam_search using time(ms):', timer.elapsed_ms())
-
-
+  else:
+    raise ValueError('unsupport')
 
 def train():
   trainer, predictor =  algos_factory.gen_trainer_and_predictor(FLAGS.algo)
@@ -322,12 +266,13 @@ def main(_):
   vocabulary.init()
   text2ids.init()
   
-  #evaluator.init()
+  #must init before main graph
+  evaluator.init()
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))
   
-  global_scope = ''
+  global global_scope
   if FLAGS.add_global_scope:
     global_scope = FLAGS.global_scope if FLAGS.global_scope else FLAGS.algo
  
