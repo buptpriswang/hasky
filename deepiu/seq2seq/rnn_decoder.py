@@ -757,10 +757,10 @@ class RnnDecoder(Decoder):
 
       if FLAGS.decode_copy:
         logprobs = melt.gather_cols(logprobs, tf.to_int32(input_text))
-      else:
-        logits = state.alignments
-        logits = scores[:,:tf.shape(input_text)[-1]]
-        logprobs = tf.nn.log_softmax(logits)
+    else:
+      logits = state.alignments
+      logits = scores[:,:tf.shape(input_text)[-1]]
+      logprobs = tf.nn.log_softmax(logits)
 
     top_logprobs, top_ids = tf.nn.top_k(logprobs, beam_size)
     #------too slow... for transfering large data between py and c++ cost a lot!

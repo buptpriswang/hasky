@@ -382,10 +382,10 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
       top_indexes = indexes[:100]
       exact_texts = texts[top_indexes]
       exact_score = exact_predictor.elementwise_predict([img_features[i]], exact_texts)
-      exact_score = exact_score[0]
+      exact_score = np.squeeze(exact_score)
       if exact_ratio < 1.:
         for j in range(len(top_indexes)):
-          exact_score[j] = exact_ratio * exact_score[j] + (1 - exact_ratio) * score[i][top_indexes[j]]
+          exact_score[j] = exact_ratio * exact_score[j] + (1. - exact_ratio) * score[i][top_indexes[j]]
 
       #print(exact_score)
       exact_indexes = (-exact_score).argsort()

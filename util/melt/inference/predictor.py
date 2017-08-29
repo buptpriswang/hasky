@@ -20,7 +20,7 @@ import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 
 import os, sys
-
+import numpy as np
 import melt 
 
 def get_model_dir_and_path(model_dir, model_name=None):
@@ -141,16 +141,91 @@ class SimPredictor(object):
   def predict(self, ltext, rtext):
     return self.inference(ltext, rtext)
 
+  def elementwise_predict(self, ltexts, rtexts):
+    scores = []
+    if len(rtexts) >= len(ltexts):
+      for ltext in ltexts:
+        stacked_ltexts = np.array([ltext] * len(rtexts))
+        score = self.predict(stacked_ltexts, rtexts)
+        score = np.squeeze(score) 
+        scores.append(score)
+    else:
+      for rtext in rtexts:
+        stacked_rtexts = np.array([rtext] * len(ltexts))
+        score = self.predict(ltexts, stacked_rtexts)
+        score = np.squeeze(score) 
+        scores.append(score)
+    return np.array(scores)  
+
 class RerankSimPredictor(object):
-  def __init__(self, model_dir, exact_model_dir, lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, ):
-    self._predictor = SimPredictor(model_dir, index=0)
-    self._exact_predictor = Predictor(exact_model_dir, index=1)
+  def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
+              lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, key='score', exact_key='score'):
+    self._predictor = SimPredictor(model_dir, index=0, lkey=lkey, rkey=rkey, key=key)
+    #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
+    #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
+    # <tf.Tensor 'seq2seq/main/Exp_4:0' shape=(?, 1) dtype=float32>]
+    self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lkey=exact_lkey, rkey=exact_rkey, key=exact_key)
 
-  def inference(self, ltext, rtext):
-    pass
+    self._num_rerank = num_rerank
 
-  def predict():
-    pass
+  def inference(self, ltext, rtext, ratio=1.):
+    scores = self._predictor.inference(ltext, rtext)
+    if not ratio:
+      return scores
 
-  def top_k(input, k=1, sorted=True):
-    pass
+    exact_scores = []
+    for i, score in enumerate(scores):
+      index= (-score).argsort()
+      top_index = index[:self._num_rerank]
+      exact_rtext = rtext[top_index]
+      exact_score = self._exact_predictor.elementwise_predict([ltext[i]], rtext)
+      exact_score = np.squeeze(exact_score)
+      if ratio < 1.:
+        for j in range(len(top_index)):
+          exact_score[j] = ratio * exact_score[j] + (1. - ratio) * score[top_index[j]]
+
+      exact_scores.append(exact_score)
+    return np.array(exact_score)
+
+  def predict(self, ltext, rtext, ratio=1.):
+    return self.predict(ltext, rtext, ratio)
+
+  def top_k(self, ltext, rtext, k=1, ratio=1., sorted=True):
+    assert k <= self._num_rerank
+    #TODO speed hurt?
+    ltext = np.array(ltext)
+    rtext = np.array(rtext)
+    scores = self._predictor.predict(ltext, rtext)
+    
+    top_values = []
+    top_indices = []
+
+    if not ratio:
+      top_values.append(score[index[:k]])
+      top_indices.append(index[:k])
+      return np.array(top_values), np.array(top_indices)
+
+    for i, score in enumerate(scores):
+      index = (-score).argsort()
+      if ratio:
+        top_index = index[:self._num_rerank]
+        exact_rtext = rtext[top_index]
+        exact_score = self._exact_predictor.elementwise_predict([ltext[i]], exact_rtext)
+        exact_score = np.squeeze(exact_score)
+        if ratio < 1.:
+          for j in range(len(top_index)):
+            exact_score[j] = ratio * exact_score[j] + (1. - ratio) * score[top_index[j]]
+
+        exact_index = (-exact_score).argsort()
+
+        new_index = [x for x in index]
+        for j in range(len(exact_index)):
+          new_index[j] = index[exact_index[j]]
+        index = new_index
+      
+      top_values.append(exact_score[:k])
+      top_indices.append(index[:k])
+
+    return np.array(top_values), np.array(top_indices)
+
+
