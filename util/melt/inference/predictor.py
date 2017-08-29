@@ -201,8 +201,10 @@ class RerankSimPredictor(object):
     top_indices = []
 
     if not ratio:
-      top_values.append(score[index[:k]])
-      top_indices.append(index[:k])
+      for i, score in enumerate(scores):
+        index = (-score).argsort()
+        top_values.append(score[index[:k]])
+        top_indices.append(index[:k])
       return np.array(top_values), np.array(top_indices)
 
     for i, score in enumerate(scores):
