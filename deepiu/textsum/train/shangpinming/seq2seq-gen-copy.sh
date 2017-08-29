@@ -28,7 +28,6 @@ python ./train.py --length_norm=1 \
   --show_beam_search 1 \
   --train_only 0 \
   --gen_predict 1 \
-  --metric_eval 0 \
   --legacy_rnn_decoder 0 \
   --alignment_history 0 \
   --monitor_level 2 \
@@ -37,13 +36,14 @@ python ./train.py --length_norm=1 \
   --eval_batch_size 100 \
   --num_gpus 0 \
   --min_after_dequeue 500 \
-  --learning_rate 0.1 \
+  --learning_rate 0.01 \
   --eval_interval_steps 500 \
+  --metric_eval 1 \
+  --num_metric_eval_examples 100 \
+  --metric_eval_batch_size 100 \
   --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
-  --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 500 \
   --feed_dict 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \

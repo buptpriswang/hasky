@@ -96,6 +96,23 @@ def train_once(sess,
       #print()
       pass
 
+  metric_evaluate = False
+  # if metric_eval_function is not None \
+  #   and ( (is_start and (step or ops is None))\
+  #     or (step and ((num_steps_per_epoch and step % num_steps_per_epoch == 0) \
+  #            or (metric_eval_interval_steps \
+  #                and step % metric_eval_interval_steps == 0)))):
+  #     metric_evaluate = True 
+  if metric_eval_fn is not None \
+    and (is_start \
+      or (num_steps_per_epoch and step % num_steps_per_epoch == 0) \
+           or (metric_eval_interval_steps \
+               and step % metric_eval_interval_steps == 0)):
+    metric_evaluate = True
+  
+  if metric_evaluate:
+    evaluate_results, evaluate_names = metric_eval_fn()
+
   if ops is not None:
     if deal_results_fn is None and names is not None:
       deal_results_fn = lambda x: melt.print_results(x, names)
@@ -164,23 +181,6 @@ def train_once(sess,
       
       if deal_results_fn is not None:
         stop = deal_results_fn(results)
-  
-  metric_evaluate = False
-  # if metric_eval_function is not None \
-  #   and ( (is_start and (step or ops is None))\
-  #     or (step and ((num_steps_per_epoch and step % num_steps_per_epoch == 0) \
-  #            or (metric_eval_interval_steps \
-  #                and step % metric_eval_interval_steps == 0)))):
-  #     metric_evaluate = True 
-  if metric_eval_fn is not None \
-    and (is_start \
-      or (num_steps_per_epoch and step % num_steps_per_epoch == 0) \
-           or (metric_eval_interval_steps \
-               and step % metric_eval_interval_steps == 0)):
-    metric_evaluate = True
-  
-  if metric_evaluate:
-     evaluate_results, evaluate_names = metric_eval_fn()
 
   if is_start or eval_interval_steps and step % eval_interval_steps == 0:
     if ops is not None:

@@ -230,8 +230,8 @@ def train_process(trainer, predictor=None):
     metric_eval_fn = None
     if FLAGS.metric_eval:
       #generative can do this also but it is slow so just ingore this
-      if not algos_factory.is_generative(FLAGS.algo): 
-        metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
+      #if not algos_factory.is_generative(FLAGS.algo): 
+      metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
 
   if FLAGS.mode == 'train':
     melt.print_global_varaiables()

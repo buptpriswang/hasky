@@ -3,6 +3,7 @@ cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
 model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq
+assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
 #--fixed_valid_input $fixed_valid_output_path/'test' \
@@ -25,7 +26,6 @@ python ./train.py \
   --debug 0 \
   --show_eval 1 \
   --train_only 0 \
-  --metric_eval 0 \
   --gen_predict 1 \
   --monitor_level 2 \
   --no_log 0 \
@@ -33,13 +33,14 @@ python ./train.py \
   --num_gpus 0 \
   --eval_batch_size 100 \
   --min_after_dequeue 500 \
-  --learning_rate 0.1 \
+  --learning_rate 0.01 \
   --eval_interval_steps 500 \
-  --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
-  --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 500 \
+  --metric_eval 1 \
+  --num_metric_eval_examples 100 \
+  --metric_eval_batch_size 100 \
+  --metric_eval_interval_steps 1000 \
   --feed_dict 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
@@ -64,4 +65,5 @@ python ./train.py \
   --log_device 0 \
   --clip_gradients 1 \
   --work_mode full \
-
+  --assistant_algo dual_bow \
+  --assistant_model_dir $assistant_model_dir \
