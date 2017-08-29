@@ -86,7 +86,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
                                                  initial_state=state, 
                                                  beam_size=beam_size, 
                                                  convert_unk=convert_unk,
-                                                 length_normalization_factor=0.)
+                                                 length_normalization_factor=FLAGS.length_normalization_factor)
     else:
       raise ValueError('not supported decode_method: %d' % decode_method)
 

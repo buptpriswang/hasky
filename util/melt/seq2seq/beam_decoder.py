@@ -72,7 +72,7 @@ def rnn_decoder(decoder_inputs, initial_state, cell, loop_function=None,
 def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None,
                 beam_size=7, done_token=0, 
                 output_fn=None,  length_normalization_factor=0.,
-                prob_as_score=True, topn=1):
+                prob_as_score=True, topn=1, need_softmax=True):
     """
     Beam search decoder
     copy from https://gist.github.com/igormq/000add00702f09029ea4c30eba976e0a
@@ -118,7 +118,8 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
                           done_token=done_token, 
                           output_fn=output_fn,
                           length_normalization_factor=length_normalization_factor,
-                          topn=topn)
+                          topn=topn,
+                          need_softmax=need_softmax)
     
     _ = rnn_decoder(
         decoder.decoder_inputs,
@@ -147,9 +148,10 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
 class BeamDecoder():
   def __init__(self, input, max_steps, initial_state, beam_size=7, done_token=0,
               batch_size=None, num_classes=None, output_fn=None, 
-              length_normalization_factor=0., topn=1):
+              length_normalization_factor=0., topn=1, need_softmax=True):
     self.length_normalization_factor = length_normalization_factor
     self.topn = topn
+    self.need_softmax = need_softmax
     self.beam_size = beam_size
     self.batch_size = batch_size
     if self.batch_size is None:
@@ -217,7 +219,10 @@ class BeamDecoder():
     self.output = output
 
     #[batch_size * beam_size, num_classes], here use log sofmax
-    logprobs = tf.nn.log_softmax(output)
+    if self.need_softmax:
+      logprobs = tf.nn.log_softmax(output)
+    else:
+      logprobs = tf.log(tf.maximum(output, 1e-12))
     
     if self.num_classes is None:
       self.num_classes = tf.shape(logprobs)[1]

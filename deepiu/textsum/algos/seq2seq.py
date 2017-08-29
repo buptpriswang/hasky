@@ -178,6 +178,7 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
                             exact_loss=exact_loss)
 
  
+    #score is logprob
     score = -loss 
     ori_score = -self.ori_loss
     if FLAGS.predict_use_prob:

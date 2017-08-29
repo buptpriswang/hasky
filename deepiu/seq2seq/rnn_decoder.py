@@ -541,7 +541,8 @@ class RnnDecoder(Decoder):
                                     beam_size=beam_size, done_token=vocabulary.vocab.end_id(), 
                                     output_fn=output_fn,
                                     length_normalization_factor=length_normalization_factor,
-                                    topn=beam_size)
+                                    topn=beam_size,
+                                    need_softmax=not(FLAGS.gen_copy_switch and FLAGS.switch_after_softmax))
 
     ##---dynamic beam search decoder can run but seems not correct or good reuslt, maybe bug TODO
     ##check with one small and simple testcase 
