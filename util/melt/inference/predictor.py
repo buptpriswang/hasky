@@ -131,8 +131,6 @@ class SimPredictor(object):
     if rkey is None:
       self._rkey = tf.get_collection('rfeed')[index]
 
-    print('------------------------', tf.get_collection('lfeed'), tf.get_collection('rfeed'))
-
   def inference(self, ltext, rtext):
     feed_dict = {
       self._lkey: ltext,
@@ -145,10 +143,13 @@ class SimPredictor(object):
 
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, ):
-    self._predictor = Predictor(model_dir)
-    self._exact_predictor = Predictor(exact_model_dir)
+    self._predictor = SimPredictor(model_dir, index=0)
+    self._exact_predictor = Predictor(exact_model_dir, index=1)
 
-  def inference(self, key):
+  def inference(self, ltext, rtext):
+    pass
+
+  def predict():
     pass
 
   def top_k(input, k=1, sorted=True):
