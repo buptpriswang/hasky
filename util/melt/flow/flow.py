@@ -212,7 +212,7 @@ def tf_train_flow(train_once_fn,
         raise tf.errors.OutOfRangeError(None, None,'Reached max num steps')
       #max_num_epochs = 1000
       max_num_epochs = num_epochs
-      if num_steps_per_epoch and step // num_steps_per_epoch >= max_num_epochs:
+      if max_num_epochs and num_steps_per_epoch and step // num_steps_per_epoch >= max_num_epochs:
         raise tf.errors.OutOfRangeError(None, None,'Reached max num epochs of %d'%max_num_epochs)
       step += 1
   except tf.errors.OutOfRangeError, e:

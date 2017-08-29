@@ -171,15 +171,20 @@ def gen_validate(input_app, input_results, trainer, predictor):
   return eval_ops, None, deal_eval_results
 
 def gen_predict_graph(predictor):  
-  exact_score = predictor.init_predict(exact_loss=True)
+  exact_score, exact_ori_score = predictor.init_predict(exact_loss=True)
   tf.add_to_collection('exact_score', exact_score)
+  tf.add_to_collection('exact_ori_score', exact_ori_score)
 
-  exact_prob = predictor.init_predict(exact_prob=True)
+  exact_prob, exact_ori_prob = predictor.init_predict(exact_prob=True)
   tf.add_to_collection('exact_prob', exact_prob)
+  tf.add_to_collection('exact_ori_prob', exact_ori_prob)
 
   #put to last since evaluate use get collection from 'scores'[-1]
-  score = predictor.init_predict()
+  score, ori_score = predictor.init_predict()
+  #by default will be averaged score per time step
   tf.add_to_collection('score', score)
+  #also record ori score not averaged per time step
+  tf.add_to_collection('ori_score', ori_score)
 
   #-----generateive
   print('beam_size', FLAGS.beam_size)
@@ -259,8 +264,8 @@ def train_process(trainer, predictor=None):
       return word_ids
 
     input_texts = [
-                   #'包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网',
-                   '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
+                   #'锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷一锟皆革拷女锟节匡拷锟斤拷锟斤拷锟秸伙拷透锟斤拷锟斤拷丝露锟轿达拷锟斤拷锟斤拷锟斤拷锟斤拷锟节匡拷女锟斤拷-锟皆憋拷锟斤拷',
+                   '锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷么锟斤拷,锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷锟轿达拷施',
                    ]
 
     for input_text in input_texts:
@@ -281,12 +286,12 @@ def train_process(trainer, predictor=None):
         print(text, text2ids.ids2text(text), score)
     
     input_texts = [
-                   '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                   #'包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网',
-                   "宝宝太胖怎么办呢",
-                   '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                   #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                   #'邹红建是阿拉斯加',
+                   '锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷么锟斤拷,锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷锟轿达拷施',
+                   #'锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷一锟皆革拷女锟节匡拷锟斤拷锟斤拷锟秸伙拷透锟斤拷锟斤拷丝露锟轿达拷锟斤拷锟斤拷锟斤拷锟斤拷锟节匡拷女锟斤拷-锟皆憋拷锟斤拷',
+                   "锟斤拷锟斤拷太锟斤拷锟斤拷么锟斤拷锟斤拷",
+                   '锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷么锟斤拷,锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷锟轿达拷施',
+                   #'锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷么锟斤拷,锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷实锟斤拷小锟斤拷锟轿达拷施',
+                   #'锟睫红建锟角帮拷锟斤拷斯锟斤拷',
                    ]
 
     word_ids_list = [_text2ids(input_text, INPUT_TEXT_MAX_WORDS) for input_text in input_texts]

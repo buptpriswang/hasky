@@ -80,7 +80,7 @@ class ShowAndTell(object):
     logging.info('add_text_start:{}'.format(FLAGS.add_text_start))
     logging.info('zero_as_text_start:{}'.format(FLAGS.zero_as_text_start))
 
-    emb = embedding.get_embedding('emb')
+    emb = self.emb = embedding.get_or_restore_embedding_cpu()
     if is_training and FLAGS.monitor_level > 0:
       melt.monitor_embedding(emb, vocabulary.vocab, vocabulary.vocab_size)
 

@@ -17,6 +17,8 @@ from __future__ import print_function
 import tensorflow as tf
 import melt
 
+import numpy as np 
+
 def get_tensor_from_key(key, index=-1):
   if isinstance(key, str):
     try:
@@ -77,3 +79,19 @@ class PredictorBase(object):
         indexes = index 
       keys = [get_tensor_from_key(key, index) for key,index in zip(keys, indexes)]
       return self.sess.run(keys, feed_dict=feed_dict)
+
+  def elementwise_predict(self, ltexts, rtexts):
+    scores = []
+    if len(rtexts) >= len(ltexts):
+      for ltext in ltexts:
+        stacked_ltexts = np.array([ltext] * len(rtexts))
+        score = self.predict(stacked_ltexts, rtexts)
+        score = np.squeeze(score) 
+        scores.append(score)
+    else:
+      for rtext in rtexts:
+        stacked_rtexts = np.array([rtext] * len(ltexts))
+        score = self.predict(ltexts, stacked_rtexts)
+        score = np.squeeze(score) 
+        scores.append(score)
+    return np.array(scores)  

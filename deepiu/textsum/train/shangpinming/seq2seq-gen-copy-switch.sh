@@ -2,11 +2,11 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.gen-copy-switch
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.gencopy.switch
 mkdir -p $model_dir
 
 #--train_input $train_output_path/'train_*' \
-python ./train.py --length_norm=1  \
+python ./train.py --length_norm=1 \
   --train_input $train_output_path/'train*' \
   --valid_input $valid_output_path/'test*' \
 	--valid_resource_dir $valid_output_path \
@@ -15,7 +15,7 @@ python ./train.py --length_norm=1  \
   --image_url_prefix '' \
   --model_dir=$model_dir \
   --algo seq2seq \
-  --num_sampled 256 \
+  --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
@@ -37,6 +37,7 @@ python ./train.py --length_norm=1  \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
+   --save_interval_epochs 1 \
   --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --num_metric_eval_examples 1000 \
@@ -48,8 +49,8 @@ python ./train.py --length_norm=1  \
   --beam_size 10 \
   --decode_max_words 10 \
   --dynamic_batch_length 1 \
-  --rnn_method 0 \
-  --emb_dim 1000 \
+  --rnn_method forward \
+  --word_embedding_file $dir/word2vec/word_embedding.npy \
   --rnn_hidden_size 1024 \
   --add_text_start 1 \
   --rnn_output_method 3 \

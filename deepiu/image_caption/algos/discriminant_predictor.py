@@ -104,39 +104,15 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     feed_dict = {
       #self.image_feature_feed: image.reshape([1, self.image_feature_len]),
       self.image_feature_feed: image,
-      self.text_feed: text.reshape([1, TEXT_MAX_WORDS])
-      }
-    score = self.sess.run(self.score, feed_dict)
-    return score[0][0]
-
-  def bulk_predict(self, images, texts):
-    """
-    input images features [m, ] , texts feature [n,] will
-    outut [m, n], for each image output n scores for each text  
-    """
-    feed_dict = {
-      self.image_feature_feed: images,
-      self.text_feed: texts
+      self.text_feed: text
       }
     score = self.sess.run(self.score, feed_dict)
     return score
 
   def predict_textsim(self, text, text2):
     feed_dict = {
-      self.text_feed: text.reshape([1, TEXT_MAX_WORDS]),
-      self.text2_feed: text.reshape([1, TEXT_MAX_WORDS])
-      }
-    score = self.sess.run(self.textsim_score, feed_dict)
-    return score[0][0]
-
-  def bulk_predict_textsim(self, texts, texts2):
-    """
-    input images features [m, ] , texts feature [n,] will
-    outut [m, n], for each image output n scores for each text  
-    """
-    feed_dict = {
-      self.text_feed: texts,
-      self.text2_feed: texts2
+      self.text_feed: text,
+      self.text2_feed: text2,
       }
     score = self.sess.run(self.textsim_score, feed_dict)
     return score
@@ -159,7 +135,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
     return self.text2_feed
 
-  def bulk_fixed_text_predict(self, images):
+  def fixed_text_predict(self, images):
     """
     not useful compare to bulk_predict since performance is similar, no gain
     """
@@ -168,7 +144,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
       self.fixed_text_score = self.build_evaluate_fixed_text_graph(self.get_image_feature_feed())
     return self.sess.run(self.fixed_text_score, feed_dict={self.image_feature_feed: images})
 
-  def bulk_fixed_text_feature_predict(self, images):
+  def fixed_text_feature_predict(self, images):
     """
     this will be fast
     """

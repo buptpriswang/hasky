@@ -34,14 +34,14 @@ from deepiu.textsim.conf import TEXT_MAX_WORDS
 from deepiu.util import vocabulary
 from deepiu.seq2seq import embedding, encoder_factory
 
-from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize
+from deepiu.util.rank_loss import dot, compute_sim, pairwise_loss, normalize, PairwiseGraph
 
 import numpy as np
 
 
 #from melt import dot
 
-class DualTextsim(object):
+class DualTextsim(PairwiseGraph):
   """
   similar to http://www.wildml.com/2016/07/deep-learning-for-chatbots-2-retrieval-based-model-tensorflow/
   """
@@ -62,26 +62,8 @@ class DualTextsim(object):
     self.vocab_size = vocab_size
 
     # cpu for adgrad optimizer
-    if (not FLAGS.word_embedding_file) or glob.glob(FLAGS.model_dir + '/model.ckpt*'):
-      logging.info('Word embedding random init or from model_dir :{} and finetune=:{}'.format(
-          FLAGS.model_dir, FLAGS.finetune_word_embedding))
-      self.emb = embedding.get_embedding_cpu(
-          name='emb', trainable=FLAGS.finetune_word_embedding)
-    else:
-      # https://github.com/tensorflow/tensorflow/issues/1570
-      # still adgrad must cpu..
-      # if not fintue emb this will be ok if fintune restart will ok ? must not use word embedding file? os.path.exists(FLAGS.model_dir) ? judge?
-      # or will still try to load from check point ? TODO for safe you could re run by setting word_embedding_file as None or ''
-      logging.info('Loading word embedding from :{} and finetune=:{}'.format(
-          FLAGS.word_embedding_file, FLAGS.finetune_word_embedding))
-      self.emb = melt.load_constant_cpu(
-          FLAGS.word_embedding_file, name='emb', trainable=FLAGS.finetune_word_embedding)
-
-    if FLAGS.position_embedding:
-      logging.info('Using position embedding')
-      self.pos_emb = embedding.get_embedding_cpu(name='pos_emb', height=TEXT_MAX_WORDS)
-    else:
-      self.pos_emb = None
+    self.emb = embedding.get_or_restore_embedding_cpu()
+    self.pos_emb = embedding.get_position_embedding_cpu()
 
     melt.visualize_embedding(self.emb, FLAGS.vocab)
     if is_training and FLAGS.monitor_level > 0:
@@ -98,8 +80,8 @@ class DualTextsim(object):
 
     self.mlp_dims = [int(x) for x in FLAGS.mlp_dims.split(',')] if FLAGS.mlp_dims is not '0' else None
     
+    #needed in build graph from PairwiseGraph
     self.scope = 'dual_textsim'
-
     self.build_train_graph = self.build_graph
 
   def mlp_layers(self, text_feature):
@@ -162,44 +144,13 @@ class DualTextsim(object):
     rtext_feature = normalize(rtext_feature)
     return ltext_feature, rtext_feature
 
-
-  def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
-    #assert (neg_ltext is not None) or (neg_rtext is not None)
-    with tf.variable_scope(self.scope) as scope:
-      with tf.variable_scope('encode') as encode_scope:
-        ltext_feature = self.lforward(ltext)
-        encode_scope.reuse_variables()
-        #scope.reuse_variables() #rfword share same rnn or cnn..
-        rtext_feature = self.rforward(rtext)
-      pos_score = compute_sim(ltext_feature, rtext_feature)
-
-      scope.reuse_variables()
-
-      neg_scores_list = []
-      if neg_rtext is not None:
-        num_negs = neg_rtext.get_shape()[1]
-        for i in xrange(num_negs):
-          with tf.variable_scope('encode') as encode_scope:
-            neg_rtext_feature_i = self.rforward(neg_rtext[:, i, :])
-          neg_scores_i = compute_sim(ltext_feature, neg_rtext_feature_i)
-          neg_scores_list.append(neg_scores_i)
-      if neg_ltext is not None:
-        num_negs = neg_ltext.get_shape()[1]
-        for i in xrange(num_negs):
-          with tf.variable_scope('encode') as encode_scope:
-            neg_ltext_feature_i = self.lforward(neg_ltext[:, i, :])
-          neg_scores_i = compute_sim(neg_ltext_feature_i, rtext_feature)
-          neg_scores_list.append(neg_scores_i)
-    
-      #[batch_size, num_negs]
-      neg_scores = tf.concat(neg_scores_list, 1)
-      #---------------rank loss
-      #[batch_size, 1 + num_negs]
-      scores = tf.concat([pos_score, neg_scores], 1)
-      tf.add_to_collection('scores', scores)
-
-      loss = pairwise_loss(pos_score, neg_scores)
-    return loss
+  def compute_sim(self, ltext, rtext):
+    with tf.variable_scope('encode') as encode_scope:
+      ltext_feature = self.lforward(ltext)
+      encode_scope.reuse_variables()
+      rtext_feature = self.rforward(rtext)
+    score = compute_sim(ltext_feature, rtext_feature)
+    return score
     
 class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def __init__(self, encoder_type='bow'):
@@ -266,32 +217,6 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
       score = score.reshape((len(rtexts),))
 
     return score
-
-  def elementwise_bulk_predict(self, ltexts, rtexts):
-    scores = []
-    if len(rtexts) >= len(ltexts):
-      for ltext in ltexts:
-        stacked_ltexts = np.array([ltext] * len(rtexts))
-        score = self.predict(stacked_ltexts, rtexts)
-        score = np.squeeze(score) 
-        scores.append(score)
-    else:
-      for rtext in rtexts:
-        stacked_rtexts = np.array([rtext] * len(ltexts))
-        score = self.predict(ltexts, stacked_rtexts)
-        score = np.squeeze(score) 
-        scores.append(score)
-    return np.array(scores)  
-
-  def bulk_predict(self, ltexts, rtexts):
-    """
-    input images features [m, ] , texts feature [n,] will
-    outut [m, n], for each image output n scores for each text  
-    """
-    if FLAGS.elementwise_predict:
-      return self.elementwise_bulk_predict(ltexts, rtexts)
-    return self.predict(ltexts, rtexts)
-    
   
   #TODO may be speedup by cocant [ltex, rtext] as one batch and co forward then split 
   def build_graph(self, ltext, rtext):

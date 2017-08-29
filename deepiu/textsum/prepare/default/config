@@ -1,5 +1,5 @@
 input_path=/home/gezi/new/data/shangpinming/
-dir=/home/gezi/new/temp/shangpinming/tfrecord/seq-basic
+dir=/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic/
 
 train_data_path=$input_path/train
 valid_data_path=$input_path/valid 

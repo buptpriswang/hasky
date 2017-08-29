@@ -122,15 +122,14 @@ flags.DEFINE_boolean('neg_right', True, 'rtext or text')
 
 
 #---------discriminant trainer
-flags.DEFINE_string('word_embedding_file', None, 'load pre trained word embedding from word2vec or glov if not None')
-flags.DEFINE_boolean('finetune_word_embedding', True, 'wether update word embedding')
-
 
 flags.DEFINE_string('activation', 'relu', 
                     """relu/tanh/sigmoid  seems sigmoid will not work here not convergent
                     and relu slightly better than tanh and convrgence speed faster""")
 flags.DEFINE_boolean('bias', False, 'wether to use bias. Not using bias can speedup a bit')
 
-flags.DEFINE_boolean('position_embedding', False, 'wether use postion embedding')
-
 flags.DEFINE_boolean('elementwise_predict', False, '')
+
+
+flags.DEFINE_float('keep_prob', 1., 'or 0.9 0.8 0.5')
+flags.DEFINE_float('dropout', 0., 'or 0.9 0.8 0.5')

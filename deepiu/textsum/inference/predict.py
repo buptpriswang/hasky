@@ -69,6 +69,10 @@ def main(_):
       #                                          beam_size=FLAGS.beam_size,
       #                                          convert_unk=False)   
       #scope.reuse_variables()
+      #score = predictor.init_predict(exact_loss=True)
+      #score = predictor.init_predict(exact_prob=True)
+      score = predictor.init_predict()
+      scope.reuse_variables()
       beam_text, beam_score = predictor.init_predict_text(decode_method=SeqDecodeMethod.beam, 
                                                           beam_size=FLAGS.beam_size,
                                                           convert_unk=False)  
@@ -84,7 +88,8 @@ def main(_):
                  #'宝宝太胖怎么办呢',
                  #'蛋龟缸，目前4虎纹1剃刀',
                  #'大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施',
-                '2015羊年中国风年会晚会签到板设计',
+                 #'2015羊年中国风年会晚会签到板设计',
+                 '完美 玛丽艳脱角质霜'
                  ]
 
   for input_text in input_texts:
@@ -107,6 +112,10 @@ def main(_):
     #print(preids)
     #print(paids)
     #print(seqlens)
+
+    score = sess.run(score, {predictor.input_text_feed: [word_ids], predictor.text_feed: [word_ids]})
+    print(score)
+
     texts, scores = sess.run([beam_text, beam_score],
                                             {predictor.input_text_feed : [word_ids]})
 

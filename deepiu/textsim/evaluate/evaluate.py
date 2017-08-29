@@ -114,6 +114,8 @@ def run():
       '【京东超市】雅诗兰黛（Estee Lauder）肌透修护眼部精华霜 15ml（眼霜 ANR 提拉紧致 淡化细纹 黑眼圈）'
       ]
 
+  ltexts = ['兰蔻(Lancome)箐纯臻颜润养眼霜3ml']
+
   rtexts = []
   for file in glob.glob(corpus_pattern):
     rtexts += [x.strip() for x in open(file).readlines()]

@@ -66,6 +66,9 @@ def train_once(sess,
 
   if is_start or eval_interval_steps and step % eval_interval_steps == 0:
     if eval_ops is not None:
+      if deal_eval_results_fn is None and eval_names is not None:
+        deal_eval_results_fn = lambda x: melt.print_results(x, eval_names)
+
       eval_feed_dict = {} if gen_eval_feed_dict_fn is None else gen_eval_feed_dict_fn()
       #eval_feed_dict.update(feed_dict)
       
@@ -76,14 +79,14 @@ def train_once(sess,
       
       timer_ = gezi.Timer('sess run eval_ops')
       eval_results = sess.run(eval_ops, feed_dict=eval_feed_dict)
+      eval_loss = gezi.get_singles(eval_results)
       timer_.print()
       if deal_eval_results_fn is not None:
         #@TODO user print should also use logging as a must ?
         #print(gezi.now_time(), epoch_str, 'eval_step: %d'%step, 'eval_metrics:', end='')
-        logging.info2('{} eval_step: {} eval_metrics:'.format(epoch_str, step))
+        logging.info2('{} eval_step: {} eval_metrics:{}'.format(epoch_str, step, eval_loss))
         eval_stop = deal_eval_results_fn(eval_results)
 
-      eval_loss = gezi.get_singles(eval_results)
       assert len(eval_loss) > 0
       if eval_stop is True: stop = True
       eval_names_ = melt.adjust_names(eval_loss, eval_names)
@@ -96,8 +99,6 @@ def train_once(sess,
   if ops is not None:
     if deal_results_fn is None and names is not None:
       deal_results_fn = lambda x: melt.print_results(x, names)
-    if deal_eval_results_fn is None and eval_names is not None:
-      deal_eval_results_fn = lambda x: melt.print_results(x, eval_names)
 
     if eval_names is None:
       eval_names = names 

@@ -62,6 +62,8 @@ logging = melt.logging
 from deepiu.util import vocabulary
 vocab = None
 vocab_size = None
+
+from deepiu.util import text2ids
 from deepiu.util.text2ids import ids2words, ids2text, texts2ids
 
 try:
@@ -112,7 +114,8 @@ def init():
   global vocab, vocab_size
   if all_distinct_texts is None:
     print('loading valid resorce from:', test_dir)
-    vocabulary.init()
+    #vocabulary.init()
+    text2ids.init()
     vocab = vocabulary.vocab
     vocab_size = vocabulary.vocab_size
     
@@ -319,7 +322,7 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
     print_generated_text_score(generated_text, generated_text_score)
   except Exception:
     for i, text in enumerate(generated_text):
-      print_generated_text_score(text, generated_text_score[i], name='gen__max', id=i)   
+      print_generated_text_score(text, generated_text_score[i], name='gen_max', id=i)   
   
   if generated_text_beam is not None:
     try:
@@ -330,8 +333,8 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
 
 score_op = None
 
-def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None):
-  timer = gezi.Timer('preidctor.bulk_predict')
+def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, exact_ratio=1.):
+  timer = gezi.Timer('preidctor.predict')
   # TODO gpu outofmem predict for showandtell#
 
   if exact_predictor is None:
@@ -364,7 +367,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None):
       end = len(texts)
     print('predicts texts start:', start, 'end:', end, end='\r', file=sys.stderr)
     try:
-      score = predictor.bulk_predict(img_features, texts[start: end])
+      score = predictor.predict(img_features, texts[start: end])
     except Exception:
       #assistant predictor use index 0, and must be inited before main graph..
       feed_dict={ FLAGS.assistant_ltext_key: img_features, 
@@ -387,8 +390,12 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None):
         print('rerank using exact_predictor')
       top_indexes = indexes[:100]
       exact_texts = texts[top_indexes]
-      exact_score = exact_predictor.elementwise_bulk_predict([img_features[i]], exact_texts)
+      exact_score = exact_predictor.elementwise_predict([img_features[i]], exact_texts)
       exact_score = exact_score[0]
+      if exact_ratio < 1.:
+        for j in range(len(top_indexes)):
+          exact_score[j] = exact_ratio * exact_score[j] + (1 - exact_ratio) * score[i][top_indexes[j]]
+
       #print(exact_score)
       exact_indexes = (-exact_score).argsort()
 
@@ -399,12 +406,16 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None):
         new_indexes[j] = indexes[exact_indexes[j]]
       indexes = new_indexes
     
-    
     hits = img2text[img]
 
+    if i % 100 == 0:
+      print(img)
+      for j in range(5):
+        print(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]])
+
     #notice only work for recall@ or precision@ not work for ndcg@, if ndcg@ must use all
-    #num_positions = min(num_texts, FLAGS.metric_topn)
-    num_positions = num_texts
+    num_positions = min(num_texts, FLAGS.metric_topn)
+    #num_positions = num_texts
 
     if not need_shuffle:
       labels = [indexes[j] in hits for j in xrange(num_positions)]
@@ -414,7 +425,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None):
     rank_metrics.add(labels)
 
 def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=None):
-  timer = gezi.Timer('preidctor.bulk_predict text2im')
+  timer = gezi.Timer('preidctor.predict text2im')
   if exact_predictor is None:
     if assistant_predictor:
       exact_predictor = predictor
@@ -436,7 +447,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
     print('predicts images start:', start, 'end:', end, file=sys.stderr, end='\r')
     
     try:
-      score = predictor.bulk_predict(img_features[start: end], texts)
+      score = predictor.predict(img_features[start: end], texts)
     except Exception:
       #assistant predictor use index 0, and must be inited before main graph..
       feed_dict={ FLAGS.assistant_ltext_key: img_features[start: end],
@@ -445,7 +456,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
    
     scores.append(score)
     start = end
-  #score = predictor.bulk_predict(img_features, texts)
+  #score = predictor.predict(img_features, texts)
   score = np.concatenate(scores, 0)
   score = score.transpose()
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape, end='\r')
@@ -461,7 +472,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
     if exact_predictor:
       top_indexes = indexes[:100]
       exact_imgs = img_features[top_indexes]
-      exact_score = exact_predictor.elementwise_bulk_predict(exact_imgs, [texts[i]])
+      exact_score = exact_predictor.elementwise_predict(exact_imgs, [texts[i]])
       exact_score = exact_score[0]
       exact_indexes = (-exact_score).argsort()
       new_indexes = [x for x in indexes]
@@ -471,13 +482,21 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
     
     hits = text2img[text_str]
 
-    #num_positions = min(num_imgs, FLAGS.metric_topn)
-    num_positions = num_imgs
+    num_positions = min(num_imgs, FLAGS.metric_topn)
+    #num_positions = num_imgs
+    
     labels = [indexes[j] in hits for j in xrange(num_positions)]
 
     rank_metrics.add(labels)
 
-def evaluate_scores(predictor, random=False, exact_predictor=None):
+def random_predict_index():
+  imgs, img_features = get_image_names_and_features()
+  num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs)) 
+  if num_metric_eval_examples <= 0:
+    num_metric_eval_examples = len(imgs)
+  return  np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
+
+def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, exact_ratio=1.):
   timer = gezi.Timer('evaluate_scores')
   init()
   if FLAGS.eval_img2text:
@@ -489,7 +508,8 @@ def evaluate_scores(predictor, random=False, exact_predictor=None):
     step = FLAGS.metric_eval_batch_size
 
     if random:
-      index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
+      if index is None:
+        index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
       imgs = imgs[index]
       img_features = img_features[index]
 
@@ -501,7 +521,8 @@ def evaluate_scores(predictor, random=False, exact_predictor=None):
       if end > num_metric_eval_examples:
         end = num_metric_eval_examples
       print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
-      predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics, exact_predictor=exact_predictor)
+      predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics, 
+               exact_predictor=exact_predictor, exact_ratio=exact_ratio)
       start = end
       
     melt.logging_results(

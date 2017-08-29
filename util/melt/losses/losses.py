@@ -57,7 +57,10 @@ def cross_entropy(scores, combiner='mean', name=None):
     #I think for binary is same for sigmoid or softmax
     
     #logits = tf.sigmoid(scores)
-    logits = (1. + scores) / 2.
+    
+    #logits = (1. + scores) / 2.
+
+    logits = scores
 
     loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=targets)
     #loss_matrix = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=targets)
@@ -76,7 +79,8 @@ def hinge(pos_score, neg_score, margin=0.1, combiner='mean', name=None):
 def pairwise_cross(pos_score, neg_score, combiner='mean', name=None):
   with tf.name_scope(name, 'hinge_cross_loss', [pos_score, neg_score]):
     score = pos_score - neg_score
-    logits = tf.sigmoid(score)
+    #logits = tf.sigmoid(score)
+    logits = score
     targets = tf.ones_like(neg_score, tf.float32)
     loss_matrix = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=targets)
     loss = reduce_loss(loss_matrix, combiner)

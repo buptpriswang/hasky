@@ -52,20 +52,7 @@ class DiscriminantTrainer(object):
     vocabulary.init()
     vocab_size = vocabulary.get_vocab_size() 
     self.vocab_size = vocab_size
-    #if not cpu and on gpu run and using adagrad, will fail  TODO check why
-    #also this will be more safer, since emb is large might exceed gpu mem   
-    #with tf.device('/cpu:0'):
-    #  self.emb = melt.variable.get_weights_uniform('emb', [vocab_size, emb_dim], -init_width, init_width)
-    if (not FLAGS.word_embedding_file) or glob.glob(FLAGS.model_dir + '/model.ckpt*'):
-      logging.info('Word embedding random init or from model_dir :{} and finetune=:{}'.format(FLAGS.model_dir, FLAGS.finetune_word_embedding))
-      self.emb = embedding.get_embedding_cpu(name='emb', trainable=FLAGS.finetune_word_embedding)
-    else:
-      #https://github.com/tensorflow/tensorflow/issues/1570  
-      #still adgrad must cpu..
-      #if not fintue emb this will be ok if fintune restart will ok ? must not use word embedding file? os.path.exists(FLAGS.model_dir) ? judge?
-      #or will still try to load from check point ? TODO for safe you could re run by setting word_embedding_file as None or ''
-      logging.info('Loading word embedding from :{} and finetune=:{}'.format(FLAGS.word_embedding_file, FLAGS.finetune_word_embedding))
-      self.emb = melt.load_constant_cpu(FLAGS.word_embedding_file, name='emb', trainable=FLAGS.finetune_word_embedding)
+    self.emb = embedding.get_or_restore_embedding_cpu()
 
     melt.visualize_embedding(self.emb, FLAGS.vocab)
     if is_training and FLAGS.monitor_level > 0:

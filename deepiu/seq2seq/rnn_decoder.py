@@ -52,11 +52,16 @@ flags.DEFINE_boolean('input_with_end_mark', False, """if input has already with 
 
 flags.DEFINE_boolean('predict_with_end_mark', True, """if predict with </S> end mark""")
 
-flags.DEFINE_float('length_normalization_factor', 0., """If != 0, a number x such that captions are
+flags.DEFINE_float('length_normalization_factor', 1., """If != 0, a number x such that captions are
         scored by logprob/length^x, rather than logprob. This changes the
         relative scores of captions depending on their lengths. For example, if
         x > 0 then longer captions will be favored.  see tensorflow/models/im2text
-        by default wil follow im2text set to 0""")
+        by default wil follow im2text set to 0
+        Notice for train loss is same as set to 1, which is average loss per step
+        2017-08-29 02:34:33 1:13:29 <p> pos [ moonshot  ] 0.208372 moon/shot/ /gd/</p>   #here is prob average per step
+        2017-08-29 02:34:33 1:13:29 <p> gen:[ moon/ /shot/ /shot/ /<UNK>/</S> ] 0.000000 </p>
+        2017-08-29 02:34:33 1:13:29 <p> gen_beam_0:[ moon/ /shot/ /shot/ </S> ] 0.000064 </p> #here is total prob so smaller as * * * the long the smaller
+        """)
 
 flags.DEFINE_boolean('predict_use_prob', True, 'if True then use exp(logprob) and False will direclty output logprob')
 flags.DEFINE_boolean('predict_no_sample', False, 'if True will use exact loss')
@@ -302,6 +307,11 @@ class RnnDecoder(Decoder):
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
+    #TODO: hack here add FLAGS.predict_no_sample just for Seq2seqPredictor exact_predict
+    softmax_loss_function = self.softmax_loss_function
+    if self.is_predict and (exact_prob or exact_loss):
+      softmax_loss_function = None
+
     if FLAGS.gen_only:
       #gen only mode
       #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO see pointer_network in application seems ok.. why
@@ -332,9 +342,13 @@ class RnnDecoder(Decoder):
       if FLAGS.copy_only:
         output_fn = lambda cell_output, cell_state: self.copy_output_fn(indices, batch_size, cell_output, cell_state)
       else:
-        #gen_copy right now, not use switch
+        #gen_copy right now, not use switch ? gen_copy and switch?
         sampled_values = None 
-        if self.softmax_loss_function is not None:
+        #TODO CHECK this is it ok? why train and predict not equal and score/exact score same? FIXME 
+        #need first debug why score and exact score is same ? score should be the same as train! TODO 
+        #sh ./inference/infrence-score.sh to reproduce
+        #now just set num_sampled = 0 for safe, may be here train also not correct FIXME 
+        if softmax_loss_function is not None:
           sampled_values = tf.nn.log_uniform_candidate_sampler(true_classes=tf.reshape(targets, [-1, 1]),
                                                     num_true=1,
                                                     num_sampled=self.num_sampled,
@@ -356,11 +370,6 @@ class RnnDecoder(Decoder):
       #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
 
     tf.add_to_collection('outputs', outputs)
-
-    #TODO: hack here add FLAGS.predict_no_sample just for Seq2seqPredictor exact_predict
-    softmax_loss_function = self.softmax_loss_function
-    if self.is_predict and (exact_prob or exact_loss):
-      softmax_loss_function = None
     
     if not FLAGS.gen_only:
       logits = outputs
@@ -368,10 +377,13 @@ class RnnDecoder(Decoder):
     elif softmax_loss_function is not None:
       logits = outputs
     else:
+      #--softmax_loss_function is None means num_sample = 0 or exact_loss or exact_prob
       #[batch_size, num_steps, num_units] * [num_units, vocab_size]
       # -> logits [batch_size, num_steps, vocab_size] (if use exact_predict_loss)
       #or [batch_size * num_steps, vocab_size] by default flatten=True
-      keep_dims = exact_prob or exact_loss
+      #this will be fine for train [batch_size * num_steps] but not good for eval since we want 
+      #get score of each instance also not good for predict
+      keep_dims = exact_prob or exact_loss or (not self.is_training)
       logits = melt.batch_matmul_embedding(outputs, self.w, keep_dims=keep_dims) + self.v
       if not keep_dims:
         targets = tf.reshape(targets, [-1])
@@ -392,36 +404,40 @@ class RnnDecoder(Decoder):
       num_steps = tf.shape(targets)[1]
 
       loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, 
-                                             need_softmax=False, need_average=True, 
+                                             need_softmax=False, 
+                                             average_across_timesteps=not self.is_predict,
                                              batch_size=batch_size)
-
-      # loss = melt.seq2seq.sequence_loss_by_example(
-      #     logits,
-      #     targets,
-      #     weights=mask)
     elif self.is_predict and exact_prob:
       #generate real prob for sequence
       #for 10w vocab textsum seq2seq 20 -> 4 about 
-      loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, num_steps, batch_size=batch_size)
+      loss = melt.seq2seq.exact_predict_loss(logits, targets, mask, 
+                                             num_steps, batch_size=batch_size,
+                                             average_across_timesteps=False)
     elif self.is_predict and exact_loss: 
       #force no sample softmax loss, the diff with exact_prob is here we just use cross entropy error as result not real prob of seq
       #NOTICE using time a bit less  55 to 57(prob), same result with exact prob and exact score
       #but 256 vocab sample will use only about 10ms    
-      loss = melt.seq2seq.sequence_loss_by_example(logits, targets, weights=mask)
+      loss = melt.seq2seq.sequence_loss_by_example(logits, targets, weights=mask, 
+                                                   average_across_timesteps=False)
     else:
       #loss [batch_size,] 
       loss = melt.seq2seq.sequence_loss_by_example(
           logits,
           targets,
           weights=mask,
+          average_across_timesteps=not self.is_predict, #train must average, other wise long sentence big loss..
           softmax_loss_function=softmax_loss_function)
     
-    #mainly for compat with [bach_size, num_losses]
+    #mainly for compat with [bach_size, num_losses] here may be [batch_size * num_steps,] if is_training and not exact loss/prob
     loss = tf.reshape(loss, [-1, 1])
 
+    self.ori_loss = loss
     if self.is_predict:
-      loss = self.normalize_length(loss, sequence_length, exact_prob)
-      #loss = tf.squeeze(loss)  TODO: later will uncomment this with all models rerun 
+      #note use avg_loss not to change loss pointer
+      avg_loss = self.normalize_length(loss, sequence_length)
+      return avg_loss
+    
+    #if not is_predict loss is averaged per time step else not but avg loss will average it 
     return loss
 
   def generate_sequence_greedy(self, input, max_words, 
@@ -802,15 +818,14 @@ class RnnDecoder(Decoder):
     start_input = self.get_start_input(batch_size)
     start_embedding_input = tf.nn.embedding_lookup(emb, start_input) 
     return start_embedding_input
-
-  def normalize_length(self, loss, sequence_length, exact_prob=False):
+ 
+  #always use this in predict mode
+  def normalize_length(self, loss, sequence_length):
     sequence_length = tf.cast(sequence_length, tf.float32)
     #NOTICE must check if shape ok, [?,1] / [?,] will get [?,?]
     sequence_length = tf.reshape(sequence_length, [-1, 1])
-    #-- below is used only when using melt.seq2seq.loss.exact_predict_loss
-    if not exact_prob:
-      #use sequence_loss_by_example with default average_across_timesteps=True, so we just turn it back
-      loss = loss * sequence_length 
+    #notice for predict we always not average per step! so not need to turn it back
+    #loss = loss * sequence_length 
     normalize_factor = tf.pow(sequence_length, FLAGS.length_normalization_factor)
     loss /= normalize_factor  
     return loss

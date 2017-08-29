@@ -59,9 +59,10 @@ def concat_sim_score(u, v):
   #return melt.element_wise_dot(u, v)
   feature = tf.concat((u, v, tf.abs(u-v), u*v), 1)
   score = melt.slim.mlp(feature,
-                 [512, 512, 1],
-                 activation_fn=tf.nn.tanh,
+                 [512, 1],
+                 #activation_fn=tf.nn.tanh,
                  #activation_fn=None,
+                 activation_fn=tf.nn.relu,
                  scope='concat_same_mlp')
   #return tf.sigmoid(score)
   return score
@@ -168,6 +169,8 @@ def pairwise_loss(pos_score, neg_scores):
     loss = melt.losses.pairwise_cross(pos_score, neg_scores)
   elif FLAGS.loss == LossType.pairwise_exp:
     loss = melt.losses.pairwise_exp(pos_score, neg_scores)
+  elif FLAGS.loss == LossType.pairwise_cross:
+    loss = melt.losses.pairwise_cross(pos_score, neg_scores)
   elif FLAGS.loss == LossType.contrastive:
     loss = melt.losses.contrastive(pos_score, neg_scores, margin=FLAGS.margin)
   elif FLAGS.loss == LossType.contrastive_sqrt:
@@ -178,3 +181,39 @@ def pairwise_loss(pos_score, neg_scores):
     raise ValueError('Not supported loss: ', FLAGS.loss)
 
   return loss
+
+def build_graph(compute_sim_func, ltext, rtext, neg_ltext, neg_rtext, name=None):
+  with tf.variable_scope(name) as scope:
+    pos_score = compute_sim_func(ltext, rtext)
+
+    scope.reuse_variables()
+
+    neg_scores_list = []
+    if neg_rtext is not None:
+      num_negs = neg_rtext.get_shape()[1]
+      for i in xrange(num_negs):
+        neg_scores_i = compute_sim_func(ltext, neg_rtext[:, i, :])
+        neg_scores_list.append(neg_scores_i)
+    if neg_ltext is not None:
+      num_negs = neg_ltext.get_shape()[1]
+      for i in xrange(num_negs):
+        neg_scores_i = compute_sim_func(neg_ltext[:, i, :], rtext)
+        neg_scores_list.append(neg_scores_i)
+  
+    #[batch_size, num_negs]
+    neg_scores = tf.concat(neg_scores_list, 1)
+    #---------------rank loss
+    #[batch_size, 1 + num_negs]
+    scores = tf.concat([pos_score, neg_scores], 1)
+    tf.add_to_collection('scores', scores)
+
+    loss = pairwise_loss(pos_score, neg_scores)
+    return loss
+
+class PairwiseGraph(object):
+  def __init__(self):
+    self.scope = None
+
+  def build_graph(self, ltext, rtext, neg_ltext, neg_rtext):
+    assert self.scope is not None
+    return build_graph(self.compute_sim, ltext, rtext, neg_ltext, neg_rtext, name=self.scope)

@@ -928,6 +928,8 @@ class PointerAttentionWrapper(rnn_cell_impl.RNNCell):
     self._alignment_history = alignment_history
     self._no_context = no_context
     self._output_alignment = output_alignment
+    #chg TODO masked softmax support to make inference result stable with different padding length
+    #right now use attention will make inference result unstable, but may not hurt inference performance much
     self._probability_fn = nn_ops.softmax if probability_fn is None else probability_fn
     self._score_as_alignment = score_as_alignment
     with ops.name_scope(name, "AttentionWrapperInit"):

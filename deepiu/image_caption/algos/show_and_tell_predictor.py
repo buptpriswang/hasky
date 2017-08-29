@@ -108,28 +108,10 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     feed_dict = {
       #self.image_feature_feed: image.reshape([-1, self.image_feature_len]),
       self.image_feature_feed: image,
-      self.text_feed: text.reshape([-1, TEXT_MAX_WORDS]),
+      self.text_feed: text,
     }
     score = self.sess.run(self.score, feed_dict)
-    score = score.reshape((len(text),))
     return score
-
-  def bulk_predict(self, images, texts):
-    """
-    input multiple images, multiple texts
-    outupt: 
-    
-    image0, text0_score, text1_score ...
-    image1, text0_score, text1_score ...
-    ...
-
-    """
-    scores = []
-    for image in images:
-      stacked_images = np.array([image] * len(texts))
-      score = self.predict(stacked_images, texts)
-      scores.append(score)
-    return np.array(scores)
 
   def predict_text(self, images, index=0):
     """

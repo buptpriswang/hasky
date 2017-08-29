@@ -34,7 +34,7 @@ class Seq2seq(object):
     self.is_training = is_training 
     self.is_predict = is_predict
 
-    emb = embedding.get_embedding('emb')
+    emb = embedding.get_or_restore_embedding_cpu()
     if is_training and FLAGS.monitor_level > 0:
       melt.monitor_embedding(emb, vocabulary.vocab, vocabulary.vocab_size)
 
@@ -75,7 +75,7 @@ class Seq2seq(object):
                                         attention_states=encoder_output,
                                         exact_prob=exact_prob, 
                                         exact_loss=exact_loss)
-
+      self.ori_loss = self.decoder.ori_loss #without average step for prediction
       #this is used in train.py for evaluate eval_scores = tf.get_collection('scores')[-1]
       #because we want to show loss for each instance
       if not self.is_training and not self.is_predict:
@@ -110,13 +110,25 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
     return text, score
 
   def init_predict(self, exact_prob=False, exact_loss=False):
-    score = self.build_predict_graph(self.input_text_feed, 
+    score, ori_score = self.build_predict_graph(self.input_text_feed, 
                                      self.text_feed, 
                                      exact_prob=exact_prob, 
                                      exact_loss=exact_loss)
+    #tf.add_to_collection('score', score)
+    self.score = score
+    return score, ori_score
+
+  def predict(self, input_text, text):
+    """
+    default usage is one single image , single text predict one sim score
+    """
+    feed_dict = {
+      self.input_text_feed: input_text,
+      self.text_feed: text,
+    }
+    score = self.sess.run(self.score, feed_dict)
     return score
 
- 
   def build_predict_text_graph(self, input_text, decode_method=0, beam_size=5, convert_unk=True):
     with tf.variable_scope("encode"):
       encoder_output, state = self.encoder.encode(input_text)
@@ -164,8 +176,12 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
     loss = self.build_graph(input_text, text, 
                             exact_prob=exact_prob, 
                             exact_loss=exact_loss)
+
  
     score = -loss 
+    ori_score = -self.ori_loss
     if FLAGS.predict_use_prob:
       score = tf.exp(score)
-    return score
+      ori_score = tf.exp(ori_score)
+
+    return score, ori_score

@@ -125,7 +125,7 @@ import tensorflow as tf
 import melt
 
 def exact_predict_loss(logits, targets, mask, num_steps, 
-                        need_softmax=True, need_average=False,
+                        need_softmax=True, average_across_timesteps=False,
                         trace_probs=True,  batch_size=None):
   """
   the same as using sparse_softmax_cross_entropy_with_logits 
@@ -190,7 +190,7 @@ def exact_predict_loss(logits, targets, mask, num_steps,
   tf.add_to_collection('seq2seq_logprobs', log_probs_list)
 
   loss = -log_probs
-  if need_average:
+  if average_across_timesteps:
     loss /= tf.to_float(lengths)
   return loss
 

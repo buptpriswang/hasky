@@ -86,11 +86,23 @@ class Predictor(object):
     self.model_path = model_path
     if meta_graph is None:
       meta_graph = '%s.meta'%model_path
-    print('restore from %s'%model_path, file=sys.stderr)
+    #print('restore from %s'%model_path, file=sys.stderr)
     saver = tf.train.import_meta_graph(meta_graph)
-    print('import graph ok %s'%meta_graph, file=sys.stderr)
+    #print('import graph ok %s'%meta_graph, file=sys.stderr)
     saver.restore(self.sess, model_path)
-    print('restore ok %s'%model_path, file=sys.stderr)
+    print('restore meta grpah and model ok %s'%model_path, file=sys.stderr)
     if random_seed is not None:
       tf.set_random_seed(random_seed)
     return self.sess
+
+
+class RerankPredictor(object):
+  def __init__(self, model_dir, exact_model_dir):
+    self._predictor = Predictor(model_dir)
+    self._exact_predictor = Predictor(exact_model_dir)
+
+  def inference(self, key):
+    pass
+
+  def top_k(input, k=1, sorted=True):
+    pass

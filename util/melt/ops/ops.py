@@ -788,7 +788,6 @@ def max_pooling(outputs, sequence_length, axis=1, reduce_func=tf.reduce_max):
 def argmax_pooling(outputs, sequence_length, axis=1):
   return max_pooling(outputs, sequence_length, axis, reduce_func=tf.argmax)
 
-
 def slim_batch(sequence, sequence_length=None):
   if sequence_length is None:
     sequence_length = length(sequence)

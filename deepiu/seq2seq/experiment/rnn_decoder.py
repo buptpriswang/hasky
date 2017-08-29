@@ -54,7 +54,8 @@ FLAGS = flags.FLAGS
 #        scored by logprob/length^x, rather than logprob. This changes the
 #        relative scores of captions depending on their lengths. For example, if
 #        x > 0 then longer captions will be favored.  see tensorflow/models/im2text
-#        by default wil follow im2text set to 0""")
+#        by default wil follow im2text set to 0, 
+#        notice train loss is same as set to 1, average per step""")
 
 #flags.DEFINE_boolean('predict_use_prob', True, 'if True then use exp(logprob) and False will direclty output logprob')
 #flags.DEFINE_boolean('predict_no_sample', False, 'if True will use exact loss')

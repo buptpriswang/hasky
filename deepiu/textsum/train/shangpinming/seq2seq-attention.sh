@@ -2,7 +2,7 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.attention
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention
 mkdir -p $model_dir
 
 #--fixed_valid_input $fixed_valid_output_path/'test' \
@@ -16,7 +16,7 @@ python ./train.py \
   --image_url_prefix '' \
   --model_dir=$model_dir \
   --algo seq2seq \
-  --num_sampled 256 \
+  --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
@@ -37,17 +37,19 @@ python ./train.py \
   --eval_interval_steps 500 \
   --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
+  --save_interval_epochs 1 \
   --num_metric_eval_examples 1000 \
   --metric_eval_batch_size 500 \
   --feed_dict 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method 0 \
+  --word_embedding_file $dir/word2vec/word_embedding.npy \
   --beam_size 10 \
   --decode_max_words 20 \
   --dynamic_batch_length 1 \
-  --rnn_method 0 \
-  --emb_dim 1000 \
+  --rnn_method forward \
+  --emb_dim 256 \
   --rnn_hidden_size 1024 \
   --experiment_rnn_decoder 0 \
   --show_beam_search 1 \
@@ -55,6 +57,7 @@ python ./train.py \
   --add_text_start 1 \
   --rnn_output_method 3 \
   --use_attention 1 \
+  --attention_option luong \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \

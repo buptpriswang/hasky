@@ -22,6 +22,8 @@ import tensorflow.contrib.slim as slim
 def mlp(inputs, 
         dims, 
         activation_fn=tf.nn.relu,
+        dropout=None,
+        training=False,
         normalizer_fn=None,
         normalizer_params=None,
         weights_initializer=initializers.xavier_initializer(),
@@ -39,9 +41,14 @@ def mlp(inputs,
                                activation_fn=activation_fn, 
                                weights_initializer=weights_initializer,
                                biases_initializer=biases_initializer, 
+                               reuse=reuse,
                                scope='fc_%d'%i)
+      if dropout and dropout > 0.:
+        inputs = tf.layers.dropout(inputs, dropout, training=training)
+
     return slim.linear(inputs, 
                        dims[-1], 
                        weights_initializer=weights_initializer,
                        biases_initializer=biases_initializer,
+                       reuse=reuse,
                        scope='linear')
