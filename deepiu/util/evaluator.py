@@ -27,6 +27,7 @@ flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/
 flags.DEFINE_string('assistant_model_dir', None, '')
 flags.DEFINE_string('assistant_algo', None, '')
 flags.DEFINE_string('assistant_key', 'score', '')
+#------depreciated
 flags.DEFINE_string('assistant_ltext_key', 'dual_bow/main/ltext:0', '')
 flags.DEFINE_string('assistant_rtext_key', 'dual_bow/main/rtext:0', '')
 
@@ -102,7 +103,7 @@ def init():
     global assistant_predictor
     #assistant_predictor = algos_factory.gen_predictor(FLAGS.assistant_algo)
     #melt.restore_scope_from_path(melt.get_session(), FLAGS.assistant_model_dir, FLAGS.assistant_algo)
-    assistant_predictor = melt.Predictor(FLAGS.assistant_model_dir)
+    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir)
     print('assistant_predictor', assistant_predictor)
 
   test_dir = FLAGS.valid_resource_dir
@@ -362,13 +363,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     if end > len(texts):
       end = len(texts)
     print('predicts texts start:', start, 'end:', end, end='\r', file=sys.stderr)
-    try:
-      score = predictor.predict(img_features, texts[start: end])
-    except Exception:
-      #assistant predictor use index 0, and must be inited before main graph..
-      feed_dict={ FLAGS.assistant_ltext_key: img_features, 
-                  FLAGS.assistant_rtext_key: texts[start: end] }
-      score = predictor.inference(FLAGS.assistant_key, index=0, feed_dict=feed_dict)
+    score = predictor.predict(img_features, texts[start: end])
     scores.append(score)
     start = end
   score = np.concatenate(scores, 1)
@@ -442,13 +437,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
       end = len(img_features)
     print('predicts images start:', start, 'end:', end, file=sys.stderr, end='\r')
     
-    try:
-      score = predictor.predict(img_features[start: end], texts)
-    except Exception:
-      #assistant predictor use index 0, and must be inited before main graph..
-      feed_dict={ FLAGS.assistant_ltext_key: img_features[start: end],
-                  FLAGS.assistant_rtext_key: texts}
-      score = predictor.inference(FLAGS.assistant_key, index=0, feed_dict=feed_dict)
+    score = predictor.predict(img_features[start: end], texts)
    
     scores.append(score)
     start = end

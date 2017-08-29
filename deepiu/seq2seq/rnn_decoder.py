@@ -60,7 +60,7 @@ flags.DEFINE_float('length_normalization_factor', 1., """If != 0, a number x suc
         Notice for train loss is same as set to 1, which is average loss per step
         2017-08-29 02:34:33 1:13:29 <p> pos [ moonshot  ] 0.208372 moon/shot/ /gd/</p>   #here is prob average per step
         2017-08-29 02:34:33 1:13:29 <p> gen:[ moon/ /shot/ /shot/ /<UNK>/</S> ] 0.000000 </p>
-        2017-08-29 02:34:33 1:13:29 <p> gen_beam_0:[ moon/ /shot/ /shot/ </S> ] 0.000064 </p> #here is total prob so smaller as * * * the long the smaller
+        2017-08-29 02:34:33 1:13:29 <p> gen_beam_0:[ moon/ /shot/ /shot/ </S> ] 0.64 </p> #here is also average per step 
         """)
 
 flags.DEFINE_boolean('predict_use_prob', True, 'if True then use exp(logprob) and False will direclty output logprob')

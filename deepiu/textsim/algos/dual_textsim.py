@@ -166,11 +166,13 @@ class DualTextsimPredictor(DualTextsim, melt.PredictorBase):
   def get_ltext_feed(self, text_max_words=TEXT_MAX_WORDS):
     if self.ltext_feed is None:
       self.ltext_feed = tf.placeholder(tf.int32, [None, text_max_words], name='ltext')
+      tf.add_to_collection('lfeed', self.ltext_feed)
     return self.ltext_feed
 
   def get_rtext_feed(self, text_max_words=TEXT_MAX_WORDS):
     if self.rtext_feed is None:
       self.rtext_feed = tf.placeholder(tf.int32, [None, text_max_words], name='rtext')
+      tf.add_to_collection('rfeed', self.rtext_feed)
     return self.rtext_feed
 
   def init_predict(self, text_max_words=TEXT_MAX_WORDS):

@@ -59,10 +59,7 @@ class Predictor(object):
     if model_dir is not None:
       self.restore(model_dir, meta_graph, model_name)
 
-  def inference(self, key, feed_dict=None, index=-1):
-    """
-    use -1 not 0!
-    """
+  def inference(self, key, feed_dict=None, index=0):
     if not isinstance(key, (list, tuple)):
       return self.sess.run(get_tensor_from_key(key, index), feed_dict=feed_dict)
     else:
@@ -114,8 +111,40 @@ class Predictor(object):
     return self.sess
 
 
-class RerankPredictor(object):
-  def __init__(self, model_dir, exact_model_dir):
+class SimPredictor(object):
+  def __init__(self, 
+              model_dir=None, 
+              lkey=None,
+              rkey=None,
+              key='score',
+              index=0,
+              meta_graph=None, 
+              model_name=None, 
+              debug=False, 
+              sess=None):
+    self._predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
+    self._key = key 
+    self._index = index
+
+    if lkey is None:
+      self._lkey = tf.get_collection('lfeed')[index]
+    if rkey is None:
+      self._rkey = tf.get_collection('rfeed')[index]
+
+    print('------------------------', tf.get_collection('lfeed'), tf.get_collection('rfeed'))
+
+  def inference(self, ltext, rtext):
+    feed_dict = {
+      self._lkey: ltext,
+      self._rkey: rtext
+    }
+    return self._predictor.inference(self._key, feed_dict=feed_dict, index=self._index)
+
+  def predict(self, ltext, rtext):
+    return self.inference(ltext, rtext)
+
+class RerankSimPredictor(object):
+  def __init__(self, model_dir, exact_model_dir, lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, ):
     self._predictor = Predictor(model_dir)
     self._exact_predictor = Predictor(exact_model_dir)
 

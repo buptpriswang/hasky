@@ -96,8 +96,10 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
 
     self.input_text_feed = tf.placeholder(tf.int64, [None, INPUT_TEXT_MAX_WORDS], name='input_text')
     tf.add_to_collection('input_text_feed', self.input_text_feed)
+    tf.add_to_collection('lfeed', self.input_text_feed)
     self.text_feed = tf.placeholder(tf.int64, [None, TEXT_MAX_WORDS], name='text')
     tf.add_to_collection('text_feed', self.text_feed)
+    tf.add_to_collection('rfeed', self.text_feed)
 
   def init_predict_text(self, decode_method=0, beam_size=5, convert_unk=True):
     """
