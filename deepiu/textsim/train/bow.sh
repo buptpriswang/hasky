@@ -32,7 +32,7 @@ python ./train.py \
   --train_only 0 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 128 \
   --eval_batch_size 1000 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
@@ -43,7 +43,6 @@ python ./train.py \
   --save_interval_epochs 10 \
   --num_epochs 0 \
   --debug 0 \
-  --elementwise_predict 0 \
   --num_negs 1 \
   --neg_left 0 \
   --neg_right 1 \

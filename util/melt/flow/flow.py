@@ -98,14 +98,15 @@ def tf_train_flow(train_once_fn,
   print('max_models_keep:', max_models_keep)
   print('save_interval_seconds:', save_interval_seconds)
   
+  #this is usefull for you use another model with another scope, and just load and restore/save initalize your scope vars!
   var_list = None if not restore_scope else tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=restore_scope)
   saver = tf.train.Saver(
     max_to_keep=max_models_keep, 
     keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0,
     var_list=var_list)
   
-  epoch_saver = tf.train.Saver()
-  best_epoch_saver = tf.train.Saver(max_to_keep=1000) 
+  epoch_saver = tf.train.Saver(var_list=var_list)
+  best_epoch_saver = tf.train.Saver(max_to_keep=1000, var_list=var_list) 
   
   #pre_step means the step last saved, train without pretrained,then -1
   pre_step = -1;
@@ -130,8 +131,19 @@ def tf_train_flow(train_once_fn,
     #melt.initialize_uninitialized_vars(sess)
   else:
     print('Train all start step 0', file=sys.stderr)
-    init_op = tf.group(tf.global_variables_initializer(),
-                       tf.local_variables_initializer())
+    #https://stackoverflow.com/questions/40220201/tensorflow-tf-initialize-all-variables-vs-tf-initialize-local-variables
+    #tf.initialize_all_variables() is a shortcut to tf.initialize_variables(tf.all_variables()), 
+    #tf.initialize_local_variables() is a shortcut to tf.initialize_variables(tf.local_variables()), 
+    #which initializes variables in GraphKeys.VARIABLES and GraphKeys.LOCAL_VARIABLE collections, respectively.
+    #init_op = tf.group(tf.global_variables_initializer(),
+    #                   tf.local_variables_initializer())   
+    #[var for var in tf.all_variables() if var.op.name.startswith(restore_scope)] will be the same as tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=restore_scope)
+    if var_list is None:
+      init_op = tf.group(tf.global_variables_initializer(),
+                         tf.local_variables_initializer())
+    else:
+      init_op = tf.group(tf.initialize_variables(var_list),
+                         tf.local_variables_initializer())
     sess.run(init_op)
 
     #like use image model, build image graph, reload first train, and then will go to same checkpoint all varaible just restore will ok

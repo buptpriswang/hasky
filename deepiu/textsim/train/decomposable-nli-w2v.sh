@@ -3,7 +3,7 @@ cp $conf_path/conf.py .
 source $conf_path/config 
 
 model_dir=/home/gezi/new/temp/makeup/title2name/model/decomposable-nli.w2v
-#--assistant_model_dir $assistant_model_dir \
+assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -28,10 +28,10 @@ python ./train.py \
   --num_evaluate_examples 10 \
   --show_eval 0 \
   --train_only 0 \
-  --metric_eval 0 \
+  --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 128 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
@@ -40,8 +40,8 @@ python ./train.py \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
-  --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 1000 \
+  --num_metric_eval_examples 100 \
+  --metric_eval_batch_size 100 \
   --debug 0 \
   --num_negs 1 \
   --neg_left 0 \
@@ -61,5 +61,7 @@ python ./train.py \
   --no_dist_norm 0 \
   --num_records 0 \
   --min_records 12 \
-  --log_device 0 
+  --log_device 0 \
+  --assistant_algo dual_bow \
+  --assistant_model_dir $assistant_model_dir \
 

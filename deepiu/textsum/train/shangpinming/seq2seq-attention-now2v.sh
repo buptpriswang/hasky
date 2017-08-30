@@ -2,7 +2,7 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention.now2v
 assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
@@ -45,7 +45,6 @@ python ./train.py \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method 0 \
-  --word_embedding_file $dir/word2vec/word_embedding.npy \
   --beam_size 10 \
   --decode_max_words 20 \
   --dynamic_batch_length 1 \

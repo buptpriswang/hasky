@@ -24,9 +24,10 @@ flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images/', 'in
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
 
-flags.DEFINE_string('assistant_model_dir', None, '')
+flags.DEFINE_string('assistant_model_dir', None, 'only this is used for assistant model')
 flags.DEFINE_string('assistant_algo', None, '')
 flags.DEFINE_string('assistant_key', 'score', '')
+flags.DEFINE_integer('assistant_rerank_num', 100, '')
 #------depreciated
 flags.DEFINE_string('assistant_ltext_key', 'dual_bow/main/ltext:0', '')
 flags.DEFINE_string('assistant_rtext_key', 'dual_bow/main/rtext:0', '')
@@ -104,10 +105,9 @@ def init():
     #assistant_predictor = algos_factory.gen_predictor(FLAGS.assistant_algo)
     #melt.restore_scope_from_path(melt.get_session(), FLAGS.assistant_model_dir, FLAGS.assistant_algo)
     ##try another session no work... so same session graph
-    # [[Node: dual_bow/model_init/emb/read = Identity[T=DT_FLOAT, _class=["loc:@dual_bow/model_init/emb"], _device="/job:localhost/replica:0/task:0/cpu:0"](dual_bow/model_init/emb)]]
     #assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, sess=tf.Session())
     #--since add 'score'... will confuse, just remove it.. hack!
-    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score')
+    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
     melt.rename_from_collection('score', 'assistant_score')
     melt.rename_from_collection('scores', 'assistant_scores')
     print('assistant_predictor', assistant_predictor)
@@ -386,7 +386,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     if exact_predictor:
       if i == 0:
         print('rerank using exact_predictor')
-      top_indexes = indexes[:100]
+      top_indexes = indexes[:FLAGS.assistant_rerank_num]
       exact_texts = texts[top_indexes]
       exact_score = exact_predictor.elementwise_predict([img_features[i]], exact_texts)
       exact_score = np.squeeze(exact_score)
@@ -462,7 +462,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
 
     #rerank
     if exact_predictor:
-      top_indexes = indexes[:100]
+      top_indexes = indexes[:FLAGS.assistant_rerank_num]
       exact_imgs = img_features[top_indexes]
       exact_score = exact_predictor.elementwise_predict(exact_imgs, [texts[i]])
       exact_score = exact_score[0]
