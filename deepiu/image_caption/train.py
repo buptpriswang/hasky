@@ -113,7 +113,10 @@ def gen_train_graph(input_app, input_results, trainer):
   ops = [loss]
   #--------mark train graph finished, all graph after must share variable from train graph
   #melt.reuse_variables()
-  trainer.is_training = False
+  try:
+    trainer.finish_train()
+  except Exception:
+    trainer.is_training = False
     
   deal_debug_results = None
   if FLAGS.debug == True:

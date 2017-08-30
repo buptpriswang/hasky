@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/cnn
+model_dir=/home/gezi/new/temp/makeup/title2name/model/cnn.w2v
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -43,6 +43,7 @@ python ./train.py \
   --num_epochs 1000 \
   --metric_eval_batch_size 100 \
   --num_metric_eval_examples 100 \
+  --word_embedding_file $dir/word2vec/word_embedding.npy \
   --debug 0 \
   --num_negs 1 \
   --neg_left 0 \

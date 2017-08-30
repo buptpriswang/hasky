@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn
+model_dir=/home/gezi/new/temp/makeup/title2name/model/rnn.w2v
 mkdir -p $model_dir
 
 python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
@@ -42,6 +42,7 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --neg_left 0 \
   --neg_right 1 \
   --mlp_dims 512 \
+  --word_embedding_file $dir/word2vec/word_embedding.npy \
   --debug 0 \
   --feed_dict 0 \
   --algo dual_rnn \

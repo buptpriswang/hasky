@@ -409,7 +409,10 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
 
     if i % 100 == 0:
       label_text = '|'.join([text_strs[x] for x in hits])
-      logging.info('obj:{} label:{}'.format(img, label_text))
+      img_str = img
+      if img.startswith('http:') or img.startswith('D:'):
+        img_str = '<p><a href={0} target=_blank><img src={0} height=200></a></p>'.format(img)
+      logging.info('obj:{} label:{}'.format(img_str, label_text))
       for j in range(5):
         logging.info('{} {} {} {}'.format(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]]))
 
