@@ -359,6 +359,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
       texts = all_distinct_texts[index]
   else:
     texts = all_distinct_texts
+  text_strs = all_distinct_text_strs
 
   step = len(texts)
   if FLAGS.metric_eval_texts_size > 0 and FLAGS.metric_eval_texts_size < step:
@@ -407,9 +408,10 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     hits = img2text[img]
 
     if i % 100 == 0:
-      print(img)
+      label_text = '|'.join([text_strs[x] for x in hits])
+      logging.info('obj:{} label:{}'.format(img, label_text))
       for j in range(5):
-        print(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]])
+        logging.info('{} {} {} {}'.format(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]]))
 
     #notice only work for recall@ or precision@ not work for ndcg@, if ndcg@ must use all
     num_positions = min(num_texts, FLAGS.metric_topn)

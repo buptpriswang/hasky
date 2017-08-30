@@ -9,6 +9,7 @@
 """
  now outgraph beam search copy and modify a bit from google im2txt
  TODO read and experiment https://github.com/google/seq2seq/tree/master/seq2seq for beam search
+ TODO trie based selective fast beam search!
 """
 
 from __future__ import absolute_import

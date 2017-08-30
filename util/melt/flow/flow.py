@@ -142,7 +142,7 @@ def tf_train_flow(train_once_fn,
       init_op = tf.group(tf.global_variables_initializer(),
                          tf.local_variables_initializer())
     else:
-      init_op = tf.group(tf.initialize_variables(var_list),
+      init_op = tf.group(tf.variables_initializer(var_list),
                          tf.local_variables_initializer())
     sess.run(init_op)
 

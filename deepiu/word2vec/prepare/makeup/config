@@ -1,4 +1,4 @@
-input_path=/home/gezi/data/product/makeup/tb/title2name/
+input_path=/home/gezi/new2/data/product/makeup/tb/title2name/
 dir=/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic
 
 train_data_path=$input_path/train 

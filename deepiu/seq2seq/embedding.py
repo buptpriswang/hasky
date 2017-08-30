@@ -65,6 +65,7 @@ def get_or_restore_embedding(name='emb'):
         FLAGS.model_dir, FLAGS.finetune_word_embedding))
     emb = get_embedding(
         name=name, trainable=FLAGS.finetune_word_embedding)
+    melt.try_add_to_collection('word_embedding', emb)
   else:
     # https://github.com/tensorflow/tensorflow/issues/1570
     # still adgrad must cpu..

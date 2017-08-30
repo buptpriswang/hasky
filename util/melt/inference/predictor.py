@@ -38,7 +38,10 @@ def get_model_dir_and_path(model_dir, model_name=None):
 def get_tensor_from_key(key, index=-1):
   if isinstance(key, str):
     try:
-      return tf.get_collection(key)[index]
+      ops = tf.get_collection(key)
+      if len(ops) > 1:
+        print('Warning: ops more then 1 for {}, ops:{}, index:{}'.format(key, ops, index))
+      return ops[index]
     except Exception:
       print('Warning:', key, ' not find in graph')
       return tf.no_op()
@@ -59,7 +62,8 @@ class Predictor(object):
     if model_dir is not None:
       self.restore(model_dir, meta_graph, model_name)
 
-  def inference(self, key, feed_dict=None, index=0):
+  #by default will use last one
+  def inference(self, key, feed_dict=None, index=-1):
     if not isinstance(key, (list, tuple)):
       return self.sess.run(get_tensor_from_key(key, index), feed_dict=feed_dict)
     else:
@@ -71,7 +75,7 @@ class Predictor(object):
       keys = [get_tensor_from_key(key, index) for key,index in zip(keys, indexes)]
       return self.sess.run(keys, feed_dict=feed_dict)
 
-  def predict(self, key, feed_dict=None, index=0):
+  def predict(self, key, feed_dict=None, index=-1):
     return self.inference(key, feed_dict, index)
 
   def run(self, key, feed_dict=None):

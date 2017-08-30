@@ -23,6 +23,9 @@ import melt
 
 import melt.utils.logging as logging
 
+def try_add_to_collection(name, op):
+  if not tf.get_collection(name):
+    tf.add_to_collection(name, op)
 
 def remove_from_collection(key):
   #must use ref get list and set to empty using [:] = [] or py3 can .clear 
