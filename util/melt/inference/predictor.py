@@ -155,7 +155,26 @@ class SimPredictor(object):
         score = self.predict(ltexts, stacked_rtexts)
         score = np.squeeze(score) 
         scores.append(score)
-    return np.array(scores)  
+    return np.array(scores) 
+
+  def top_k(self, ltext, rtext, k=1, key=None):
+    feed_dict = {
+      self._lkey: ltext,
+      self._rkey: rtext
+    }
+    if key is None:
+      key = 'nearby'
+    try:
+      values, indices = self._predictor.inference(key, feed_dict=self._feed_dict, index=self._index)
+      return values[:k], indices[:k]
+    except Exception:
+      score = self.predict(ltext, rtext)
+      indices = (-score).argsort()[:k]
+      # result
+      x = arr.shape[0]
+      #like [0, 0, 1, 1] [1, 0, 0, 1] ->...  choose (0,1), (0, 0), (1,0), (1, 1)
+      values = score[np.repeat(np.arange(x), N), indices.ravel()].reshape(x, k)
+      return indices, values
 
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
@@ -190,6 +209,7 @@ class RerankSimPredictor(object):
   def predict(self, ltext, rtext, ratio=1.):
     return self.predict(ltext, rtext, ratio)
 
+  #TODO do numpy has top_k ? seems argpartition will get topn but not in order
   def top_k(self, ltext, rtext, k=1, ratio=1., sorted=True):
     assert k <= self._num_rerank
     #TODO speed hurt?
@@ -209,6 +229,7 @@ class RerankSimPredictor(object):
 
     for i, score in enumerate(scores):
       index = (-score).argsort()
+      print(index,  np.argpartition(-score, self._num_rerank))
       if ratio:
         top_index = index[:self._num_rerank]
         exact_rtext = rtext[top_index]
@@ -225,9 +246,8 @@ class RerankSimPredictor(object):
           new_index[j] = index[exact_index[j]]
         index = new_index
       
-      top_values.append(exact_score[:k])
+      top_values.append(exact_score[exact_index[:k]])
       top_indices.append(index[:k])
 
     return np.array(top_values), np.array(top_indices)
-
-
+  

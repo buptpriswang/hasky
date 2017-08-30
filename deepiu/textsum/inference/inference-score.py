@@ -76,6 +76,16 @@ def predict(predictor, input_text, text):
   
   print('exact_score:', exact_score)
   print('calc score time(ms):', timer.elapsed_ms())
+  
+  timer = gezi.Timer()
+  exact_prob = predictor.inference('exact_prob', 
+                                    feed_dict= {
+                                      FLAGS.input_text_name: [input_word_ids],
+                                      FLAGS.text_name: [word_ids]
+                                      })
+  
+  print('exact_prob:', exact_prob)
+  print('calc score time(ms):', timer.elapsed_ms())
 
   #timer = gezi.Timer()
   #exact_prob, logprobs = predictor.inference(['exact_prob', 'seq2seq_logprobs'], 
@@ -161,9 +171,12 @@ def main(_):
   #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院", "女生学生")
   #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院", "女生学术")
 
-  predict(predictor, '日本直运COSME大赏井田CANMAKE眼部打底膏眼影底膏', 'canmake/井田 眼影膏')
-  predict(predictor, '16批HR赫莲娜尊容臻养恒颜眼唇霜15ML黑珍珠眼霜现货', 'HR/赫莲娜 尊容臻养恒颜眼唇霜')
-  predict(predictor, 'pony推荐韩国爱丽小屋修容棒play101P修容笔彩色双头高光阴影笔', 'ETUDE HOUSE/伊蒂之屋 双头高光修容棒')
+  #predict(predictor, '日本直运COSME大赏井田CANMAKE眼部打底膏眼影底膏', 'canmake/井田 眼影膏')
+  #predict(predictor, '16批HR赫莲娜尊容臻养恒颜眼唇霜15ML黑珍珠眼霜现货', 'HR/赫莲娜 尊容臻养恒颜眼唇霜')
+  #predict(predictor, 'pony推荐韩国爱丽小屋修容棒play101P修容笔彩色双头高光阴影笔', 'ETUDE HOUSE/伊蒂之屋 双头高光修容棒')
+  
+  predict(predictor, '雅格丽白洗面奶化妆品白茶净颜美白洗颜霜洁面洗面奶清洁', 'AGLAIA/雅格丽白 白茶净颜美白洗颜霜')
+  
   #predicts(predictor, 
   #         ['包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网', '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施'],
   #         ['蕾丝内裤女', '辣椒'])
