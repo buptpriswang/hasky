@@ -174,7 +174,7 @@ class SimPredictor(object):
       x = arr.shape[0]
       #like [0, 0, 1, 1] [1, 0, 0, 1] ->...  choose (0,1), (0, 0), (1,0), (1, 1)
       values = score[np.repeat(np.arange(x), N), indices.ravel()].reshape(x, k)
-      return indices, values
+      return values, indices
 
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
@@ -183,6 +183,7 @@ class RerankSimPredictor(object):
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
     # <tf.Tensor 'seq2seq/main/Exp_4:0' shape=(?, 1) dtype=float32>]
+    #this is becasue you use evaluator(predictor + exact_predictor) when train seq2seq, so load dual_bow will add one score..
     self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lkey=exact_lkey, rkey=exact_rkey, key=exact_key)
 
     self._num_rerank = num_rerank

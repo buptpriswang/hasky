@@ -16,15 +16,8 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-#FIXME: attention will hang..., no attention works fine
-#flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq.attention/', '')
-#flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/seq2seq.gencopy.switch/', '')
 flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention/', '')
-#flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic.10w/train/vocab.txt', 'vocabulary file')
 flags.DEFINE_string('vocab', '/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
-
-flags.DEFINE_string('input_text_name', 'seq2seq/model_init_1/input_text:0', 'model_init_1 because predictor after trainer init')
-flags.DEFINE_string('text_name', 'seq2seq/model_init_1/text:0', '')
 
 import sys, os, math
 import gezi, melt
@@ -56,12 +49,11 @@ def predict(predictor, input_text, text):
   #print('word_ids', word_ids, 'len:', len(word_ids))
   #print(text2ids.ids2text(word_ids))
 
-  print(tf.get_collection('score'))
   timer = gezi.Timer()
   score = predictor.inference('score', 
                               feed_dict= {
-                                      FLAGS.input_text_name: [input_word_ids],
-                                      FLAGS.text_name: [word_ids]
+                                      tf.get_collection('lfeed')[-1]: [input_word_ids],
+                                      tf.get_collection('rfeed')[-1]: [word_ids]
                                       })
   
   print('score:', score)
@@ -70,8 +62,8 @@ def predict(predictor, input_text, text):
   timer = gezi.Timer()
   exact_score = predictor.inference('exact_score', 
                                     feed_dict= {
-                                      FLAGS.input_text_name: [input_word_ids],
-                                      FLAGS.text_name: [word_ids]
+                                      tf.get_collection('lfeed')[-1]: [input_word_ids],
+                                      tf.get_collection('rfeed')[-1]: [word_ids]
                                       })
   
   print('exact_score:', exact_score)
@@ -80,8 +72,8 @@ def predict(predictor, input_text, text):
   timer = gezi.Timer()
   exact_prob = predictor.inference('exact_prob', 
                                     feed_dict= {
-                                      FLAGS.input_text_name: [input_word_ids],
-                                      FLAGS.text_name: [word_ids]
+                                      tf.get_collection('lfeed')[-1]: [input_word_ids],
+                                      tf.get_collection('rfeed')[-1]: [word_ids]
                                       })
   
   print('exact_prob:', exact_prob)
@@ -113,8 +105,8 @@ def predicts(predictor, input_texts, texts):
   print(tf.get_collection('score'))
   score = predictor.inference('score', 
                               feed_dict= {
-                                      FLAGS.input_text_name: input_word_ids_list,
-                                      FLAGS.text_name: word_ids_list
+                                      tf.get_collection('lfeed')[-1]: input_word_ids_list,
+                                      tf.get_collection('rfeed')[-1]: word_ids_list
                                       })
   
   print('score:', score)
@@ -123,8 +115,8 @@ def predicts(predictor, input_texts, texts):
   timer = gezi.Timer()
   exact_score = predictor.inference('exact_score', 
                                     feed_dict= {
-                                      FLAGS.input_text_name: input_word_ids_list,
-                                      FLAGS.text_name: word_ids_list
+                                      tf.get_collection('lfeed')[-1]: input_word_ids_list,
+                                      tf.get_collection('rfeed')[-1]: word_ids_list
                                       })
   
   print('exact_score:', exact_score)
@@ -134,8 +126,8 @@ def predicts(predictor, input_texts, texts):
 
   exact_prob, logprobs = predictor.inference(['exact_prob', 'seq2seq_logprobs'], 
                                     feed_dict= {
-                                      FLAGS.input_text_name: input_word_ids_list,
-                                      FLAGS.text_name: word_ids_list
+                                      tf.get_collection('lfeed')[-1]: input_word_ids_list,
+                                      tf.get_collection('rfeed')[-1]: word_ids_list
                                       })
   
   print(exact_prob)
@@ -150,6 +142,8 @@ def predicts(predictor, input_texts, texts):
 def main(_):
   text2ids.init()
   predictor = melt.Predictor(FLAGS.model_dir)
+
+  print(tf.get_collection('score'))
   #predict(predictor, '包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网', '蕾丝内裤女')
   #predict(predictor, '包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网', '性感内衣')
   #predict(predictor, '包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网', '性感女内裤')
@@ -176,6 +170,7 @@ def main(_):
   #predict(predictor, 'pony推荐韩国爱丽小屋修容棒play101P修容笔彩色双头高光阴影笔', 'ETUDE HOUSE/伊蒂之屋 双头高光修容棒')
   
   predict(predictor, '雅格丽白洗面奶化妆品白茶净颜美白洗颜霜洁面洗面奶清洁', 'AGLAIA/雅格丽白 白茶净颜美白洗颜霜')
+  predict(predictor, '代购德国代购直邮维蕾德/Weleda鸢尾花平衡保湿滋养晚霜30ml有机护肤', 'Weleda/维蕾德 鸢尾补水晚霜')
   
   #predicts(predictor, 
   #         ['包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网', '大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施'],

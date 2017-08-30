@@ -103,7 +103,13 @@ def init():
     global assistant_predictor
     #assistant_predictor = algos_factory.gen_predictor(FLAGS.assistant_algo)
     #melt.restore_scope_from_path(melt.get_session(), FLAGS.assistant_model_dir, FLAGS.assistant_algo)
-    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir)
+    ##try another session no work... so same session graph
+    # [[Node: dual_bow/model_init/emb/read = Identity[T=DT_FLOAT, _class=["loc:@dual_bow/model_init/emb"], _device="/job:localhost/replica:0/task:0/cpu:0"](dual_bow/model_init/emb)]]
+    #assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, sess=tf.Session())
+    #--since add 'score'... will confuse, just remove it.. hack!
+    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score')
+    melt.rename_from_collection('score', 'assistant_score')
+    melt.rename_from_collection('scores', 'assistant_scores')
     print('assistant_predictor', assistant_predictor)
 
   test_dir = FLAGS.valid_resource_dir
@@ -309,6 +315,7 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
                                  generated_text, generated_text_score, 
                                  generated_text_beam=None, generated_text_score_beam=None):
   print_img(img, i)
+  
   score = math.exp(-score)
   input_text_words = ids2text(input_text_ids)
   text_words = ids2text(text_ids)

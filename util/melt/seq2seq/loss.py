@@ -81,6 +81,7 @@ def sequence_loss_by_example(logits, targets, weights,
       total_size = math_ops.reduce_sum(weights, 1)
       total_size += 1e-12  # Just to avoid division by 0 for all-0 weights.
       log_perps /= total_size
+
   return log_perps
 
 def sequence_loss(logits,

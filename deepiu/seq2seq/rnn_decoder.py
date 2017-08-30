@@ -383,6 +383,9 @@ class RnnDecoder(Decoder):
       #or [batch_size * num_steps, vocab_size] by default flatten=True
       #this will be fine for train [batch_size * num_steps] but not good for eval since we want 
       #get score of each instance also not good for predict
+      #--------only training mode not keep dims, but this will be dangerous, since class call rnn_decoder
+      #need to manully set rnn_decoder.is_training=False!  TODO other wise will show incorrect scores in eval mode 
+      #but not affect the final model!
       keep_dims = exact_prob or exact_loss or (not self.is_training)
       logits = melt.batch_matmul_embedding(outputs, self.w, keep_dims=keep_dims) + self.v
       if not keep_dims:

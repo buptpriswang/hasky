@@ -96,7 +96,8 @@ def gen_train_graph(input_app, input_results, trainer):
   ops = [loss]
   #--------mark train graph finished, all graph after must share variable from train graph
   #melt.reuse_variables()
-  trainer.is_training = False
+  #---must call this to tell train finish and turn to evaluate mode
+  trainer.finish_train()
     
   deal_debug_results = None
 
@@ -155,6 +156,7 @@ def gen_validate(input_app, input_results, trainer, predictor):
     eval_image_name, eval_text, eval_text_str, eval_input_text, eval_input_text_str = input_results[input_app.input_valid_name]
 
     eval_loss = trainer.build_train_graph(eval_input_text, eval_text)
+    print('------eval scores:', tf.get_collection('scores'))
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 

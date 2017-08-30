@@ -33,6 +33,7 @@ class Seq2seq(object):
 
     self.is_training = is_training 
     self.is_predict = is_predict
+    self.is_evaluate = (not is_training) and (not is_predict)
 
     emb = embedding.get_or_restore_embedding_cpu()
     if is_training and FLAGS.monitor_level > 0:
@@ -53,15 +54,20 @@ class Seq2seq(object):
     assert FLAGS.add_text_start is True 
     assert self.decoder.start_id is not None
 
+  def finish_train(self):
+    self.is_training = False
+    self.decoder.is_training = False
+    self.is_evaluate = not self.is_predict
+
   def build_graph(self, input_text, text, 
                   exact_prob=False, exact_loss=False):
     """
     exact_prob and exact_loss actually do the same thing,
     they only be used on when is_predict is true
     """
+    print('train:', self.is_training, 'evaluate:', self.is_evaluate, 'predict:', self.is_predict)
     assert not (exact_prob and exact_loss)
     assert not ((not self.is_predict) and (exact_prob or exact_loss))
-
     with tf.variable_scope("encode"):
       encoder_output, state = self.encoder.encode(input_text)
       if not FLAGS.use_attention:
@@ -78,8 +84,9 @@ class Seq2seq(object):
       self.ori_loss = self.decoder.ori_loss #without average step for prediction
       #this is used in train.py for evaluate eval_scores = tf.get_collection('scores')[-1]
       #because we want to show loss for each instance
-      if not self.is_training and not self.is_predict:
-        tf.add_to_collection('scores', loss)
+      
+      if self.is_evaluate:
+       tf.add_to_collection('scores', loss)
     
     if not self.is_predict:
       loss = tf.reduce_mean(loss)

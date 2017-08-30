@@ -68,6 +68,7 @@ class ShowAndTell(object):
 
     self.is_training = is_training 
     self.is_predict = is_predict
+    self.is_evaluate = (not is_training) and (not is_predict)
 
     #if is_training:
     logging.info('num_sampled:{}'.format(FLAGS.num_sampled))
@@ -101,6 +102,11 @@ class ShowAndTell(object):
                                                 height=FLAGS.image_height, 
                                                 width=FLAGS.image_width)
 
+  def finish_train(self):
+    self.is_training = False
+    self.decoder.is_training = False
+    self.is_evaluate = not self.is_predict
+
   def feed_ops(self):
     """
     return feed_ops, feed_run_ops
@@ -130,6 +136,8 @@ class ShowAndTell(object):
 
   #NOTICE mainly usage is not use neg! for generative method
   def build_graph(self, image_feature, text, neg_text=None, exact_loss=False):
+    print('train:', self.is_training, 'evaluate:', self.is_evaluate, 'predict:', self.is_predict)
+    
     image_emb = self.build_image_embeddings(image_feature)
 
     pos_loss = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)

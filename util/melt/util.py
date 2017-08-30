@@ -24,6 +24,18 @@ import melt
 import melt.utils.logging as logging
 
 
+def remove_from_collection(key):
+  #must use ref get list and set to empty using [:] = [] or py3 can .clear 
+  #https://stackoverflow.com/questions/850795/different-ways-of-clearing-lists
+  l = tf.get_collection_ref(key)
+  l[:] = []  
+
+def rename_from_collection(key, to_key, index=0, scope=None):
+  l = tf.get_collection_ref(key)
+  if l:
+    tf.add_to_collection(to_key, l[index])
+    l[:] = []
+
 #https://stackoverflow.com/questions/44251666/how-to-initialize-tensorflow-variable-that-wasnt-saved-other-than-with-tf-globa
 def initialize_uninitialized_vars(sess):
   import itertools

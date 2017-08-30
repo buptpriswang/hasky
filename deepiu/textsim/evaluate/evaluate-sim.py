@@ -67,7 +67,6 @@ class Predictor(melt.PredictorBase):
                             )
    return score
 
-
 def evaluate_score():
   evaluator.init()
   text_max_words = evaluator.all_distinct_texts.shape[1]
