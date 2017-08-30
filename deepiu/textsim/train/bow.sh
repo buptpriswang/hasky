@@ -26,8 +26,10 @@ python ./train.py \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
   --show_eval 1 \
-  --train_only 0 \
   --metric_eval 1 \
+  --num_metric_eval_examples 100 \
+  --metric_eval_batch_size 100 \
+  --train_only 0 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
@@ -40,8 +42,6 @@ python ./train.py \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
   --num_epochs 0 \
-  --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 1000 \
   --debug 0 \
   --elementwise_predict 0 \
   --num_negs 1 \
