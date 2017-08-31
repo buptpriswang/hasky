@@ -2,7 +2,7 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.copy.now2v
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention.now2v
 assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
@@ -58,13 +58,12 @@ python ./train.py \
   --rnn_output_method 3 \
   --use_attention 1 \
   --attention_option luong \
-  --encode_end_mark 1 \
-  --copy_only 1 \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \
+  --clip_gradients 5 \
   --work_mode full \
   --assistant_algo dual_bow \
   --assistant_model_dir $assistant_model_dir \
+

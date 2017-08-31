@@ -2,8 +2,7 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.now2v
-assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
+model_dir=/home/gezi/new/temp/shangpinming/model/seq2seq.attention2
 mkdir -p $model_dir
 
 #--fixed_valid_input $fixed_valid_output_path/'test' \
@@ -17,7 +16,7 @@ python ./train.py \
   --image_url_prefix '' \
   --model_dir=$model_dir \
   --algo seq2seq \
-  --num_sampled 0 \
+  --num_sampled 256 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
@@ -25,44 +24,39 @@ python ./train.py \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
-  --train_only 0 \
+  --train_only 1 \
+  --metric_eval 0 \
   --gen_predict 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 128 \
+  --batch_size 256 \
   --num_gpus 0 \
   --eval_batch_size 100 \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
-  --save_interval_steps 1000 \
-  --save_interval_epochs 1 \
-  --metric_eval 1 \
-  --num_metric_eval_examples 100 \
-  --metric_eval_batch_size 100 \
   --metric_eval_interval_steps 1000 \
+  --save_interval_steps 1000 \
+  --num_metric_eval_examples 1000 \
+  --metric_eval_batch_size 500 \
   --feed_dict 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method 0 \
   --beam_size 10 \
-  --decode_max_words 20 \
+  --decode_max_words 10 \
   --dynamic_batch_length 1 \
-  --rnn_method forward \
-  --emb_dim 256 \
+  --rnn_method 0 \
+  --emb_dim 1000 \
   --rnn_hidden_size 1024 \
-  --experiment_rnn_decoder 0 \
-  --show_beam_search 1 \
-  --gen_predict 1 \
   --add_text_start 1 \
   --rnn_output_method 3 \
-  --use_attention 0 \
-  --attention_option luong \
+  --use_attention 1 \
+  --encode_end_mark 1 \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \
+  --clip_gradients 5 \ 
   --work_mode full \
-  --assistant_algo dual_bow \
-  --assistant_model_dir $assistant_model_dir \
+

@@ -2,7 +2,7 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.copy
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention.bowemb
 assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
@@ -45,7 +45,7 @@ python ./train.py \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method 0 \
-  --word_embedding_file $dir/word2vec/word_embedding.npy \
+  --word_embedding_file $assistant_model_dir/word_embedding.npy \
   --beam_size 10 \
   --decode_max_words 20 \
   --dynamic_batch_length 1 \
@@ -59,13 +59,12 @@ python ./train.py \
   --rnn_output_method 3 \
   --use_attention 1 \
   --attention_option luong \
-  --encode_end_mark 1 \
-  --copy_only 1 \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \
+  --clip_gradients 5 \
   --work_mode full \
   --assistant_algo dual_bow \
   --assistant_model_dir $assistant_model_dir \
+

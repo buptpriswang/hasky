@@ -2,13 +2,13 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.gencopy.bowemb
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.bowemb
 assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 
-#num_sampled=256
+#--fixed_valid_input $fixed_valid_output_path/'test' \
 #--train_input $train_output_path/'train_*' \
-python ./train.py --length_norm=1 \
+python ./train.py \
   --train_input $train_output_path/'train*' \
   --valid_input $valid_output_path/'test*' \
 	--valid_resource_dir $valid_output_path \
@@ -25,47 +25,45 @@ python ./train.py --length_norm=1 \
   --eval_batch_size 200 \
   --debug 0 \
   --show_eval 1 \
-  --show_beam_search 1 \
   --train_only 0 \
   --gen_predict 1 \
-  --legacy_rnn_decoder 0 \
-  --alignment_history 0 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 128 \
-  --eval_batch_size 100 \
   --num_gpus 0 \
+  --eval_batch_size 100 \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
+  --save_interval_steps 1000 \
+  --save_interval_epochs 1 \
   --metric_eval 1 \
   --num_metric_eval_examples 100 \
   --metric_eval_batch_size 100 \
   --metric_eval_interval_steps 1000 \
-  --save_interval_steps 1000 \
-  --save_interval_epochs 1 \
   --feed_dict 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method 0 \
+  --word_embedding_file $assistant_model_dir/word_embedding.npy \
   --beam_size 10 \
-  --decode_max_words 10 \
+  --decode_max_words 20 \
   --dynamic_batch_length 1 \
   --rnn_method forward \
+  --emb_dim 256 \
   --rnn_hidden_size 1024 \
+  --experiment_rnn_decoder 0 \
+  --show_beam_search 1 \
+  --gen_predict 1 \
   --add_text_start 1 \
   --rnn_output_method 3 \
-  --use_attention 1 \
+  --use_attention 0 \
   --attention_option luong \
-  --gen_copy 1 \
-  --encode_end_mark 1 \
   --cell lstm_block \
   --num_records 0 \
   --min_records 0 \
   --log_device 0 \
-  --clip_gradients 1 \
+  --clip_gradients 5 \
   --work_mode full \
-  --word_embedding_file $assistant_model_dir/word_embedding.npy \
   --assistant_algo dual_bow \
   --assistant_model_dir $assistant_model_dir \
-

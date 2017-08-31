@@ -94,6 +94,7 @@ def distort_image(image):
 
   return image
 
+#--depreciated just use tf ones
 def decode_image(contents, channels=None, name=None):
   """Convenience function for `decode_gif`, `decode_jpeg`, and `decode_png`.
   Detects whether an image is a GIF, JPEG, or PNG, and performs the appropriate 
@@ -201,9 +202,10 @@ def process_image(encoded_image,
     else:
       #raise ValueError("Invalid image format: %s" % image_format) 
       #https://github.com/tensorflow/tensorflow/issues/8551 return no shape.., reesize_images will fail 
-      image = decode_image(encoded_image, channels=3)
-      #image = tf.image.decode_image(encoded_image, channels=3)
-    #image = tf.image.decode_image(encoded_image, channels=3, try_recover_truncted=True, acceptable_fraction=10)
+      ##--if not same as tf code then might raise in c++ code then not able to catch
+      ##2017-08-31 19:38:23.515438: W tensorflow/core/framework/op_kernel.cc:1165] Invalid argument: Expected image (JPEG, PNG, or GIF), got unknown format starting with 'none'
+      #image = decode_image(encoded_image, channels=3)
+      image = tf.image.decode_image(encoded_image, channels=3)
 
   image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 

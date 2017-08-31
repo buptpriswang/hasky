@@ -44,7 +44,7 @@ flags.DEFINE_integer('metric_eval_interval_steps', 0, 'if > 0 need to be eval_in
 flags.DEFINE_boolean('metric_eval', True, '')
 
 #----------optimize
-flags.DEFINE_string('optimizer', 'adagrad', '')
+flags.DEFINE_string('optimizer', 'adagrad', 'https://www.quora.com/Why-is-AdaDelta-not-favored-in-Deep-Learning-communities-while-AdaGrad-is-preferred-by-many-over-other-SGD-variants')
 flags.DEFINE_float('learning_rate', 0.1, """Initial learning rate. for adgrad especially, 
                                             notice keras set for adgrad 0.01 
                                             but seems bad perf hard to converge for some seq2seq/lstm training
@@ -129,6 +129,9 @@ def train_flow(ops,
     sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
   logging.info('learning_rate:{}'.format(FLAGS.learning_rate))
+  logging.info('clip_gradients:{}'.format(FLAGS.clip_gradients))
+  logging.info('optimizer:{}'.format(FLAGS.optimizer))
+  
   #batch size right now not define here, but in app code like input_app.py
   melt.set_global('batch_size', FLAGS.batch_size)
   melt.set_global('num_gpus', max(FLAGS.num_gpus, 1))

@@ -11,5 +11,5 @@ sh ./prepare-fixed-valid.sh
 sh ./prepare-valid.sh
 sh ./prepare-train.sh 
 
-rm data 
-rm conf 
+#rm data 
+#rm conf 

@@ -88,6 +88,18 @@ import libstring_util
 
 #print('----------', FLAGS.seg_method)
 
+def _text2ids(text, max_words):
+  word_ids = text2ids.text2ids(text, seg_method=FLAGS.seg_method, feed_single=FLAGS.feed_single, allow_all_zero=True, pad=False)
+  word_ids_length = len(word_ids)
+
+  if len(word_ids) == 0:
+    return []
+  word_ids = word_ids[:max_words]
+  if FLAGS.pad:
+    word_ids = gezi.pad(word_ids, max_words, 0)
+
+  return word_ids
+
 def is_luanma(words, word_ids):
   #return False
   for word, word_id in zip(words, word_ids):
@@ -125,8 +137,9 @@ def deal_file(file):
           print('empty line', line, file=sys.stderr)
           continue
 
-        words = text2ids.Segmentor.Segment(text, FLAGS.seg_method)
-        word_ids = text2ids.words2ids(words, feed_single=FLAGS.feed_single, allow_all_zero=True, pad=False)
+        #words = text2ids.Segmentor.Segment(text, FLAGS.seg_method)
+        #word_ids = text2ids.words2ids(words, feed_single=FLAGS.feed_single, allow_all_zero=True, pad=False)
+        word_ids = _text2ids(text, TEXT_MAX_WORDS)
         word_ids_length = len(word_ids)
         if num % 10000 == 0:
           print(img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)

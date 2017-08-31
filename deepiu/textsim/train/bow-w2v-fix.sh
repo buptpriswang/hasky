@@ -2,7 +2,7 @@ conf_path=./prepare
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/bow.w2v.fix
+model_dir=/home/gezi/new/temp/makeup/title2name/model/bow.w2v.fixemb
 mkdir -p $model_dir
 
 #--fixed_valid_input=$fixed_valid_output_path/'test-*' \
@@ -21,36 +21,34 @@ python ./train.py \
   --text2id=$valid_output_path/'text2id.npy' \
   --text2img=$valid_output_path/'text2img.npy' \
   --img2id=$valid_output_path/'img2id.npy' \
-  --eval_text2img 1 \
+  --eval_text2img 0 \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
   --show_eval 1 \
   --train_only 0 \
   --metric_eval 1 \
+  --metric_eval_interval_steps 1000 \
+  --num_metric_eval_examples 100 \
+  --metric_eval_batch_size 100 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
-  --eval_batch_size 1013 \
+  --batch_size 128 \
+  --eval_batch_size 1000 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
-  --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
   --num_epochs 1000 \
-  --num_metric_eval_examples 1000 \
-  --metric_eval_batch_size 1000 \
   --debug 0 \
-  --num_negs 3 \
-  --neg_left 1 \
+  --num_negs 1 \
+  --neg_left 0 \
   --neg_right 1 \
-  --mlp_dims 1024,256 \
   --word_embedding_file $dir/word2vec/word_embedding.npy \
   --finetune_word_embedding 0 \
   --interval 100 \
-  --eval_batch_size 100 \
   --feed_dict 0 \
   --margin 0.5 \
   --algo dual_bow \

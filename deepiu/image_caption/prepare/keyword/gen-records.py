@@ -79,6 +79,18 @@ sum_words = Value('i', 0)
 
 text2ids.init()
 
+def _text2ids(text, max_words):
+  word_ids = text2ids.text2ids(text, seg_method=FLAGS.seg_method, feed_single=FLAGS.feed_single, allow_all_zero=True, pad=False)
+  word_ids_length = len(word_ids)
+
+  if len(word_ids) == 0:
+    return []
+  word_ids = word_ids[:max_words]
+  if FLAGS.pad:
+    word_ids = gezi.pad(word_ids, max_words, 0)
+
+  return word_ids
+
 def deal_file(file, thread_index):
   out_file = '{}/{}_{}'.format(FLAGS.output_directory, FLAGS.name, thread_index) if FLAGS.threads > 1 else '{}/{}'.format(FLAGS.output_directory, FLAGS.name)
   print('out_file:', out_file)
