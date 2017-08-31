@@ -23,6 +23,7 @@ flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
 flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
 flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
 flags.DEFINE_integer('batch_size', 512, '')
+flags.DEFINE_boolean('show_decode_error', False, '')
 
 import sys, os, glob, traceback
 import melt
@@ -60,7 +61,8 @@ def imgs2features(imgs, pics):
         good_pics.append(pics[i])
       except Exception:
         print('!Bad image:', pics[i], file=sys.stderr)
-        print(traceback.format_exc(), file=sys.stderr)
+        if FLAGS.show_decode_error:
+          print(traceback.format_exc(), file=sys.stderr)
         bad_imgs.append(pics[i])
     return features, good_pics
 

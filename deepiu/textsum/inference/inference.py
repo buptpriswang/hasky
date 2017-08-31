@@ -18,8 +18,8 @@ FLAGS = flags.FLAGS
 
 #FIXME: attention will hang..., no attention works fine
 #flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq.attention/', '')
-flags.DEFINE_string('model_dir', '/home/gezi/temp/textsum/model.seq2seq/', '')
-flags.DEFINE_string('vocab', '/home/gezi/temp/textsum/tfrecord/seq-basic/train/vocab.txt', 'vocabulary file')
+flags.DEFINE_string('model_dir', '/home/gezi/new/temp/makeup/title2name/model.v1/seq2seq.copy/', '')
+flags.DEFINE_string('vocab', '/home/gezi/new/temp/makeup/title2name/tfrecord/seq-basic/vocab.txt', 'vocabulary file')
 flags.DEFINE_boolean('debug', False, '')
 
 import sys, os, math
@@ -54,9 +54,11 @@ def predict(predictor, input_text):
   #I think it might be a GPU thing.
   #The example below errors if run as python tf_8337_minimal.py but is fine is run as CUDA_VISIBLE_DEVICES=-1 
   timer = gezi.Timer()
+  print(tf.get_collection('lfeed'))
   text, score = predictor.inference(['text', 'text_score'], 
                                     feed_dict= {
-                                      'seq2seq/model_init_1/input_text:0': [word_ids]
+                                      #'seq2seq/model_init_1/input_text:0': [word_ids]
+                                      tf.get_collection('lfeed')[-1]: [word_ids]
                                       })
   
   for result in text:
@@ -65,7 +67,7 @@ def predict(predictor, input_text):
   timer = gezi.Timer()
   texts, scores = predictor.inference(['beam_text', 'beam_text_score'], 
                                     feed_dict= {
-                                      'seq2seq/model_init_1/input_text:0': [word_ids]
+                                      tf.get_collection('lfeed')[-1]: [word_ids]
                                       })
 
   texts = texts[0]
@@ -81,7 +83,7 @@ def predicts(predictor, input_texts):
   timer = gezi.Timer()
   texts_list, scores_list = predictor.inference(['beam_text', 'beam_text_score'], 
                                     feed_dict= {
-                                      'seq2seq/model_init_1/input_text:0': word_ids_list
+                                      tf.get_collection('lfeed')[-1]: word_ids_list
                                       })
 
   for texts, scores in zip(texts_list, scores_list):
@@ -95,22 +97,24 @@ def main(_):
   predictor = melt.Predictor(FLAGS.model_dir, debug=FLAGS.debug)
   
   #predict(predictor, "任达华传授刘德华女儿经 赞停工陪太太(图)")
-  predict(predictor, "王凯整容了吗_王凯整容前后对比照片")
-  #predict(predictor, "大小通吃汉白玉霸王貔貅摆件 正品开光镇宅招财")
-  #predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院")
-  #predict(predictor, "宝宝太胖怎么办呢")
-  #predict(predictor, "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网")
-  #predict(predictor, "蛋龟缸，目前4虎纹1剃刀")
+  #predict(predictor, "王凯整容了吗_王凯整容前后对比照片")
+  ##predict(predictor, "大小通吃汉白玉霸王貔貅摆件 正品开光镇宅招财")
+  ##predict(predictor, "学生迟到遭老师打 扇耳光揪头发把头往墙撞致3人住院")
+  ##predict(predictor, "宝宝太胖怎么办呢")
+  ##predict(predictor, "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网")
+  ##predict(predictor, "蛋龟缸，目前4虎纹1剃刀")
+  ##predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
+  ##predict(predictor, "宝宝太胖怎么办呢")
   #predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
-  #predict(predictor, "宝宝太胖怎么办呢")
-  predict(predictor, "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施")
-  predict(predictor, "北疆之行(三):乌尔禾魔鬼城,乌尔禾自助游攻略 - 蚂蜂窝")
-  predict(predictor, "众多名车齐上阵 直击《变形金刚3》片场")
+  #predict(predictor, "北疆之行(三):乌尔禾魔鬼城,乌尔禾自助游攻略 - 蚂蜂窝")
+  #predict(predictor, "众多名车齐上阵 直击《变形金刚3》片场")
 
-  predicts(predictor, [
-    "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网",
-    "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施",
-  ])
+  predict(predictor, "带盖泡面碗韩小熊汤碗带筷勺烤箱烘焙烤碗陶瓷饭碗jy18")
+
+  #predicts(predictor, [
+  #  "包邮买二送一性感女内裤低腰诱惑透视蕾丝露臀大蝴蝶三角内裤女夏-淘宝网",
+  #  "大棚辣椒果实变小怎么办,大棚辣椒果实变小防治措施",
+  #])
 
 if __name__ == '__main__':
   tf.app.run()

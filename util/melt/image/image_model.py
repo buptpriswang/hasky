@@ -34,7 +34,7 @@ class ImageModel(object):
     init_fn(self.sess)
 
 
-  def _build_graph(self, model_name, height, width, image_format='jpeg'):
+  def _build_graph(self, model_name, height, width, image_format=None):
     melt.apps.image_processing.init(model_name)
     return melt.apps.image_processing.image_processing_fn(self.images_feed,  
                                                           height=height, 

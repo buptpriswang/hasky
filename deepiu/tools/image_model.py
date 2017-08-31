@@ -21,7 +21,7 @@ class ImageModel(object):
                model_name='InceptionV3', 
                height=299, 
                width=299,
-               image_format='jpeg'):
+               image_format=None):
     self.sess = tf.Session()
     self.images_feed =  tf.placeholder(tf.string, [None,], name='images')
     self.img2feautres_op = self._build_graph(model_name, height, width, image_format=image_format)

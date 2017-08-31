@@ -135,15 +135,26 @@ class SimPredictor(object):
     if rkey is None:
       self._rkey = tf.get_collection('rfeed')[index]
 
-  def inference(self, ltext, rtext):
-    feed_dict = {
-      self._lkey: ltext,
-      self._rkey: rtext
-    }
-    return self._predictor.inference(self._key, feed_dict=feed_dict, index=self._index)
+  def inference(self, ltext, rtext=None, key=None, index=None):
+    if key is None:
+      key = self._key
+    if index is None:
+      index = self._index
+    if rtext is not None:
+      feed_dict = {
+        self._lkey: ltext,
+        self._rkey: rtext
+      }
+      return self._predictor.inference(key, feed_dict=feed_dict, index=index)
+    else:
+      feed_dict = {
+        self._lkey: ltext
+      }
+      return self._predictor.inference(key, feed_dict=feed_dict, index=index)
 
-  def predict(self, ltext, rtext):
-    return self.inference(ltext, rtext)
+
+  def predict(self, ltext, rtext=None, key=None, index=None):
+    return self.inference(ltext, rtext, key, index)
 
   def elementwise_predict(self, ltexts, rtexts):
     scores = []
