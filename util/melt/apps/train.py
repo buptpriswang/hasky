@@ -45,7 +45,10 @@ flags.DEFINE_boolean('metric_eval', True, '')
 
 #----------optimize
 flags.DEFINE_string('optimizer', 'adagrad', '')
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate. for adgrad especially see keras default parameters')
+flags.DEFINE_float('learning_rate', 0.1, """Initial learning rate. for adgrad especially, 
+                                            notice keras set for adgrad 0.01 
+                                            but seems bad perf hard to converge for some seq2seq/lstm training
+                                            see textsum/train/shangpinming/seq2seq-gen-copy-switch.sh""")
 flags.DEFINE_float('learning_rate_decay_factor', 0, '')
 flags.DEFINE_integer('num_epochs_per_decay', 1, '')
 flags.DEFINE_float('clip_gradients', 5.0, """follow im2text as 5.0 default, 
