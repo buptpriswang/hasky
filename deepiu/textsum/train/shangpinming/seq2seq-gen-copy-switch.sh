@@ -39,7 +39,7 @@ python ./train.py --length_norm=1 \
   --eval_batch_size 100 \
   --num_gpus 0 \
   --min_after_dequeue 500 \
-  --learning_rate 0.01 \
+  --learning_rate 0.1 \
   --eval_interval_steps 500 \
   --save_interval_epochs 1 \
   --save_interval_steps 1000 \

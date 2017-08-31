@@ -49,7 +49,7 @@ python ./train.py --encode_start_mark=1 --encode_end_mark=1 --keep_prob=0.9 \
   --finetune_word_embedding 0 \
   --loss point \
   --rtext_bow 1 \
-  --learning_rate 0.01 \
+  --learning_rate 0.1 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --dynamic_batch_length 1 \

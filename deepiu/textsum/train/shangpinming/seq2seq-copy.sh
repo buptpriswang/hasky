@@ -33,7 +33,7 @@ python ./train.py \
   --num_gpus 0 \
   --eval_batch_size 100 \
   --min_after_dequeue 500 \
-  --learning_rate 0.01 \
+  --learning_rate 0.1 \
   --eval_interval_steps 500 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
