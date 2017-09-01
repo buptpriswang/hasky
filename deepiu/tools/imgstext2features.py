@@ -22,7 +22,7 @@ flags.DEFINE_string('image_model_name', 'InceptionV3', '')
 flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
 flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
 flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
-flags.DEFINE_integer('batch_size', 512, '')
+flags.DEFINE_integer('batch_size', 512, 'for safe use 256, 512 will be fine, 600 will oom for gtx1080')
 flags.DEFINE_boolean('show_decode_error', False, '')
 
 import sys, os, glob, traceback
@@ -35,7 +35,7 @@ images_feed =  tf.placeholder(tf.string, [None,], name='images')
 img2feautres_op = None
 
 def build_graph(images):
-  melt.apps.image_processing.init(FLAGS.image_model_name)
+  melt.apps.image_processing.init(FLAGS.image_model_name, slim_preprocessing=True)
   return melt.apps.image_processing.image_processing_fn(images,  
                                                         height=FLAGS.image_height, 
                                                         width=FLAGS.image_width)
@@ -46,6 +46,7 @@ def init():
   sess.run(init_op)
   #---load inception model check point file
   init_fn = melt.image.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
+
   init_fn(sess)
 
 #TODO move imgs2features to ImageModel

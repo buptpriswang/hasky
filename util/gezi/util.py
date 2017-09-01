@@ -15,6 +15,52 @@ import collections
 import sys, os
 import numpy as np
 
+def to_pascal_name(name):
+  if not name or name[0].isupper():
+    return name 
+  return gnu2pascal(name)
+
+def to_gnu_name(name): 
+  if not name or name[0].islower():
+    return name
+  return pascal2gnu(name)
+
+def pascal2gnu(name):
+  """
+  convert from AbcDef to abc_def
+  name must be in pascal format
+  """
+  l = [name[0].lower()]
+  for i in range(1, len(name)):
+    if name[i].isupper():
+      l.append('_')
+      l.append(name[i].lower())
+    else:
+      l.append(name[i])
+  return ''.join(l)
+
+def gnu2pascal(name):
+  """
+  convert from abc_def to AbcDef
+  name must be in gnu format
+  """
+  l = []
+  l = [name[0].upper()]
+  need_upper = False
+  for i in range(1, len(name)):
+    if name[i] == '_':
+      need_upper = True
+      continue
+    else:  
+      if need_upper:
+        l.append(name[i].upper())
+      else:
+        l.append(name[i])
+      need_upper = False
+  return ''.join(l)
+
+  return ''.join(l)
+
 def is_gbk_luanma(text):
   return len(text) > len(text.decode('gb2312', 'ignore').encode('utf8'))
 

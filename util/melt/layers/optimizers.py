@@ -215,7 +215,7 @@ def optimize_loss(losses,
       
     # Add scalar summary for loss.
     if "loss" in summaries:
-      summary.scalar("learning_rate", lr)
+      summary.scalar("loss", loss)
 
     #@TODO chg now just remove below  TODO FIXME add gradient monitor
     ## Add histograms for variables, gradients and gradient norms.

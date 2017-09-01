@@ -40,6 +40,14 @@ from tensorflow.python.ops import random_ops
 
 import tensorflow as tf
 
+#TODO must set PYTHON_PATH for models/slim
+from preprocessing import preprocessing_factory
+from nets import nets_factory
+#from melt.slim import base_nets_factory 
+import tensorflow.contrib.slim as slim
+import gezi
+
+
 def read_image(image_path):
   with tf.gfile.FastGFile(image_path, "r") as f:
     encoded_image = f.read()
@@ -160,7 +168,7 @@ def distort_image(image):
 #       #this is unsafe, since might not be jpeg format will raise error in c++ code, unable to catch
 #       return gen_image_ops.decode_jpeg(contents, channels, try_recover_truncated=True, acceptable_fraction=10)
 
-def decode_image(contents, channels=3, image_format='jpeg'):
+def decode_image(contents, channels=3, image_format='jpeg', dtype=None):
   with tf.name_scope("decode", values=[contents]):
     if image_format == "jpeg":
       #---TODO this will cause hang.... try_recover_truncated=True, acceptable_fraction=10 will hang...
@@ -171,7 +179,8 @@ def decode_image(contents, channels=3, image_format='jpeg'):
     else:
       #--why here will casue no size.. might for gif..., for safe just use image_format jpeg? TODO FIXME
       image = tf.image.decode_image(contents, channels=3)
-
+    if dtype:
+      image = tf.image.convert_image_dtype(image, dtype=dtype)
     return image
 
 def process_image(encoded_image,
@@ -209,8 +218,7 @@ def process_image(encoded_image,
     tf.summary.image(name, tf.expand_dims(image, 0))
 
   # Decode image into a float32 Tensor of shape [?, ?, 3] with values in [0, 1).
-  image = decode_image(encoded_image, channels=3, image_format=image_format)
-  image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+  image = decode_image(encoded_image, channels=3, image_format=image_format, dtype=tf.float32)
 
   #TODO summary
   #image_summary("original_image", image)
@@ -250,30 +258,35 @@ import melt
 def create_image2feature_fn(name='InceptionV3'):
   #NOTICE how this method solve run/ scope problem, scope must before def
   with tf.variable_scope(name) as scope:
-    def construct_fn(image_feature, 
+    def construct_fn(encoded_image, 
                      height, 
                      width, 
+                     trainable=False,
                      is_training=False,
                      resize_height=346,
                      resize_width=346,
                      distort=True,
                      image_format="jpeg",  #for safe just use decode_jpeg
                      reuse=None):
-      image_feature = tf.map_fn(lambda img: process_image(img,
-                                                          is_training=False,
-                                                          height=height, 
-                                                          width=width,
-                                                          resize_height=resize_height,
-                                                          resize_width=resize_width,
-                                                          distort=distort,
-                                                          image_format=image_format), 
-                                image_feature,
+      #decode image .. only accept one image so use map_fn, but seems map_fn is slow, so use as less as possible
+      #here decode image + preprocess into one
+      image = tf.map_fn(lambda img: process_image(img,
+                                                  is_training=is_training,
+                                                  height=height, 
+                                                  width=width,
+                                                  resize_height=resize_height,
+                                                  resize_width=resize_width,
+                                                  distort=distort,
+                                                  image_format=image_format), 
+                                encoded_image,
                                 dtype=tf.float32)
 
+
+      #this is the same as slim for inception v3, and TODO can be modified to accept other models
       image_feature = melt.image.image_embedding.inception_v3(
-        image_feature,
-        trainable=False,
-        is_training=False,
+        image,
+        trainable=trainable,
+        is_training=is_training,
         reuse=reuse,
         scope=scope)
 
@@ -288,6 +301,82 @@ def create_image2feature_fn(name='InceptionV3'):
 
     return construct_fn
 
+
+def create_image2feature_slim_fn(name='InceptionV3'):
+  """
+    #NOTICE how this method solve run/ scope problem, scope must before def
+    using slim util to create image feature
+    You need to set PythonPath to include models/slim or install it if using on hdfs run TODO check
+  """
+  with tf.variable_scope('') as scope:
+    def construct_fn(encoded_image, 
+                     height, 
+                     width, 
+                     trainable=False,
+                     is_training=False,
+                     resize_height=346,
+                     resize_width=346,
+                     distort=True,
+                     slim_preprocessing=True,
+                     image_format="jpeg",  #for safe just use decode_jpeg
+                     reuse=None):
+
+      #preprocess_image
+      net_name = gezi.to_gnu_name(name)
+      #well this is slightly slow and the result is differnt from im2txt inceptionV3 usage result, 
+      #use im2txt code seems ok, not sure if slim preprocess will be better! TODO
+      #for inception related model I think im2txt process will be fine, for other models not sure TODO
+      #using slim preprocessing real 2m45.737s user  3m12.896s sys 0m10.265s 
+      #using im2txt processing real 2m46.709s user  3m8.067s sys 0m8.297s  
+      #and the final feature will be slightly differnt 
+      #one thing intersting is use 2 tf.map_fn(1 decode image, 1 preprocess) will be much slower then use 1 tf.map_fn (decode image+ preprocess)
+      if slim_preprocessing:
+        preprocessing_fn = preprocessing_factory.get_preprocessing(net_name, is_training=(is_training and distort))
+        image = tf.map_fn(lambda img: preprocessing_fn(decode_image(img, image_format=image_format, dtype=tf.float32), height, width),
+                          encoded_image, dtype=tf.float32)
+      else:
+        #im2txt style preprocessing
+        image = tf.map_fn(lambda img: process_image(img,
+                                                  is_training=is_training,
+                                                  height=height, 
+                                                  width=width,
+                                                  resize_height=resize_height,
+                                                  resize_width=resize_width,
+                                                  distort=distort,
+                                                  image_format=image_format), 
+                                encoded_image,
+                                dtype=tf.float32)
+
+      #actually final num class layer not used for image feature purpose, but since in check point train using 1001, for simplicity here set 1001
+      num_classes = 1001 
+      net_fn = nets_factory.get_network_fn(net_name, num_classes=num_classes, is_training=is_training)
+      logits, end_points = net_fn(image)
+      if 'PreLogitsFlatten' in end_points:
+        image_feature = end_points['PreLogitsFlatten']
+      elif 'PreLogits' in end_points:
+        net = end_points['PreLogits']
+        image_feature = slim.flatten(net, scope="flatten")
+      else:
+        raise ValueError('not found pre logits!')
+
+      #--below is the same for inception v3
+      # image_feature = melt.image.image_embedding.inception_v3(
+      #   image_feature,
+      #   trainable=trainable,
+      #   is_training=is_training,
+      #   reuse=reuse,
+      #   scope=scope)
+
+      #if not set this eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text) will fail
+      #but still need to set reuse for melt.image.image_embedding.inception_v3... confused.., anyway now works..
+      #with out reuse=True score = predictor.init_predict() will fail, resue_variables not work for it..
+      #trainer create function once use it second time(same function) work here(with scope.reuse_variables)
+      #predictor create another function, though seem same name same scope, but you need to set reuse=True again!
+      #even if use tf.make_template still need this..
+      scope.reuse_variables()
+      return image_feature
+
+    return construct_fn
 
 #TODO... not in affect... Still not very clear with make_template and create_scope_now_ (google/seq2seq set this True, default is False)
 # it is like above useing scope.reuse_variables() right after.. I suppose

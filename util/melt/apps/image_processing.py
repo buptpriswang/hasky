@@ -18,7 +18,10 @@ FLAGS = flags.FLAGS
 image_processing_fn = None
 
 import melt
-def init(image_model_name='InceptionV3'):
+def init(image_model_name='InceptionV3', slim_preprocessing=True):
   global image_processing_fn 
-  image_processing_fn = melt.image.create_image2feature_fn(image_model_name)
+  if not slim_preprocessing:
+  	image_processing_fn = melt.image.create_image2feature_fn(image_model_name)
+  else:
+		image_processing_fn = melt.image.create_image2feature_slim_fn(image_model_name)
   return image_processing_fn

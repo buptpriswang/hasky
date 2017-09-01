@@ -17,7 +17,7 @@ FLAGS = flags.FLAGS
 #--------- read data
 flags.DEFINE_integer('key_index', 0, '')
 flags.DEFINE_integer('val_index', -1, '')
-flags.DEFINE_integer('batch_size', 512, '')
+flags.DEFINE_integer('batch_size', 1, 'only decode image 1 is best, and cpu might be faster then gpu, just use multi core')
 flags.DEFINE_boolean('show_decode_error', False, '')
 flags.DEFINE_string('out', 'good_pics.pkl', '')
 flags.DEFINE_string('format', 'jpeg', '')
@@ -40,7 +40,10 @@ def build_graph(images, image_format='jpeg'):
       return tf.image.decode_bmp(image, channels=3)
     else:
       return tf.image.decode_image(image, channels=3)
-  return tf.map_fn(lambda img: process(img, image_format), images, dtype=tf.uint8)
+  if FLAGS.batch_size > 1:
+    return tf.map_fn(lambda img: process(img, image_format), images, dtype=tf.uint8)
+  else:
+    return process(image, image_format)
 
 def init():
   init_op = tf.group(tf.global_variables_initializer(),
@@ -50,13 +53,20 @@ def init():
 #TODO move imgs2features to ImageModel
 bad_imgs = []
 def deal_imgs(imgs, pics):
- try:
-   sess.run(op, feed_dict={images_feed: [urllib.unquote_plus(x) for x in imgs]})
-   return pics, imgs
- except Exception:
-   good_pics = []
-   good_imgs = []
-   for i, img in enumerate(imgs):
+  try:
+    sess.run(op, feed_dict={images_feed: [urllib.unquote_plus(x) for x in imgs]})
+    return pics, imgs
+  except Exception:
+    if len(imgs) == 1:
+      print('!Bad image:', pics[0], file=sys.stderr)
+      if FLAGS.show_decode_error:
+        print(traceback.format_exc(), file=sys.stderr)
+      bad_imgs.append(pics[0])
+      return [], []
+
+    good_pics = []
+    good_imgs = []
+    for i, img in enumerate(imgs):
      try:
        sess.run(op, feed_dict={images_feed : [urllib.unquote_plus(img)]})
        good_pics.append(pics[i])
@@ -66,7 +76,7 @@ def deal_imgs(imgs, pics):
        if FLAGS.show_decode_error:
          print(traceback.format_exc(), file=sys.stderr)
        bad_imgs.append(pics[i])
-   return good_pics, good_imgs
+    return good_pics, good_imgs
 #
 # def deal_imgs(imgs, pics):
 #   assert len(imgs) == len(pics)
@@ -109,13 +119,13 @@ def run():
     if len(imgs) == FLAGS.batch_size:
       write_features(imgs, pics)
       num_deal += len(pics)
-      print('convert: %d %f'%(num_deal, num_deal / len(all_pics)), file=sys.stderr)
+      #print('convert: %d %f'%(num_deal, num_deal / len(all_pics)), file=sys.stderr)
       imgs = []
       pics = []
   if imgs:
     write_features(imgs, pics)
     num_deal += len(pics)
-    print('convert: %d %f'%(num_deal, num_deal / len(all_pics)), file=sys.stderr)
+    #print('convert: %d %f'%(num_deal, num_deal / len(all_pics)), file=sys.stderr)
 
   print(bad_imgs, file=sys.stderr)
   print('All %d, Bad %d, BadRatio: %f'%(len(all_pics), len(bad_imgs), len(bad_imgs) / len(all_pics)), file=sys.stderr)
