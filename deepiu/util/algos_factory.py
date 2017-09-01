@@ -20,19 +20,19 @@ import tensorflow as tf
 import melt
 
 from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
-from deepiu.image_caption.algos.discriminant_predictor import DiscriminantPredictor
+from deepiu.image_caption.algos.discriminant_predictor import DiscriminantTrainer
 
 
 from deepiu.image_caption.algos.show_and_tell import ShowAndTell 
-from deepiu.image_caption.algos.show_and_tell_predictor import ShowAndTellPredictor
+from deepiu.image_caption.algos.show_and_tell_predictor import ShowAndTellTrainer
 
-from deepiu.textsum.algos.seq2seq import Seq2seq, Seq2seqPredictor
+from deepiu.textsum.algos.seq2seq import Seq2seq, Seq2seqTrainer
 
-from deepiu.imtxt2txt.algos.imtxt2txt import Imtxt2txt, Imtxt2txtPredictor
+from deepiu.imtxt2txt.algos.imtxt2txt import Imtxt2txt, Imtxt2txtTrainer
 
-from deepiu.textsim.algos.dual_textsim import DualTextsim, DualTextsimPredictor
+from deepiu.textsim.algos.dual_textsim import DualTextsim, DualTextsimTrainer
 
-from deepiu.textsim.algos.decomposable_nli import DecomposableNLI, DecomposableNLIPredictor
+from deepiu.textsim.algos.decomposable_nli import DecomposableNLI, DecomposableNLITrainer
 
 
 class Algos:
@@ -72,54 +72,42 @@ def is_discriminant(algo):
 def is_generative(algo):
   return AlgosTypeMap[algo] == AlgosType.generative
 
-#TODO this is c++ way, use yaxml python way pass BowPredictor.. like this directly
+#TODO this is c++ way, use yaxml python way pass BowTrainer.. like this directly
+#'cnn'.. parmas might remove? just as trainer, predictor normal params
+# --algo discriminant --encoder bow or --algo discriminant --encoder rnn
 def _gen_predictor(algo):
-  if algo == Algos.bow:
-    return DiscriminantPredictor('bow')
-  elif algo == Algos.rnn:
-    return DiscriminantPredictor('rnn')
-  elif algo == Algos.cnn:
-    return DiscriminantPredictor('cnn')
-  elif algo == Algos.show_and_tell:
-    return ShowAndTellPredictor()
-  elif algo == Algos.seq2seq:
-    return Seq2seqPredictor()
-  elif algo == Algos.imtxt2txt:
-    return Imtxt2txtPredictor()
-  elif algo == Algos.dual_bow:
-    return DualTextsimPredictor('bow')
-  elif algo == Algos.dual_rnn:
-    return DualTextsimPredictor('rnn')
-  elif algo == Algos.dual_cnn:
-    return DualTextsimPredictor('cnn')
-  elif algo == Algos.decomposable_nli:
-    return DecomposableNLIPredictor()
-  else:
+  predictor_map = {
+    Algos.bow: DiscriminantTrainer('bow'),
+    Algos.rnn: DiscriminantTrainer('rnn'),
+    Algos.cnn: DiscriminantTrainer('cnn'),
+    Algos.show_and_tell: ShowAndTellTrainer(), 
+    Algos.seq2seq: Seq2seqTrainer(), 
+    Algos.imtxt2txt: Imtxt2txtTrainer(), 
+    Algos.dual_bow: DualTextsimTrainer('bow'), 
+    Algos.dual_rnn: DualTextsimTrainer('rnn'), 
+    Algos.dual_cnn: DualTextsimTrainer('cnn'), 
+    Algos.decomposable_nli: DecomposableNLITrainer()
+  }
+  if algo not in predictor_map:
     raise ValueError('Unsupported algo %s'%algo) 
+  return predictor_map[algo]
 
 def _gen_trainer(algo):
-  if algo == Algos.bow:
-    return DiscriminantTrainer('bow')
-  elif algo == Algos.rnn:
-    return DiscriminantTrainer('rnn')
-  elif algo == Algos.cnn:
-    return DiscriminantTrainer('cnn')
-  elif algo == Algos.seq2seq:
-    return Seq2seq()
-  elif algo == Algos.show_and_tell:
-    return ShowAndTell()
-  elif algo == Algos.imtxt2txt:
-    return Imtxt2txt()
-  elif algo == Algos.dual_bow:
-    return DualTextsim('bow')
-  elif algo == Algos.dual_rnn:
-    return DualTextsim('rnn')
-  elif algo == Algos.dual_cnn:
-    return DualTextsim('cnn')
-  elif algo == Algos.decomposable_nli:
-    return DecomposableNLI()
-  else:
+  trainer_map = {
+    Algos.bow: DiscriminantTrainer('bow'),
+    Algos.rnn: DiscriminantTrainer('rnn'),
+    Algos.cnn: DiscriminantTrainer('cnn'),
+    Algos.show_and_tell: ShowAndTellTrainer(), 
+    Algos.seq2seq: Seq2seqTrainer(), 
+    Algos.imtxt2txt: Imtxt2txtTrainer(), 
+    Algos.dual_bow: DualTextsimTrainer('bow'), 
+    Algos.dual_rnn: DualTextsimTrainer('rnn'), 
+    Algos.dual_cnn: DualTextsimTrainer('cnn'), 
+    Algos.decomposable_nli: DecomposableNLITrainer()
+  }
+  if algo not in trainer_map:
     raise ValueError('Unsupported algo %s'%algo) 
+  return trainer_map[algo]
 
 #TODO use tf.make_template to remove "model_init" scope?
 def gen_predictor(algo, reuse=None):

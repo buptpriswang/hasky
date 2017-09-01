@@ -160,6 +160,20 @@ def distort_image(image):
 #       #this is unsafe, since might not be jpeg format will raise error in c++ code, unable to catch
 #       return gen_image_ops.decode_jpeg(contents, channels, try_recover_truncated=True, acceptable_fraction=10)
 
+def decode_image(contents, channels=3, image_format='jpeg'):
+  with tf.name_scope("decode", values=[contents]):
+    if image_format == "jpeg":
+      #---TODO this will cause hang.... try_recover_truncated=True, acceptable_fraction=10 will hang...
+      #image = tf.image.decode_jpeg(contents, channels=3, try_recover_truncated=True, acceptable_fraction=10)
+      image = tf.image.decode_jpeg(contents, channels=channels)
+    elif image_format == "png":
+      image = tf.image.decode_png(contents, channels=channels)
+    else:
+      #--why here will casue no size.. might for gif..., for safe just use image_format jpeg? TODO FIXME
+      image = tf.image.decode_image(contents, channels=3)
+
+    return image
+
 def process_image(encoded_image,
                   is_training,
                   height,
@@ -195,17 +209,7 @@ def process_image(encoded_image,
     tf.summary.image(name, tf.expand_dims(image, 0))
 
   # Decode image into a float32 Tensor of shape [?, ?, 3] with values in [0, 1).
-  with tf.name_scope("decode", values=[encoded_image]):
-    if image_format == "jpeg":
-      #---TODO this will cause hang.... try_recover_truncated=True, acceptable_fraction=10 will hang...
-      #image = tf.image.decode_jpeg(encoded_image, channels=3, try_recover_truncated=True, acceptable_fraction=10)
-      image = tf.image.decode_jpeg(encoded_image, channels=3)
-    elif image_format == "png":
-      image = tf.image.decode_png(encoded_image, channels=3)
-    else:
-      #--why here will casue no size.. might for gif..., for safe just use image_format jpeg? TODO FIXME
-      image = tf.image.decode_image(encoded_image, channels=3)
-
+  image = decode_image(encoded_image, channels=3, image_format=image_format)
   image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
   #TODO summary

@@ -105,8 +105,8 @@ def tf_train_flow(train_once_fn,
     keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0,
     var_list=var_list)
   
-  epoch_saver = tf.train.Saver(var_list=var_list)
-  best_epoch_saver = tf.train.Saver(max_to_keep=1000, var_list=var_list) 
+  epoch_saver = tf.train.Saver(var_list=var_list, max_to_keep=1000)
+  best_epoch_saver = tf.train.Saver(var_list=var_list) 
   
   #pre_step means the step last saved, train without pretrained,then -1
   pre_step = -1;

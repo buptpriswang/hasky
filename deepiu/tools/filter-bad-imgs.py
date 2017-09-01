@@ -5,7 +5,6 @@
 #          \date   2017-04-09 00:54:22.224729
 #   \Description  
 # ==============================================================================
-
   
 from __future__ import absolute_import
 from __future__ import division
@@ -18,77 +17,64 @@ FLAGS = flags.FLAGS
 #--------- read data
 flags.DEFINE_integer('key_index', 0, '')
 flags.DEFINE_integer('val_index', -1, '')
-flags.DEFINE_string('image_model_name', 'InceptionV3', '')
-flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
-flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
-flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
 flags.DEFINE_integer('batch_size', 512, '')
 flags.DEFINE_boolean('show_decode_error', False, '')
+flags.DEFINE_string('out', 'good_pics.pkl', '')
+flags.DEFINE_string('format', 'jpeg', '')
 
 import sys, os, glob, traceback
 import melt
-import urllib
-import numpy as np
+import urllib 
+
+import cPickle 
 
 sess = None
-images_feed =  tf.placeholder(tf.string, [None,], name='images')
-img2feautres_op = None
+op = None 
+images_feed = tf.placeholder(tf.string, [None,], name='images')
 
-def build_graph(images):
-  melt.apps.image_processing.init(FLAGS.image_model_name)
-  return melt.apps.image_processing.image_processing_fn(images,  
-                                                        height=FLAGS.image_height, 
-                                                        width=FLAGS.image_width)
+def build_graph(images, image_format='jpeg'):
+  def process(image, image_format):
+    if image_format == 'jpeg':
+      return tf.image.decode_jpeg(image, channels=3)
+    elif image_format == 'bmp':
+      return tf.image.decode_bmp(image, channels=3)
+    else:
+      return tf.image.decode_image(image, channels=3)
+  return tf.map_fn(lambda img: process(img, image_format), images, dtype=tf.uint8)
 
 def init():
   init_op = tf.group(tf.global_variables_initializer(),
                      tf.local_variables_initializer())
   sess.run(init_op)
-  #---load inception model check point file
-  init_fn = melt.image.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
-  init_fn(sess)
 
 #TODO move imgs2features to ImageModel
 bad_imgs = []
-
-#if fail one by one time:
-# All 5283, Bad 180, BadRatio: 0.034072
-# real  1m46.274s
-# user  2m12.868s
-# sys 0m8.713s
-# gezi@localhost:/data2/data/product/makeup/tb$ ^C
-# gezi@localhost:/data2/data/product/makeup/tb$ wc -l ./tb-pic-inceptionV3/part-00185
-# 5103 ./tb-pic-inceptionV3/part-00185
-
-def imgs2features(imgs, pics):
+def deal_imgs(imgs, pics):
  try:
-   return sess.run(img2feautres_op, feed_dict={images_feed: imgs}), pics
+   sess.run(op, feed_dict={images_feed: [urllib.unquote_plus(x) for x in imgs]})
+   return pics, imgs
  except Exception:
-   features = []
    good_pics = []
+   good_imgs = []
    for i, img in enumerate(imgs):
      try:
-       features.append(sess.run(img2feautres_op, feed_dict={images_feed : [img]})[0])
+       sess.run(op, feed_dict={images_feed : [urllib.unquote_plus(img)]})
        good_pics.append(pics[i])
+       good_imgs.append(imgs[i])
      except Exception:
-       print('!Bad image:', pics[i], file=sys.stderr)
+       print('!Bad image:', i,  pics[i], file=sys.stderr)
        if FLAGS.show_decode_error:
          print(traceback.format_exc(), file=sys.stderr)
        bad_imgs.append(pics[i])
-   return features, good_pics
-
-# # All 5283, Bad 180, BadRatio: 0.034072
-# # real  1m45.991s
-# # user  2m11.235s
-# # sys 0m8.862s
-
-# def imgs2features(imgs, pics):
+   return good_pics, good_imgs
+#
+# def deal_imgs(imgs, pics):
 #   assert len(imgs) == len(pics)
 #   if not imgs or not pics:
 #     return [], []
-
 #   try:
-#     return sess.run(img2feautres_op, feed_dict={images_feed: imgs}), pics
+#     sess.run(op, feed_dict={images_feed: imgs})
+#     return pics, imgs
 #   except Exception:
 #     if len(imgs) == 1: 
 #       bad_imgs.append(pics[0])
@@ -98,15 +84,16 @@ def imgs2features(imgs, pics):
 #       return [], []
 
 #     mid = int(len(imgs) / 2)
-#     lfeatures, lpics = imgs2features(imgs[:mid], pics[:mid])
-#     rfeatures, rpics = imgs2features(imgs[mid:], pics[mid:])
+#     lpics, limgs = deal_imgs(imgs[:mid], pics[:mid])
+#     rpics, rimgs = deal_imgs(imgs[mid:], pics[mid:])
 
-#     return np.array(list(lfeatures) + list(rfeatures)), lpics + rpics
+#     return lpics + rpics, limgs + rimgs 
+
 
 def write_features(imgs, pics):
-  img_features, pics = imgs2features(imgs, pics)
-  for pic, img_feature in zip(pics, img_features):
-    print(pic, '\x01'.join([str(x) for x in img_feature]), sep='\t')
+  pics, imgs = deal_imgs(imgs, pics)
+  for pic, img in zip(pics, imgs):
+    print(pic, img, sep='\t')
 
 def run():
   imgs = []
@@ -116,7 +103,7 @@ def run():
   for line in sys.stdin:
     l = line.strip().split('\t')
     pic, imgtext = l[FLAGS.key_index], l[FLAGS.val_index]
-    imgs.append(urllib.unquote_plus(imgtext))
+    imgs.append(imgtext)
     all_pics.append(pic)
     pics.append(pic)
     if len(imgs) == FLAGS.batch_size:
@@ -133,17 +120,15 @@ def run():
   print(bad_imgs, file=sys.stderr)
   print('All %d, Bad %d, BadRatio: %f'%(len(all_pics), len(bad_imgs), len(bad_imgs) / len(all_pics)), file=sys.stderr)
 
-
 def main(_):
-  global img2feautres_op 
-  img2feautres_op = build_graph(images_feed)
+  global op 
+  op = build_graph(images_feed, FLAGS.format)
 
   global sess
   sess = tf.Session()
   
   init()
   run()
-
 
 if __name__ == '__main__':
   tf.app.run()

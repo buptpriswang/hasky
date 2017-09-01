@@ -118,21 +118,24 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     return score
   
   def get_image_feature_feed(self):
-   if self.image_feature_feed is None:
-     if FLAGS.pre_calc_image_feature:
-      self.image_feature_feed = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
-     else:
-      self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
-   return self.image_feature_feed
+    if self.image_feature_feed is None:
+      if FLAGS.pre_calc_image_feature:
+        self.image_feature_feed = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
+      else:
+        self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
+      tf.add_to_collection('lfeed', self.image_feature_feed)
+    return self.image_feature_feed
 
   def get_text_feed(self, text_max_words=TEXT_MAX_WORDS):
     if self.text_feed is None:
       self.text_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text')
+      tf.add_to_collection('rfeed', self.text_feed)
     return self.text_feed
 
   def get_text2_feed(self, text_max_words=TEXT_MAX_WORDS):
     if self.text2_feed is None:
       self.text2_feed = tf.placeholder(tf.int32, [None, text_max_words], name='text2')
+      tf.add_to_collection('rfeed2', self.text2_feed)
     return self.text2_feed
 
   def fixed_text_predict(self, images):
