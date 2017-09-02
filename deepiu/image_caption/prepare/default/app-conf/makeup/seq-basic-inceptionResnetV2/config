@@ -1,4 +1,4 @@
-input_path=/home/gezi/new2/data/product/makeup/tb/tb-pic-name-feature-inceptionV3/
+input_path=/home/gezi/new2/data/product/makeup/tb/tb-pic-name-feature-inceptionResnetV2
 dir=/home/gezi/new/temp/image-caption/makeup/tfrecord/seq-basic/
 
 train_data_path=$input_path/train

@@ -43,7 +43,7 @@ def build_graph(images, image_format='jpeg'):
   if FLAGS.batch_size > 1:
     return tf.map_fn(lambda img: process(img, image_format), images, dtype=tf.uint8)
   else:
-    return process(image, image_format)
+    return process(images[0], image_format)
 
 def init():
   init_op = tf.group(tf.global_variables_initializer(),

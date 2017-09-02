@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/makeup/seq-basic
+conf_path=./prepare/default/app-conf/makeup/seq-basic-slim
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow
+model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow.slim
 mkdir -p $model_dir
 
 python ./train.py \
