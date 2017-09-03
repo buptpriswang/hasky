@@ -40,13 +40,13 @@ from tensorflow.python.ops import random_ops
 
 import tensorflow as tf
 
+import tensorflow.contrib.slim as slim
 #TODO must set PYTHON_PATH for models/slim
 from preprocessing import preprocessing_factory
 from nets import nets_factory
 #from melt.slim import base_nets_factory 
-import tensorflow.contrib.slim as slim
 import gezi
-
+  
 
 def read_image(image_path):
   with tf.gfile.FastGFile(image_path, "r") as f:

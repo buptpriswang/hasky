@@ -85,13 +85,12 @@ def gen_train_graph(input_app, input_results, trainer):
     main flow, key graph
   """
   #--- if you don't want to use mutli gpu, here just for safe(code same with old single gpu cod)
-  if FLAGS.num_gpus == 0:
-    loss = tower_loss(trainer, input_app, input_results)
-  else:
+  if FLAGS.num_gpus > 1 and FLAGS.use_tower_loss:
     loss_function = lambda: tower_loss(trainer)
     #here loss is a list of losses
     loss = melt.tower_losses(loss_function, FLAGS.num_gpus)
-    print('num tower losses:', len(loss))
+  else:
+    loss = tower_loss(trainer, input_app, input_results)
 
   ops = [loss]
   #--------mark train graph finished, all graph after must share variable from train graph
@@ -264,6 +263,9 @@ def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
 
+  if not FLAGS.num_gpus:
+    FLAGS.num_gpus = melt.get_num_gpus()
+    
   InputApp.init()
   vocabulary.init()
   text2ids.init()
@@ -273,7 +275,7 @@ def main(_):
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))
-  
+
   global global_scope
   if FLAGS.add_global_scope:
     global_scope = FLAGS.global_scope if FLAGS.global_scope else FLAGS.algo

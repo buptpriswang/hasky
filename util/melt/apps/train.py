@@ -63,6 +63,7 @@ flags.DEFINE_integer('monitor_level', 2, '1 will monitor emb, 2 will monitor gra
 flags.DEFINE_boolean('no_log', False, '')
 flags.DEFINE_string('mode', 'train', 'or predict')
 
+flags.DEFINE_boolean('use_tower_loss', True, '')
 #----------multi gpu
 flags.DEFINE_integer('num_gpus', 0, """How many GPUs to use. set 0 to disable multi gpu mode""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
@@ -77,6 +78,8 @@ from tensorflow.python import debug as tf_debug
 
 __pacage__ = None 
 from six.moves import xrange  # pylint: disable=redefined-builti
+import os
+
 import melt 
 
 #or from melt.utils import logging
@@ -134,7 +137,8 @@ def train_flow(ops,
   
   #batch size right now not define here, but in app code like input_app.py
   melt.set_global('batch_size', FLAGS.batch_size)
-  melt.set_global('num_gpus', max(FLAGS.num_gpus, 1))
+  num_gpus = FLAGS.num_gpus
+  melt.set_global('num_gpus', max(num_gpus, 1))
 
   #NOTICE since melt.__init__.py with from melt.flow import * then you can not 
   #use melt.flow.train.train_flow but you can always use
@@ -167,7 +171,7 @@ def train_flow(ops,
     learning_rate, learning_rate_decay_fn = gen_learning_rate()
     train_op = melt.layers.optimize_loss(
         losses=ops[0],
-        num_gpus=FLAGS.num_gpus,
+        num_gpus=num_gpus,
         global_step=None,
         learning_rate=learning_rate,
         optimizer=melt.util.get_optimizer(optimizer),

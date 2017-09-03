@@ -124,6 +124,9 @@ def gen_train_op_byname(loss, learning_rate, name='adagrad'):
 
 #TODO add name
 def tower_losses(loss_function, num_gpus=1, name=''):
+  if num_gpus <= 1:
+    return loss_function()
+
   tower_losses = []
   #with tf.variable_scope("OptimizeLoss"):
   for i in range(num_gpus):
@@ -135,6 +138,11 @@ def tower_losses(loss_function, num_gpus=1, name=''):
         tower_losses.append(loss)
   return tower_losses
 
+def get_num_gpus():
+  if 'CUDA_VISIBLE_DEVICES' in os.environ:
+    num_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
+    logging.info('CUDA_VISIBLE_DEVICES is %s'%(os.environ['CUDA_VISIBLE_DEVICES']))
+    return num_gpus
 
 rnn_cells = {
   'lstm' : tf.contrib.rnn.LSTMCell, #LSTMCell is faster then BasicLSTMCell

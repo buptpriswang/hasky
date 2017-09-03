@@ -24,7 +24,7 @@ from deepiu.util import text2ids
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord/seq-basic/train/vocab.txt', '')
+flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/makeup/tfrecord/seq-basic-inceptionResnetV2/vocab.txt', '')
 #flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 #flags.DEFINE_integer('num_epochs', 1, 'Number of epochs to run trainer.')
 
@@ -35,7 +35,7 @@ flags.DEFINE_string('vocab', '/home/gezi/new/temp/image-caption/keyword/tfrecord
 
 
 #TODO use input_flags.py
-flags.DEFINE_string('input', 'home/gezi/new/temp/image-caption/keyword/tfrecord/seq-basic/train/train-*', '')
+flags.DEFINE_string('input', '/home/gezi/new/temp/image-caption/makeup/tfrecord/seq-basic-inceptionResnetV2/valid/test*', '')
 #flags.DEFINE_string('name', 'train', 'records name')
 #flags.DEFINE_boolean('dynamic_batch_length', True, '')
 #flags.DEFINE_boolean('shuffle_then_decode', True, '')
@@ -66,6 +66,7 @@ def read_once(sess, step, ops, neg_ops=None):
     print('step:', step)
     print('duration:', read_once.timer.elapsed())
     print('image_name:', image_name[0])
+    print('image_feature_len:', len(image_feature[0]))
     print('text:', text[0])
     print('len(text)', len(text[0]))
     print(text2ids.ids2text(text[0]))

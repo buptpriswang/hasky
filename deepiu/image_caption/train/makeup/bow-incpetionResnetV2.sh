@@ -1,8 +1,8 @@
-conf_path=./prepare/default/app-conf/makeup/seq-basic
+conf_path=./prepare/default/app-conf/makeup/seq-basic-inceptionResnetV2
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow
+model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow.inceptionResnetV2
 mkdir -p $model_dir
 
 python ./train.py \
@@ -39,9 +39,9 @@ python ./train.py \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
   --save_interval_epochs 10 \
-  --num_epochs 1000 \
-  --num_metric_eval_examples 100 \
-  --metric_eval_batch_size 100 \
+  --num_epochs 2000 \
+  --num_metric_eval_examples 1000 \
+  --metric_eval_batch_size 1000 \
   --debug 0 \
   --num_negs 1 \
   --neg_left 0 \

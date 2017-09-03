@@ -11,6 +11,8 @@ python ./gen-records.py  \
   --output $train_output_path \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
+  --image_dir "$image_dir" \
+  --info_dir "$info_dir" \
   --name train \
   --np_save 0
 

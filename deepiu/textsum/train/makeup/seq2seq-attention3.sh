@@ -2,7 +2,7 @@ source ./prepare/default/config
 cp ./prepare/default/conf.py  .
 cp ./inputs/default/input.py .
 
-model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention2
+model_dir=/home/gezi/new/temp/makeup/title2name/model/seq2seq.attention3
 assistant_model_dir=/home/gezi/new/temp/makeup/title2name/model/bow
 mkdir -p $model_dir
 

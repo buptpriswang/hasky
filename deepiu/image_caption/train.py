@@ -102,13 +102,12 @@ def gen_train_graph(input_app, input_results, trainer):
     main flow, key graph
   """
   #--- if you don't want to use mutli gpu, here just for safe(code same with old single gpu cod)
-  if FLAGS.num_gpus == 0:
-    loss = tower_loss(trainer, input_app, input_results)
-  else:
+  if FLAGS.num_gpus > 1 and FLAGS.use_tower_loss:
     loss_function = lambda: tower_loss(trainer)
     #here loss is a list of losses
     loss = melt.tower_losses(loss_function, FLAGS.num_gpus)
-    print('num tower losses:', len(loss))
+  else:
+    loss = tower_loss(trainer, input_app, input_results)
 
   ops = [loss]
   #--------mark train graph finished, all graph after must share variable from train graph
@@ -348,6 +347,9 @@ def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
 
+  if not FLAGS.num_gpus:
+    FLAGS.num_gpus = melt.get_num_gpus()
+   
   if not FLAGS.pre_calc_image_feature:
     melt.apps.image_processing.init()
 
@@ -357,7 +359,7 @@ def main(_):
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))
-   
+
   global sess
   sess = melt.get_session(log_device_placement=FLAGS.log_device_placement)
 

@@ -23,18 +23,32 @@ class ImageDecoder(object):
     # TensorFlow ops for JPEG decoding.
     self._encoded = tf.placeholder(dtype=tf.string)
     self._decode_jpeg = tf.image.decode_jpeg(self._encoded, channels=3)
+    self._decode_bmp = tf.image.decode_bmp(self._encoded, channels=3)
     self._decode = tf.image.decode_image(self._encoded, channels=3)
 
+    self.num_imgs = 0
+    self.num_bad_imgs = 0
+
   def decode_jpeg(self, encoded_jpeg):
-    image = self._sess.run(self._decode_jpeg,
-                           feed_dict={self._encoded: encoded_jpeg})
-    assert len(image.shape) == 3
-    assert image.shape[2] == 3
+    try:
+      image = self._sess.run(self._decode_jpeg,
+                             feed_dict={self._encoded: encoded_jpeg})
+    except Exception:
+      image = None
     return image
 
-  def decode(self, encoded):
-    image = self._sess.run(self._decode,
-                           feed_dict={self._encoded: encoded})
-    assert len(image.shape) == 3
-    assert image.shape[2] == 3
+  def decode(self, encoded, image_format='jpeg'):
+    if image_format == 'jpeg':
+      decode_op = self._decode_jpeg
+    elif image_format == 'bmp':
+      decode_op = self._decode_bmp
+    else:
+      decode_op = self._decode
+    self.num_imgs += 1
+    try:
+      image = self._sess.run(decode_op,
+                             feed_dict={self._encoded: encoded})
+    except Exception:
+      image = None
+      self.num_bad_imgs += 1
     return image

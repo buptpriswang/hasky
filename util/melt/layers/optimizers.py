@@ -198,9 +198,16 @@ def optimize_loss(losses,
           #  variables = vars_.trainable_variables()
           # Compute gradients.
           loss = losses[i]
+          #print('------------',)
           #gradients = opt.compute_gradients(loss, variables)
           gradients = opt.compute_gradients(loss)
-          
+          #TODO FIXME might have None for example add another predictor to graph 
+          #[(None, <tf.Variable 'dual_bow/model_init/emb:0' shape=(29285, 256) dtype=float32_ref>), 
+          #(None, <tf.Variable 'dual_bow/main/dual_textsim/encode/text_mlp/linear/weights:0' shape=(256, 256) dtype=float32_ref>),
+          #(<tensorflow.python.framework.ops.IndexedSlices object at 0x1b72ff50>, <tf.Variable 'seq2seq/model_init/emb:0' shape=(29285, 256) dtype=float32_ref>)
+          #print('-------gradients1', gradients)
+          #--now hack use below, TODO why dual_bow.. in introduced when compute gradient of loss as seem not related my seq2seq loss?
+          gradients = [x for x in gradients if x[0] is not None]
           # Optionally add gradient noise.
           if gradient_noise_scale is not None:
             gradients = _add_scaled_noise_to_gradients(gradients, gradient_noise_scale)
@@ -211,6 +218,7 @@ def optimize_loss(losses,
           if clip_gradients is not None:
             gradients = _clip_gradients_by_norm(gradients, clip_gradients)
           
+          #print('-------gradients', gradients)
           tower_grads.append(gradients)
       
     # Add scalar summary for loss.

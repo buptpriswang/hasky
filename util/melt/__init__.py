@@ -34,5 +34,6 @@ import melt.rnn
 
 import melt.seq2seq 
 import melt.image  
+from melt.image import *
 
 import melt.losses 

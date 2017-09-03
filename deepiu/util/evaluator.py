@@ -18,8 +18,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('valid_resource_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/valid/', '')
 flags.DEFINE_string('image_url_prefix', 'D:\\data\\\image-caption\\flickr\\imgs\\', 'http://b.hiphotos.baidu.com/tuba/pic/item/')
-flags.DEFINE_string('image_dir', '/home/gezi/data/flickr/flickr30k-images/', 'input images dir')
-
+#--if use image dir already info in image_features
+#flags.DEFINE_string('image_dir', None, 'input images dir')
 #----------label fie dprecated
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
@@ -165,6 +165,15 @@ def get_bidrectional_lable_map_txt2im():
   return text2img
 
 def hack_image_features(image_features):
+  """
+  the hack is for textsim use ltext as image(similar), so hack for it
+  """
+  #first for real image but not dump feature, use original encoded image since big, we assume
+  #pre save binary pics and can refer to pic in disk by pic name and pic dir
+  assert len(image_features) > 0
+  if isinstance(image_features[0], np.string_):
+    #return np.array([melt.read_image(pic_path) for pic_path in image_features])
+    return image_features
   try:
     if len(image_features[0]) == IMAGE_FEATURE_LEN and len(image_features[1]) == IMAGE_FEATURE_LEN:
       return image_features 
@@ -412,9 +421,9 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
       img_str = img
       if img.startswith('http:') or img.startswith('D:'):
         img_str = '<p><a href={0} target=_blank><img src={0} height=200></a></p>'.format(img)
-      logging.info('obj:{} label:{}'.format(img_str, label_text))
+      logging.info('<P>obj:{} label:{}</P>'.format(img_str, label_text))
       for j in range(5):
-        logging.info('{} {} {} {}'.format(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]]))
+        logging.info('<P>{} {} {} {}</P>'.format(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]]))
 
     #notice only work for recall@ or precision@ not work for ndcg@, if ndcg@ must use all
     num_positions = min(num_texts, FLAGS.metric_topn)
@@ -436,7 +445,11 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
 
   _, img_features = get_image_names_and_features()
   # TODO gpu outofmem predict for showandtell
+  #---NOTICE this might be too much mem cost if image is original encoded binary not image feature
   img_features = img_features[:FLAGS.max_images]
+  if isinstance(img_features[0], np.string_):
+    assert(len(img_features) < 2000) #otherwise too big mem ..
+    img_features = [melt.read_image(pic_path) for pic_path in img_features]
   
   step = len(img_features)
   if FLAGS.metric_eval_images_size > 0 and FLAGS.metric_eval_images_size < step:
@@ -511,6 +524,8 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
         index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
       imgs = imgs[index]
       img_features = img_features[index]
+      if isinstance(img_features[0], np.string_):
+        img_features = [melt.read_image(pic_path) for pic_path in img_features]
 
     rank_metrics = gezi.rank_metrics.RecallMetrics()
 

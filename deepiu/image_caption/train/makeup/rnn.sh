@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/makeup/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow
+model_dir=/home/gezi/new/temp/image-caption/makeup/model/rnn
 mkdir -p $model_dir
 
 python ./train.py \
@@ -49,11 +49,14 @@ python ./train.py \
   --interval 100 \
   --feed_dict 0 \
   --margin 0.5 \
-  --algo bow \
+  --algo rnn \
+  --rnn_method bidirectional \
+  --rnn_output_method max \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
   --emb_dim 256 \
+  --rnn_hidden_size 256 \
   --hidden_size 1024 \
   --model_dir $model_dir \
   --num_records 0 \

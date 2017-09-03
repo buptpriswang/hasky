@@ -9,6 +9,8 @@ python ./gen-records.py  \
   --seg_method $online_seg_method \
   --np_save=1 \
   --feed_single $feed_single \
+  --image_dir "$image_dir" \
+  --info_dir "$info_dir" \
   --name test
 
 python ./gen-distinct-texts.py --dir=$valid_output_path --shuffle $shuffle_texts --max_texts $max_texts 

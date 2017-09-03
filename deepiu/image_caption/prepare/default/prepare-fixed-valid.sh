@@ -13,4 +13,6 @@ python ./gen-records.py \
   --num_max_records 10 \
   --num_max_input 1 \
   --feed_single $feed_single \
+  --image_dir "$image_dir" \
+  --info_dir "$info_dir" \
   --name test

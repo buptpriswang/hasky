@@ -23,6 +23,8 @@ flags.DEFINE_string('output_directory', '/home/gezi/new/temp/image_caption/keywo
                          'converted result')
 
 flags.DEFINE_string('input_directory', '/home/gezi/new/data/keyword/feature', '')
+flags.DEFINE_string('image_dir', None, '')
+flags.DEFINE_string('info_dir', None, '')
 flags.DEFINE_string('name', 'train', '')
 flags.DEFINE_integer('threads', 12, 'Number of threads for dealing')
 
@@ -49,6 +51,7 @@ import sys,os, glob
 import multiprocessing
 
 from multiprocessing import Process, Manager, Value, Pool
+import urllib
 
 import numpy as np
 import melt
@@ -59,9 +62,6 @@ from deepiu.util import text2ids
 
 import conf  
 from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK, IMAGE_FEATURE_LEN
-
-IDL4W_FEATURE_LEN = 1000
-INCEPTION_FEATURE_LEN = 2048
 
 print('ENCODE_UNK', ENCODE_UNK, file=sys.stderr)
 assert ENCODE_UNK == text2ids.ENCODE_UNK
@@ -109,6 +109,226 @@ def is_luanma(words, word_ids):
         return True 
   return False
 
+
+pic_info_map = {}
+def read_pic_info():
+  for file in glob.glob(FLAGS.info_dir + '/*'):
+    print(file, end='\r', file=sys.stderr)
+    for line in open(file):
+      pic, val = line.rstrip().split('\t')
+      pic_info_map[pic] = val 
+
+def deal_imgtextfile(file):
+  """
+  since img text or encoded img both big.. say for 2w pic will be 18G, while for image feature (23820, 2048) will only be 373M
+  this is not used much, only if you do not want to do metric evaluate(recall@1,... for images), and you do not want to 
+  convert and store image binaries from imatext(preprocess)
+  """
+  out_file = '{}/{}'.format(FLAGS.output_directory, '-'.join([FLAGS.name, file.split('/')[-1].split('-')[-1]]))
+  print('file:', file, 'out_file:', out_file, file=sys.stderr)
+  assert len(pic_info_map) > 0
+  with melt.tfrecords.Writer(out_file) as writer:
+    num = 0
+    for line in open(file):
+      if num % 1000 == 0:
+        print(num, file=sys.stderr)
+      
+      l = line.rstrip('\n').split('\t')
+      img = l[0]
+      
+      if img not in pic_info_map:
+        continue
+
+      img_text = l[-1]
+      encoded_image = urllib.unquote_plus(img_text)
+      
+      text_info = pic_info_map[img]
+      texts = text_info.split('\x01')
+
+      is_top_text = True
+      for text in texts:
+        if text.strip() == '':
+          print('empty line', line, file=sys.stderr)
+          continue
+
+        word_ids = _text2ids(text, TEXT_MAX_WORDS)
+        word_ids_length = len(word_ids)
+        if num % 10000 == 0:
+          print(img, text, word_ids, text2ids.ids2text(word_ids), file=sys.stderr)
+        if len(word_ids) == 0:
+          print('empy wordids!', file=sys.stderr)
+          print(img, text, word_ids, text2ids.ids2text(word_ids), file=sys.stderr)
+          continue 
+        #if is_luanma(words, word_ids):
+        #  print('luanma', img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)
+        #  continue 
+                  
+        word_ids = word_ids[:TEXT_MAX_WORDS]
+        if FLAGS.pad:
+          word_ids = gezi.pad(word_ids, TEXT_MAX_WORDS, 0)
+        if not FLAGS.write_sequence_example:
+          example = tf.train.Example(features=tf.train.Features(feature={
+            'image_name': melt.bytes_feature(img),
+            'image_data': melt.bytes_feature(encoded_image),
+            'text_str': melt.bytes_feature(text),
+            'text': melt.int64_feature(word_ids),
+            }))
+        else:
+          example = tf.train.SequenceExample(
+            context=melt.features(
+            {
+              'image_name': melt.bytes_feature(img),
+              'image_data': melt.bytes_feature(encoded_image),
+              'text_str': melt.bytes_feature(text),
+            }),
+            feature_lists=melt.feature_lists(
+            { 
+              'text': melt.int64_feature_list(word_ids)
+            }))
+        writer.write(example)
+      
+        #global counter, max_num_words, sum_words
+        with record_counter.get_lock():
+          record_counter.value += 1
+        if word_ids_length > max_num_words.value:
+          with max_num_words.get_lock():
+            max_num_words.value = word_ids_length
+        with sum_words.get_lock():
+          sum_words.value += word_ids_length
+        
+        if FLAGS.np_save:
+          assert FLAGS.threads == 1
+          gtexts.append(word_ids)
+          gtext_strs.append(text)
+          
+          #Depreciated not use image_labels
+          if img not in image_labels:
+            image_labels[img] = set()
+          image_labels[img].add(text)
+
+        if is_top_text:
+          is_top_text = False 
+          with image_counter.get_lock():
+            image_counter.value += 1
+
+          if FLAGS.np_save:
+            if img not in image_labels:
+              image_labels[img] = set()
+
+            image_names.append(img)
+            ##--well too big for encoded_image and so not consider evaluation?  TODO
+            #image_features.append(encoded_image)
+            if FLAGS.image_dir:
+              #actually save pic path instead of image feature
+              image_features.append(os.path.join(FLAGS.image_dir, img.replace('/', '_')))
+
+          if FLAGS.num_max_records > 0:
+            #if fixed valid only get one click for each image
+            break
+        
+      num += 1   
+      if num == FLAGS.num_max_records:
+        break
+
+def deal_file_with_imgdir(file):
+  out_file = '{}/{}'.format(FLAGS.output_directory, '-'.join([FLAGS.name, file.split('/')[-1].split('-')[-1]]))
+  print('file:', file, 'out_file:', out_file, file=sys.stderr)
+  with melt.tfrecords.Writer(out_file) as writer:
+    num = 0
+    for line in open(file):
+      if num % 1000 == 0:
+        print(num, file=sys.stderr)
+      
+      l = line.rstrip('\n').split('\t')
+      img = l[0]
+
+      texts = l[FLAGS.text_index].split('\x01')
+
+      image_path =  os.path.join(FLAGS.image_dir, img.replace('/', '_'))
+      encoded_image = melt.read_image(image_path)
+
+      is_top_text = True
+      for text in texts:
+        if text.strip() == '':
+          print('empty line', line, file=sys.stderr)
+          continue
+
+        word_ids = _text2ids(text, TEXT_MAX_WORDS)
+        word_ids_length = len(word_ids)
+        if num % 10000 == 0:
+          print(img, text, word_ids, text2ids.ids2text(word_ids), file=sys.stderr)
+        if len(word_ids) == 0:
+          print('empy wordids!', file=sys.stderr)
+          print(img, text, word_ids, text2ids.ids2text(word_ids), file=sys.stderr)
+          continue 
+        #if is_luanma(words, word_ids):
+        #  print('luanma', img, text, word_ids, text2ids.ids2text(word_ids), len(image_feature), file=sys.stderr)
+        #  continue 
+                  
+        word_ids = word_ids[:TEXT_MAX_WORDS]
+        if FLAGS.pad:
+          word_ids = gezi.pad(word_ids, TEXT_MAX_WORDS, 0)
+        if not FLAGS.write_sequence_example:
+          example = tf.train.Example(features=tf.train.Features(feature={
+            'image_name': melt.bytes_feature(img),
+            'image_data': melt.bytes_feature(encoded_image),
+            'text_str': melt.bytes_feature(text),
+            'text': melt.int64_feature(word_ids),
+            }))
+        else:
+          example = tf.train.SequenceExample(
+            context=melt.features(
+            {
+              'image_name': melt.bytes_feature(img),
+              'image_data': melt.bytes_feature(encoded_image),
+              'text_str': melt.bytes_feature(text),
+            }),
+            feature_lists=melt.feature_lists(
+            { 
+              'text': melt.int64_feature_list(word_ids)
+            }))
+        writer.write(example)
+      
+        #global counter, max_num_words, sum_words
+        with record_counter.get_lock():
+          record_counter.value += 1
+        if word_ids_length > max_num_words.value:
+          with max_num_words.get_lock():
+            max_num_words.value = word_ids_length
+        with sum_words.get_lock():
+          sum_words.value += word_ids_length
+        
+        if FLAGS.np_save:
+          assert FLAGS.threads == 1
+          gtexts.append(word_ids)
+          gtext_strs.append(text)
+          
+          #Depreciated not use image_labels
+          if img not in image_labels:
+            image_labels[img] = set()
+          image_labels[img].add(text)
+
+        if is_top_text:
+          is_top_text = False 
+          with image_counter.get_lock():
+            image_counter.value += 1
+
+          if FLAGS.np_save:
+            if img not in image_labels:
+              image_labels[img] = set()
+
+            image_names.append(img)
+            #actually save pic path instead of image feature
+            image_features.append(os.path.join(FLAGS.image_dir, img.replace('/', '_')))
+
+          if FLAGS.num_max_records > 0:
+            #if fixed valid only get one click for each image
+            break
+        
+      num += 1   
+      if num == FLAGS.num_max_records:
+        break
+
 def deal_file(file):
   out_file = '{}/{}'.format(FLAGS.output_directory, '-'.join([FLAGS.name, file.split('/')[-1].split('-')[-1]]))
   print('file:', file, 'out_file:', out_file, file=sys.stderr)
@@ -123,13 +343,10 @@ def deal_file(file):
 
       texts = l[FLAGS.text_index].split('\x01')
 
-      image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split('\x01')]
+      #image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split('\x01')]
       #image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split(' ')]
-      
-      #assert len(image_feature) == IMAGE_FEATURE_LEN, '%s %d'%(img, len(image_feature))
-      if len(image_feature) != IMAGE_FEATURE_LEN:
-        print('bad line check image_feature num: %d expect:%d'%(len(image_feature), IMAGE_FEATURE_LEN), file=sys.stderr)
-        continue
+      image_feature = [0.] * IMAGE_FEATURE_LEN
+      assert len(image_feature) == IMAGE_FEATURE_LEN, '%s %d'%(img, len(image_feature))
 
       is_top_text = True
       for text in texts:
@@ -137,8 +354,6 @@ def deal_file(file):
           print('empty line', line, file=sys.stderr)
           continue
 
-        #words = text2ids.Segmentor.Segment(text, FLAGS.seg_method)
-        #word_ids = text2ids.words2ids(words, feed_single=FLAGS.feed_single, allow_all_zero=True, pad=False)
         word_ids = _text2ids(text, TEXT_MAX_WORDS)
         word_ids_length = len(word_ids)
         if num % 10000 == 0:
@@ -221,18 +436,28 @@ def run():
 
   print(FLAGS.input_directory, len(files))
 
+  print('image_dir:', FLAGS.image_dir, 'info_dir:', FLAGS.info_dir)
+  if FLAGS.info_dir and os.path.exists(FLAGS.info_dir):
+    print('deal imgtextfile', file=sys.stderr)
+    deal_file_fn = deal_imgtextfile
+    read_pic_info()
+  elif FLAGS.image_dir and os.path.exists(FLAGS.image_dir):
+    print('deal file with imgdir', file=sys.stderr)
+    deal_file_fn = deal_file_with_imgdir
+  else:
+    print('noraml deal file', file=sys.stderr)
+    deal_file_fn = deal_file
+
   if FLAGS.threads > len(files):
     FLAGS.threads = len(files)
   if FLAGS.threads > 1:
     pool = multiprocessing.Pool(processes = FLAGS.threads)
-
-    pool.map(deal_file, files)
-
+    pool.map(deal_file_fn, files)
     pool.close()
     pool.join()
   else:
     for file in files:
-      deal_file(file)
+      deal_file_fn(file)
 
   num_images = image_counter.value
   print('num_images:', num_images)
