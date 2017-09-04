@@ -30,7 +30,7 @@ python ./train.py \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 128 \
+  --batch_size 32 \
   --eval_batch_size 200 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \

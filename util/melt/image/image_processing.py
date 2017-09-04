@@ -334,8 +334,12 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                      resize_width=346,
                      distort=True,
                      slim_preprocessing=True,
+                     weight_decay=0.00004,
                      image_format="jpeg",  #for safe just use decode_jpeg
                      reuse=None):
+      
+      logging.info('image model trainable:{}, is_training:{}'.format(trainable, is_training))
+
       #preprocess_image
       net_name = gezi.to_gnu_name(name)
       #well this is slightly slow and the result is differnt from im2txt inceptionV3 usage result, 
@@ -363,42 +367,59 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                                                   image_format=image_format), 
                                                   encoded_image,
                                                   dtype=tf.float32)
-      with tf.variable_scope(scope, reuse=reuse):
-        #actually final num class layer not used for image feature purpose, but since in check point train using 1001, for simplicity here set 1001
-        num_classes = 1001 
-        #TODO might modify to let scope be '' ?
-        net_fn = nets_factory.get_network_fn(net_name, num_classes=num_classes, is_training=is_training)
-        logits, end_points = net_fn(image)
-        if 'PreLogitsFlatten' in end_points:
-          image_feature = end_points['PreLogitsFlatten']
-        elif 'PreLogits' in end_points:
-          net = end_points['PreLogits']
-          image_feature = slim.flatten(net, scope="flatten")
-        else:
-          raise ValueError('not found pre logits!')
-        if not trainable:
-          image_feature = tf.stop_gradient(image_feature)
-        #--below is the same for inception v3
-        # image_feature = melt.image.image_embedding.inception_v3(
-        #   image_feature,
-        #   trainable=trainable,
-        #   is_training=is_training,
-        #   reuse=reuse,
-        #   scope=scope)
 
-        #if not set this eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text) will fail
-        #but still need to set reuse for melt.image.image_embedding.inception_v3... confused.., anyway now works..
-        #with out reuse=True score = predictor.init_predict() will fail, resue_variables not work for it..
-        #trainer create function once use it second time(same function) work here(with scope.reuse_variables)
-        #predictor create another function, though seem same name same scope, but you need to set reuse=True again!
-        #even if use tf.make_template still need this..
-        #got it see hasky/jupter/scope.ipynb, because train then  eval, use same fn() call again in eval scope.reuse_varaibbles() will in effect
-        #escape_fn3 = create_escape_construct_fn('XXX')
-        #escape_fn3()
-        #escape_fn3() #ok becasue scope.reuse_variables() here
-        #but for predictor escape_fn3 = create_escape_construct_fn('XXX') you call it again, then escape_fn3() will fail need reuse
+      #TODO like image_embedding.py add batch_norm ? fully understand!
+      is_image_model_training = trainable and is_training
+      if trainable:
+        weights_regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
+      else:
+        weights_regularizer = None
+
+      with tf.variable_scope(scope, reuse=reuse):
+        with slim.arg_scope(
+          [slim.conv2d, slim.fully_connected],
+          weights_regularizer=weights_regularizer,
+          trainable=trainable): #should this be faster then stop_gradient?
+      
+          #actually final num class layer not used for image feature purpose, but since in check point train using 1001, for simplicity here set 1001
+          num_classes = 1001 
+          #TODO might modify to let scope be '' ?
+          net_fn = nets_factory.get_network_fn(net_name, num_classes=num_classes, is_training=is_image_model_training)
+          logits, end_points = net_fn(image)
+          if 'PreLogitsFlatten' in end_points:
+            image_feature = end_points['PreLogitsFlatten']
+          elif 'PreLogits' in end_points:
+            net = end_points['PreLogits']
+            image_feature = slim.flatten(net, scope="flatten")
+          else:
+            raise ValueError('not found pre logits!')
+          #TODO check is it really ok? not finetune? seems still slow as im2txt it should be much faster then fintune.. FIXME?
+          #TODO other method set not trainable, need to modify slim get_network_fn ?
+          # if not trainable:
+          #   image_feature = tf.stop_gradient(image_feature)  
+
+
+          #--below is the same for inception v3
+          # image_feature = melt.image.image_embedding.inception_v3(
+          #   image_feature,
+          #   trainable=trainable,
+          #   is_training=is_training,
+          #   reuse=reuse,
+          #   scope=scope)
+
+          #if not set this eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text) will fail
+          #but still need to set reuse for melt.image.image_embedding.inception_v3... confused.., anyway now works..
+          #with out reuse=True score = predictor.init_predict() will fail, resue_variables not work for it..
+          #trainer create function once use it second time(same function) work here(with scope.reuse_variables)
+          #predictor create another function, though seem same name same scope, but you need to set reuse=True again!
+          #even if use tf.make_template still need this..
+          #got it see hasky/jupter/scope.ipynb, because train then  eval, use same fn() call again in eval scope.reuse_varaibbles() will in effect
+          #escape_fn3 = create_escape_construct_fn('XXX')
+          #escape_fn3()
+          #escape_fn3() #ok becasue scope.reuse_variables() here
+          #but for predictor escape_fn3 = create_escape_construct_fn('XXX') you call it again, then escape_fn3() will fail need reuse
+
         scope.reuse_variables()
-      #scope.reuse_variables()
       return image_feature
 
     return construct_fn
