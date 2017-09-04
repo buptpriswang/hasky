@@ -525,7 +525,7 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
       imgs = imgs[index]
       img_features = img_features[index]
       if isinstance(img_features[0], np.string_):
-        img_features = [melt.read_image(pic_path) for pic_path in img_features]
+        img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])
 
     rank_metrics = gezi.rank_metrics.RecallMetrics()
 

@@ -122,11 +122,10 @@ def gen_train_op_byname(loss, learning_rate, name='adagrad'):
   train_op = optimizer(learning_rate).minimize(loss)  
   return train_op  
 
-#TODO add name
+#TODO add name, notice if num_gpus=1 is same as num_gpus=0
+#but for num_gpus=0 we will not consider multi gpu mode
+#so num_gpus=1 will not use much, just for mlti gpu test purpose
 def tower_losses(loss_function, num_gpus=1, name=''):
-  if num_gpus <= 1:
-    return loss_function()
-
   tower_losses = []
   #with tf.variable_scope("OptimizeLoss"):
   for i in range(num_gpus):

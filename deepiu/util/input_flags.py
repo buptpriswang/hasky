@@ -104,11 +104,18 @@ flags.DEFINE_string('decode_str_name', 'text_str', '')
 
 #--------for image caption  TODO move to image_caption/input.py ?
 flags.DEFINE_boolean('pre_calc_image_feature', True, '')
+flags.DEFINE_string('image_checkpoint_file', None, '''None means image model from scratch or not use image model 
+                                                      /home/gezi/data/inceptionv3/inception_v3.ckpt''')
+flags.DEFINE_string('finetune_image_model', True, '''by default will be finetune otherwise
+                                                   why not pre calc image feature much faster
+                                                   but we also support''')
+                                                   
 flags.DEFINE_boolean('distort_image', False, '')
 flags.DEFINE_string('image_model_name', 'InceptionV3', '')
 flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
 flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
-flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
+
+                                                  
 #---in melt.apps.image_processing.py
 #flags.DEFINE_string('image_model_name', 'InceptionV3', '')
 flags.DEFINE_string('one_image', '/home/gezi/data/flickr/flickr30k-images/1000092795.jpg', '')

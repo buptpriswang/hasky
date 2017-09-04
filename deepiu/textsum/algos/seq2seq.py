@@ -54,11 +54,6 @@ class Seq2seq(object):
     assert FLAGS.add_text_start is True 
     assert self.decoder.start_id is not None
 
-  def finish_train(self):
-    self.is_training = False
-    self.decoder.is_training = False
-    self.is_evaluate = not self.is_predict
-
   def build_graph(self, input_text, text, 
                   exact_prob=False, exact_loss=False):
     """

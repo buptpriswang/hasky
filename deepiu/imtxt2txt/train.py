@@ -69,9 +69,6 @@ def gen_train_graph(input_app, input_results, trainer):
     print('num tower losses:', len(loss))
 
   ops = [loss]
-  #--------mark train graph finished, all graph after must share variable from train graph
-  #melt.reuse_variables()
-  trainer.is_training = False
     
   deal_debug_results = None
 
@@ -174,12 +171,15 @@ def gen_predict_graph(predictor):
 
   return beam_text, beam_text_score
 
-#step = 0
-def train_process(trainer, predictor=None):
+def train():
   input_app = InputApp.InputApp()
   input_results = input_app.gen_input()
 
   with tf.variable_scope(FLAGS.main_scope) as scope:
+    trainer, predictor =  algos_factory.gen_trainer_and_predictor(FLAGS.algo)
+    logging.info('trainer:{}'.format(trainer))
+    logging.info('predictor:{}'.format(predictor))
+    
     ops, gen_feed_dict, deal_results = gen_train(
       input_app, 
       input_results, 
@@ -189,6 +189,7 @@ def train_process(trainer, predictor=None):
     if predictor is not None and FLAGS.gen_predict:
       beam_text, beam_text_score = gen_predict_graph(predictor)
 
+    algos_factory.set_eval_mode(trainer)
     eval_ops, gen_eval_feed_dict, deal_eval_results = gen_validate(
       input_app, 
       input_results, 
@@ -201,27 +202,19 @@ def train_process(trainer, predictor=None):
       if not algos_factory.is_generative(FLAGS.algo): 
         metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
 
-  if FLAGS.mode == 'train':
-    melt.print_global_varaiables()
-    melt.apps.train_flow(ops, 
-                         gen_feed_dict_fn=gen_feed_dict,
-                         deal_results_fn=deal_results,
-                         eval_ops=eval_ops,
-                         gen_eval_feed_dict_fn=gen_eval_feed_dict,
-                         deal_eval_results_fn=deal_eval_results,
-                         optimizer=FLAGS.optimizer,
-                         learning_rate=FLAGS.learning_rate,
-                         num_steps_per_epoch=input_app.num_steps_per_epoch,
-                         model_dir=FLAGS.model_dir,
-                         metric_eval_fn=metric_eval_fn,
-                         sess=sess)#notice if use melt.constant in predictor then must pass sess
-
-def train():
-  trainer, predictor =  algos_factory.gen_trainer_and_predictor(FLAGS.algo)
-
-  logging.info('trainer:{}'.format(trainer))
-  logging.info('predictor:{}'.format(predictor))
-  train_process(trainer, predictor)
+  melt.print_global_varaiables()
+  melt.apps.train_flow(ops, 
+                       gen_feed_dict_fn=gen_feed_dict,
+                       deal_results_fn=deal_results,
+                       eval_ops=eval_ops,
+                       gen_eval_feed_dict_fn=gen_eval_feed_dict,
+                       deal_eval_results_fn=deal_eval_results,
+                       optimizer=FLAGS.optimizer,
+                       learning_rate=FLAGS.learning_rate,
+                       num_steps_per_epoch=input_app.num_steps_per_epoch,
+                       model_dir=FLAGS.model_dir,
+                       metric_eval_fn=metric_eval_fn,
+                       sess=sess)#notice if use melt.constant in predictor then must pass sess
 
 def main(_):
   #-----------init global resource

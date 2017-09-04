@@ -165,10 +165,13 @@ def train_once(sess,
         batch_size = melt.batch_size()
         num_gpus = melt.num_gpus()
         instances_per_second = interval_steps * batch_size * num_gpus / elapsed
-        if num_gpus == 1:
-          info.write('elapsed:[{:.3f}] batch_size:[{}] batches/s:[{:.2f}] insts/s:[{:.2f}] '.format(elapsed, batch_size, steps_per_second, instances_per_second))
+        gpu_info = '' if num_gpus <= 1 else ' gpus:[{}]'.format(num_gpus)
+        if num_steps_per_epoch is None:
+          epoch_time_info = ''
         else:
-          info.write('elapsed:[{:.3f}] batch_size:[{}] gpus:[{}], batches/s:[{:.2f}] insts/s:[{:.2f}] '.format(elapsed, batch_size, num_gpus, steps_per_second, instances_per_second))
+          epoch_time_info = ' 1epoch:[{:.1f}h]'.format(num_steps_per_epoch / interval_steps * elapsed / 3600)
+        info.write('elapsed:[{:.3f}] batch_size:[{}]{} batches/s:[{:.2f}] insts/s:[{:.2f}] {} '.format(
+                      elapsed, batch_size, gpu_info, steps_per_second, instances_per_second, epoch_time_info))
 
       if print_avg_loss:
         #info.write('train_avg_metrics:{} '.format(melt.value_name_list_str(train_average_loss, names)))

@@ -45,6 +45,7 @@ def _decode(example, parse):
     image_feature = features[FLAGS.image_feature_name]
   else:
     image_feature = features['image_data']
+    image_feature = tf.expand_dims(image_feature, -1)
 
   text_str = features[FLAGS.decode_str_name]
   
@@ -82,6 +83,8 @@ def decode_sequence_example(example):
     image_feature = features[FLAGS.image_feature_name]
   else:
     image_feature = features['image_data']
+    #to [batch_size, 1]
+    image_feature = tf.expand_dims(image_feature, -1)
   text_str = features[FLAGS.decode_str_name]
 
   text = sequence_features[FLAGS.decode_name]

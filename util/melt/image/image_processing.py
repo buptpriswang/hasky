@@ -46,19 +46,28 @@ from preprocessing import preprocessing_factory
 from nets import nets_factory
 #from melt.slim import base_nets_factory 
 import gezi
+from melt import logging
   
-
 def read_image(image_path):
   with tf.gfile.FastGFile(image_path, "r") as f:
     encoded_image = f.read()
   return encoded_image
 
 def create_image_model_init_fn(image_model_name, image_checkpoint_file):
-  inception_variables = tf.get_collection(
+  #print(tf.all_variables())
+  #print(tf.get_default_graph().get_all_collection_keys())
+  variables_to_restore = tf.get_collection(
     tf.GraphKeys.GLOBAL_VARIABLES, scope=image_model_name)
-  saver = tf.train.Saver(inception_variables)
+
+  # # #TODO just hack right now, we must use another like InceptionV3 to construct InceptionV3/InceptionV3c
+  # #not for escaple scope, can just with scope('') but for reuse.. when predict TODO..
+  # def name_in_checkpoint(var):
+  #   return var.op.name.replace('/' + image_model_name, '')
+  # variables_to_restore = {name_in_checkpoint(var):var for var in variables_to_restore}
+
+  saver = tf.train.Saver(variables_to_restore)
   def restore_fn(sess):
-    tf.logging.info("Restoring image variables from checkpoint file %s",
+    logging.info("Restoring image variables from checkpoint file %s",
                         image_checkpoint_file)
     saver.restore(sess, image_checkpoint_file)
   return restore_fn
@@ -256,7 +265,10 @@ import melt
 #----------mainly for escape scope TODO is there bette method exists?
 #TODO allow using other models like vgg
 def create_image2feature_fn(name='InceptionV3'):
-  #NOTICE how this method solve run/ scope problem, scope must before def
+  """
+  will be depreciated just use create_image2feature_slim_fn 
+  """
+  #NOTICE how this method solve run/ scope problem, scope must before def, learn this from melt.seq2seq.attention_decoder_fn.py
   with tf.variable_scope(name) as scope:
     def construct_fn(encoded_image, 
                      height, 
@@ -308,11 +320,15 @@ def create_image2feature_slim_fn(name='InceptionV3'):
     using slim util to create image feature
     You need to set PythonPath to include models/slim or install it if using on hdfs run TODO check
   """
+  #TODO '' can not work to be used as to escope scope ..., so if want to escape and call this function 
+  #anywher need to modify slim code to let slim code with scope None '' instead of name here like InceptionV3 
+  #HACK add another socpe.. to escape.. see hasky/jupter/scope.ipynb
   with tf.variable_scope('') as scope:
+  #with tf.variable_scope(name) as scope: #name will be set in slim nets
     def construct_fn(encoded_image, 
                      height, 
                      width, 
-                     trainable=False,
+                     trainable=True,  #by default is trainable, if not you can just use preprocess 
                      is_training=False,
                      resize_height=346,
                      resize_width=346,
@@ -320,7 +336,6 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                      slim_preprocessing=True,
                      image_format="jpeg",  #for safe just use decode_jpeg
                      reuse=None):
-
       #preprocess_image
       net_name = gezi.to_gnu_name(name)
       #well this is slightly slow and the result is differnt from im2txt inceptionV3 usage result, 
@@ -332,6 +347,8 @@ def create_image2feature_slim_fn(name='InceptionV3'):
       #one thing intersting is use 2 tf.map_fn(1 decode image, 1 preprocess) will be much slower then use 1 tf.map_fn (decode image+ preprocess)
       if slim_preprocessing:
         preprocessing_fn = preprocessing_factory.get_preprocessing(net_name, is_training=(is_training and distort))
+        #allow [batch_size, 1] as input
+        encoded_image = tf.squeeze(encoded_image)
         image = tf.map_fn(lambda img: preprocessing_fn(decode_image(img, image_format=image_format, dtype=tf.float32), height, width),
                           encoded_image, dtype=tf.float32)
       else:
@@ -344,36 +361,44 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                                                   resize_width=resize_width,
                                                   distort=distort,
                                                   image_format=image_format), 
-                                encoded_image,
-                                dtype=tf.float32)
+                                                  encoded_image,
+                                                  dtype=tf.float32)
+      with tf.variable_scope(scope, reuse=reuse):
+        #actually final num class layer not used for image feature purpose, but since in check point train using 1001, for simplicity here set 1001
+        num_classes = 1001 
+        #TODO might modify to let scope be '' ?
+        net_fn = nets_factory.get_network_fn(net_name, num_classes=num_classes, is_training=is_training)
+        logits, end_points = net_fn(image)
+        if 'PreLogitsFlatten' in end_points:
+          image_feature = end_points['PreLogitsFlatten']
+        elif 'PreLogits' in end_points:
+          net = end_points['PreLogits']
+          image_feature = slim.flatten(net, scope="flatten")
+        else:
+          raise ValueError('not found pre logits!')
+        if not trainable:
+          image_feature = tf.stop_gradient(image_feature)
+        #--below is the same for inception v3
+        # image_feature = melt.image.image_embedding.inception_v3(
+        #   image_feature,
+        #   trainable=trainable,
+        #   is_training=is_training,
+        #   reuse=reuse,
+        #   scope=scope)
 
-      #actually final num class layer not used for image feature purpose, but since in check point train using 1001, for simplicity here set 1001
-      num_classes = 1001 
-      net_fn = nets_factory.get_network_fn(net_name, num_classes=num_classes, is_training=is_training)
-      logits, end_points = net_fn(image)
-      if 'PreLogitsFlatten' in end_points:
-        image_feature = end_points['PreLogitsFlatten']
-      elif 'PreLogits' in end_points:
-        net = end_points['PreLogits']
-        image_feature = slim.flatten(net, scope="flatten")
-      else:
-        raise ValueError('not found pre logits!')
-
-      #--below is the same for inception v3
-      # image_feature = melt.image.image_embedding.inception_v3(
-      #   image_feature,
-      #   trainable=trainable,
-      #   is_training=is_training,
-      #   reuse=reuse,
-      #   scope=scope)
-
-      #if not set this eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text) will fail
-      #but still need to set reuse for melt.image.image_embedding.inception_v3... confused.., anyway now works..
-      #with out reuse=True score = predictor.init_predict() will fail, resue_variables not work for it..
-      #trainer create function once use it second time(same function) work here(with scope.reuse_variables)
-      #predictor create another function, though seem same name same scope, but you need to set reuse=True again!
-      #even if use tf.make_template still need this..
-      scope.reuse_variables()
+        #if not set this eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_text) will fail
+        #but still need to set reuse for melt.image.image_embedding.inception_v3... confused.., anyway now works..
+        #with out reuse=True score = predictor.init_predict() will fail, resue_variables not work for it..
+        #trainer create function once use it second time(same function) work here(with scope.reuse_variables)
+        #predictor create another function, though seem same name same scope, but you need to set reuse=True again!
+        #even if use tf.make_template still need this..
+        #got it see hasky/jupter/scope.ipynb, because train then  eval, use same fn() call again in eval scope.reuse_varaibbles() will in effect
+        #escape_fn3 = create_escape_construct_fn('XXX')
+        #escape_fn3()
+        #escape_fn3() #ok becasue scope.reuse_variables() here
+        #but for predictor escape_fn3 = create_escape_construct_fn('XXX') you call it again, then escape_fn3() will fail need reuse
+        scope.reuse_variables()
+      #scope.reuse_variables()
       return image_feature
 
     return construct_fn

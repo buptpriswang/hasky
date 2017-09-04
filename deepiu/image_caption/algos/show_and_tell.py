@@ -102,10 +102,6 @@ class ShowAndTell(object):
                                                 height=FLAGS.image_height, 
                                                 width=FLAGS.image_width)
 
-  def finish_train(self):
-    self.is_training = False
-    self.decoder.is_training = False
-    self.is_evaluate = not self.is_predict
 
   def feed_ops(self):
     """

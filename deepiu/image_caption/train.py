@@ -44,7 +44,7 @@ flags.DEFINE_string('vocab', '/tmp/train/vocab.bin', 'vocabulary binary file')
 
 flags.DEFINE_boolean('debug', False, '')
 
-import sys
+import sys, os
 import functools
 import gezi
 import melt
@@ -110,12 +110,6 @@ def gen_train_graph(input_app, input_results, trainer):
     loss = tower_loss(trainer, input_app, input_results)
 
   ops = [loss]
-  #--------mark train graph finished, all graph after must share variable from train graph
-  #melt.reuse_variables()
-  try:
-    trainer.finish_train()
-  except Exception:
-    trainer.is_training = False
     
   deal_debug_results = None
   if FLAGS.debug == True:
@@ -280,11 +274,15 @@ def gen_predict_graph(predictor):
     tf.add_to_collection('beam_text_score', beam_text_score)
 
 #step = 0
-def train_process(trainer, predictor=None):
+def train():
   input_app = InputApp.InputApp()
   input_results = input_app.gen_input()
 
   with tf.variable_scope(FLAGS.main_scope) as scope:
+    trainer, predictor = algos_factory.gen_trainer_and_predictor(FLAGS.algo)
+    logging.info('trainer:{}'.format(trainer))
+    logging.info('predictor:{}'.format(predictor))
+
     ops, gen_feed_dict, deal_results = gen_train(
      input_app, 
      input_results, 
@@ -296,6 +294,10 @@ def train_process(trainer, predictor=None):
     #also used in gen validate if you want to use direclty predict as evaluate per epoch
     if predictor is not None and FLAGS.gen_predict:
      gen_predict_graph(predictor)
+
+    
+    algos_factory.set_eval_mode(trainer)
+    #print([x for x in tf.global_variables() if not x.op.name.startswith('Inception')])
 
     eval_ops, gen_eval_feed_dict, deal_eval_results = gen_validate(
       input_app, 
@@ -311,17 +313,15 @@ def train_process(trainer, predictor=None):
 
   init_fn = None
   summary_excls = None
-  if not FLAGS.pre_calc_image_feature:
-    init_fn = melt.image.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
-
+  if not FLAGS.pre_calc_image_feature and FLAGS.image_checkpoint_file and os.path.exists(FLAGS.image_checkpoint_file):
+    init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
     if predictor is not None and FLAGS.gen_predict:
       #need to excl InceptionV3 summarys why inceptionV3 op might need image_feature_feed if gen_predict
       #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: [melt.image.read_image(FLAGS.one_image)]}
       #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: ['']}
       summary_excls = [FLAGS.image_model_name]
 
-
-  melt.print_global_varaiables()
+  #melt.print_global_varaiables()
   melt.apps.train_flow(ops, 
                        gen_feed_dict_fn=gen_feed_dict,
                        deal_results_fn=deal_results,
@@ -337,12 +337,6 @@ def train_process(trainer, predictor=None):
                        init_fn=init_fn,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
   
-def train():
-  trainer, predictor =  algos_factory.gen_trainer_and_predictor(FLAGS.algo)
-  logging.info('trainer:{}'.format(trainer))
-  logging.info('predictor:{}'.format(predictor))
-  train_process(trainer, predictor)
-  
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
@@ -351,7 +345,7 @@ def main(_):
     FLAGS.num_gpus = melt.get_num_gpus()
    
   if not FLAGS.pre_calc_image_feature:
-    melt.apps.image_processing.init()
+    melt.apps.image_processing.init(FLAGS.image_model_name)
 
   vocabulary.init()
   text2ids.init()

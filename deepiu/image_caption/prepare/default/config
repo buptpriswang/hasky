@@ -1,7 +1,11 @@
-#input_path=/home/gezi/new2/data/product/makeup/tb-pic-name-feature-inceptionV3/
-#input_path=/home/gezi/new2/data/product/makeup/tb-pic-name-reduced-arranged
-input_path=/home/gezi/new2/data/product/makeup/tb-pic-name-nofeature
-dir=/home/gezi/new/temp/image-caption/makeup/tfrecord/seq-basic/
+input_path=/home/gezi/new2/data/product/makeup/tb-pic-name-reduced-arranged 
+dir=/home/gezi/new/temp/image-caption/makeup/tfrecord/seq-basic-finetune
+#info_dir=/home/gezi/new2/data/product/makeup/tb-pic-name
+
+##for gen vocab, if not set will try use info_dir if still not set use train_data_path
+#text_dir=/home/gezi/new2/data/product/makeup/tb-pic-name-reduced-arranged/train/
+
+image_dir=/home/gezi/new2/data/product/makeup/tb-pics-small
 
 train_data_path=$input_path/train
 valid_data_path=$input_path/valid

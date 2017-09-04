@@ -36,10 +36,11 @@ images_feed =  tf.placeholder(tf.string, [None,], name='images')
 img2feautres_op = None
 
 def build_graph(images):
-  melt.apps.image_processing.init(FLAGS.image_model_name, slim_preprocessing=FLAGS.slim_preprocessing)
+  melt.apps.image_processing.init(FLAGS.image_model_name)
   return melt.apps.image_processing.image_processing_fn(images,  
                                                         height=FLAGS.image_height, 
-                                                        width=FLAGS.image_width)
+                                                        width=FLAGS.image_width,
+                                                        slim_preprocessing=FLAGS.slim_preprocessing)
 
 def init():
   init_op = tf.group(tf.global_variables_initializer(),

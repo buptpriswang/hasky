@@ -449,18 +449,18 @@ def _create_attention_construct_fn(name, num_units, attention_score_fn, reuse):
   """
   with variable_scope.variable_scope(name, reuse=reuse) as scope:
     def construct_fn(attention_query, attention_keys, attention_values):
-        context, scores, alignments = attention_score_fn(attention_query, attention_keys,
-                                     attention_values)
-        concat_input = array_ops.concat([attention_query, context], 1)
-        #NOTICE! here pass scope which is outside construct_fn func! so always not affected by using env scope, be like
-        #seq2seq/main/decode/attention_construct/weights in rnn_decoder.py not seq2seq/main/decode/rnn/loop_function/weights in beam_decoder.py
-        attention = layers.linear(
-            concat_input, num_units, biases_initializer=None, scope=scope)
-        #add this to make it safe using in loop, if only used in dynamic decode do not need this since only call above linear once
-        #this kind of witting then add reuse seems safe and elegant 
-        #http://stackoverflow.com/questions/38545362/tensorflow-variable-scope-reuse-if-variable-exists
-        scope.reuse_variables()
-        return attention, scores, alignments
+      context, scores, alignments = attention_score_fn(attention_query, attention_keys,
+                                   attention_values)
+      concat_input = array_ops.concat([attention_query, context], 1)
+      #NOTICE! here pass scope which is outside construct_fn func! so always not affected by using env scope, be like
+      #seq2seq/main/decode/attention_construct/weights in rnn_decoder.py not seq2seq/main/decode/rnn/loop_function/weights in beam_decoder.py
+      attention = layers.linear(
+          concat_input, num_units, biases_initializer=None, scope=scope)
+      #add this to make it safe using in loop, if only used in dynamic decode do not need this since only call above linear once
+      #this kind of witting then add reuse seems safe and elegant 
+      #http://stackoverflow.com/questions/38545362/tensorflow-variable-scope-reuse-if-variable-exists
+      scope.reuse_variables()
+      return attention, scores, alignments
 
     return construct_fn
 

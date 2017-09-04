@@ -71,8 +71,8 @@ class DiscriminantTrainer(object):
       assert melt.apps.image_processing.image_processing_fn is not None, 'forget melt.apps.image_processing.init()'
       self.image_process_fn = functools.partial(melt.apps.image_processing.image_processing_fn,
                                                 height=FLAGS.image_height, 
-                                                width=FLAGS.image_width)
-
+                                                width=FLAGS.image_width,
+                                                trainable=(is_training and FLAGS.finetune_image_model))  
 
     self.image_mlp_dims = [int(x) for x in FLAGS.image_mlp_dims.split(',')] if FLAGS.image_mlp_dims is not '0' else None
     self.text_mlp_dims = [int(x) for x in FLAGS.text_mlp_dims.split(',')] if FLAGS.text_mlp_dims is not '0' else None

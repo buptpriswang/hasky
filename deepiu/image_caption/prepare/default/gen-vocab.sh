@@ -1,13 +1,15 @@
 source ./config 
 mkdir -p $dir 
 
-if [ -n $text_dir ]
+if [ -n "$text_dir" ]
 then
- echo 'text_dir:' $text_dir 
-elif [ -n $info_dir ]
+ echo 'has text dir ' 'text_dir:' $text_dir 
+elif [ -n "$info_dir" ]
 then
+  echo 'has info dir '
   text_dir=$info_dir
 else
+  echo 'using train data path'
   text_dir=$train_data_path 
   echo 'text_dir:' $text_dir
 fi

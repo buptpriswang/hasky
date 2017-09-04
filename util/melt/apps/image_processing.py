@@ -18,10 +18,15 @@ FLAGS = flags.FLAGS
 image_processing_fn = None
 
 import melt
-def init(image_model_name='InceptionV3', slim_preprocessing=True, im2text_prcocessing=False):
+from melt import logging
+
+def init(image_model_name='InceptionV3', im2text_prcocessing=False):
   global image_processing_fn 
-  if im2text_prcocessing:
-  	image_processing_fn = melt.image.create_image2feature_fn(image_model_name)
+  if image_processing_fn is None:
+    if im2text_prcocessing:
+  	  image_processing_fn = melt.image.image_processing.create_image2feature_fn(image_model_name)
+    else:
+		  image_processing_fn = melt.image.image_processing.create_image2feature_slim_fn(image_model_name)
   else:
-		image_processing_fn = melt.image.create_image2feature_slim_fn(image_model_name, slim_preprocessing=slim_preprocessing)
+    logging.warning('You call image model init function again!', file=sys.stderr)
   return image_processing_fn

@@ -17,6 +17,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+import sys, inspect
+
 import melt
 
 from deepiu.image_caption.algos.discriminant_trainer import DiscriminantTrainer
@@ -90,11 +92,12 @@ def _gen_predictor(algo):
     Algos.decomposable_nli: DecomposableNLIPredictor
   }
   if algo not in predictor_map:
-    raise ValueError('Unsupported algo %s'%algo) 
+    print('Unsupported algo %s'%algo, file=sys.stderr) 
+    return None
   precitor_fn = predictor_map[algo]
-  try:
-    return precitor_fn(encoder_type=algo.split('_')[-1]) 
-  except Exception:
+  if 'encoder_type' in inspect.getargspec(precitor_fn.__init__).args:
+    return precitor_fn(encoder_type=algo.split('_')[-1])
+  else:
     return precitor_fn()
 
 def _gen_trainer(algo):
@@ -113,19 +116,19 @@ def _gen_trainer(algo):
   if algo not in trainer_map:
     raise ValueError('Unsupported algo %s'%algo) 
   trainer_fn = trainer_map[algo]
-  try:
-    return trainer_fn(encoder_type=algo.split('_')[-1]) 
-  except Exception:
+  if 'encoder_type' in inspect.getargspec(trainer_fn.__init__).args:
+    return trainer_fn(encoder_type=algo.split('_')[-1])
+  else:
     return trainer_fn()
 
 #TODO use tf.make_template to remove "model_init" scope?
 def gen_predictor(algo, reuse=None):
-  with tf.variable_scope("model_init", reuse=reuse):
+  with tf.variable_scope("init", reuse=reuse):
     predictor = _gen_predictor(algo)
   return predictor
   
 def gen_tranier(algo, reuse=None):
-  with tf.variable_scope("model_init", reuse=reuse):
+  with tf.variable_scope("init", reuse=reuse):
     trainer = _gen_trainer(algo)
   return trainer
 
@@ -133,3 +136,7 @@ def gen_trainer_and_predictor(algo):
   trainer = gen_tranier(algo, reuse=None)
   predictor = gen_predictor(algo, reuse=True)
   return trainer, predictor
+
+def set_eval_mode(trainer):
+  with tf.variable_scope("init", reuse=True):
+    trainer.__init__(is_training=False)
