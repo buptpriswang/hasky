@@ -25,9 +25,9 @@ python ./train.py \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
-  --show_eval 1 \
-  --train_only 0 \
-  --metric_eval 1 \
+  --show_eval 0 \
+  --train_only 1 \
+  --metric_eval 0 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 32 \
@@ -53,6 +53,7 @@ python ./train.py \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
   --pre_calc_image_feature 0 \
+  --learning_rate 0.01 \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \

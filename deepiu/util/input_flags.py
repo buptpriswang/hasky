@@ -109,6 +109,7 @@ flags.DEFINE_string('image_checkpoint_file', None, '''None means image model fro
 flags.DEFINE_boolean('finetune_image_model', True, '''by default will be finetune otherwise
                                                    why not pre calc image feature much faster
                                                    but we also support''')
+flags.DEFINE_string('finetune_end_point', None, 'if not None, only finetune from some ende point layers before will freeze')
                                                    
 flags.DEFINE_boolean('distort_image', True, 'training option')
 flags.DEFINE_boolean('random_crop_image', True, 'training option')

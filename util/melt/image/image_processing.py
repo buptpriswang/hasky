@@ -337,6 +337,7 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                      distort=True,
                      slim_preprocessing=True,
                      weight_decay=0.00004,
+                     finetune_end_point=None,
                      image_format="jpeg",  #for safe just use decode_jpeg
                      reuse=None):
       
@@ -400,7 +401,9 @@ def create_image2feature_slim_fn(name='InceptionV3'):
           #TODO other method set not trainable, need to modify slim get_network_fn ?
           #if not trainable: #just for safe.. actuall slim.arg_scope with train_able=False works
           #  image_feature = tf.stop_gradient(image_feature)  
-
+          if finetune_end_point: #None or ''
+            logging.info('fintune from point:{}'.format(finetune_end_point))
+            tf.stop_gradient(end_points[finetune_end_point])
 
           #--below is the same for inception v3
           # image_feature = melt.image.image_embedding.inception_v3(
