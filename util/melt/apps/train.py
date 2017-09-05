@@ -123,7 +123,11 @@ def train_flow(ops,
                debug=False,
                summary_excls=None,
                init_fn=None,
+               restore_fn=None,
                restore_scope=None,
+               save_all_scope=False,
+               variables_to_restore=None,  #variables_to_restore = slim.get_variables_to_restore(exclude=['fc6', 'fc7', 'fc8'])
+               variables_to_save=None,
                sess=None):
 
   if sess is None:
@@ -243,5 +247,9 @@ def train_flow(ops,
              no_log=FLAGS.no_log,
              summary_excls=summary_excls,
              init_fn=init_fn,
+             restore_fn=restore_fn,
              restore_scope=restore_scope,
+             save_all_scope=save_all_scope,
+             variables_to_restore=variables_to_restore,
+             variables_to_save=variables_to_save,
              sess=sess)

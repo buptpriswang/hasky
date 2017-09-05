@@ -125,16 +125,18 @@ def gen_train_op_byname(loss, learning_rate, name='adagrad'):
 #TODO add name, notice if num_gpus=1 is same as num_gpus=0
 #but for num_gpus=0 we will not consider multi gpu mode
 #so num_gpus=1 will not use much, just for mlti gpu test purpose
+#from https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10_multi_gpu_train.py def train()
 def tower_losses(loss_function, num_gpus=1, name=''):
   tower_losses = []
   #with tf.variable_scope("OptimizeLoss"):
+  #with tf.variable_scope(tf.get_variable_scope()):
   for i in range(num_gpus):
     with tf.device('/gpu:%d' % i):
       with tf.name_scope('%s_%d' % ('tower', i)) as scope:
-        loss = loss_function()
-        # Reuse variables for the next tower.
-        tf.get_variable_scope().reuse_variables()
-        tower_losses.append(loss)
+          loss = loss_function()
+          # Reuse variables for the next tower.
+          tf.get_variable_scope().reuse_variables()
+          tower_losses.append(loss)
   return tower_losses
 
 def get_num_gpus():

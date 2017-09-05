@@ -86,7 +86,11 @@ def tf_train_flow(train_once_fn,
                   restore_from_latest=True,
                   metric_eval_fn=None,
                   init_fn=None,
+                  restore_fn=None,
                   restore_scope=None,
+                  save_all_scope=False, #TODO save load from restore scope only but svae all
+                  variables_to_restore=None,
+                  variables_to_save=None, #by default will be the same as variables_to_restore
                   sess=None):
   """
   similary flow as tf_flow, but add model try reload and save
@@ -99,14 +103,33 @@ def tf_train_flow(train_once_fn,
   print('save_interval_seconds:', save_interval_seconds)
   
   #this is usefull for you use another model with another scope, and just load and restore/save initalize your scope vars!
+  #this is not for finetune but mainly for like using another model as in predict like this introducing graph other model scope and ignore here
+
   var_list = None if not restore_scope else tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=restore_scope)
+  if not variables_to_restore:
+    variables_to_restore = var_list
+  if not variables_to_save:
+    variables_to_save = variables_to_restore
+  if save_all_scope:
+    variables_to_save = None
+
+  loader = tf.train.Saver(var_list=variables_to_restore) 
+
   saver = tf.train.Saver(
     max_to_keep=max_models_keep, 
     keep_checkpoint_every_n_hours=save_interval_seconds / 3600.0,
-    var_list=var_list)
-  
-  epoch_saver = tf.train.Saver(var_list=var_list, max_to_keep=1000)
-  best_epoch_saver = tf.train.Saver(var_list=var_list) 
+    var_list=variables_to_save) 
+  epoch_saver = tf.train.Saver(var_list=variables_to_save, max_to_keep=1000)
+  best_epoch_saver = tf.train.Saver(var_list=variables_to_save) 
+
+  ##TODO for safe restore all init will be ok ?
+  #if variables_to_restore is None:
+  init_op = tf.group(tf.global_variables_initializer(),
+                     tf.local_variables_initializer())
+  # else:
+  #   init_op = tf.group(tf.variables_initializer(variables_to_restore),
+  #                      tf.local_variables_initializer())
+  sess.run(init_op)
   
   #pre_step means the step last saved, train without pretrained,then -1
   pre_step = -1;
@@ -118,7 +141,10 @@ def tf_train_flow(train_once_fn,
       model_path = melt.recent_checkpoint(model_dir)
     model_name = os.path.basename(model_path)
     timer = gezi.Timer('Loading and training from existing model [%s]'%model_path)
-    saver.restore(sess, model_path)
+    if restore_fn is not None:
+      restore_fn(sess)
+    loader.restore(sess, model_path)
+    logging.info('restore ok from saver with scope %s only'%restore_scope)
     timer.print()
     pre_step = melt.get_model_step(model_path)
     if 'epoch' in model_name:
@@ -138,15 +164,11 @@ def tf_train_flow(train_once_fn,
     #init_op = tf.group(tf.global_variables_initializer(),
     #                   tf.local_variables_initializer())   
     #[var for var in tf.all_variables() if var.op.name.startswith(restore_scope)] will be the same as tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=restore_scope)
-    if var_list is None:
-      init_op = tf.group(tf.global_variables_initializer(),
-                         tf.local_variables_initializer())
-    else:
-      init_op = tf.group(tf.variables_initializer(var_list),
-                         tf.local_variables_initializer())
-    sess.run(init_op)
+    
+    #sess.run(init_op)
 
     #like use image model, build image graph, reload first train, and then will go to same checkpoint all varaible just restore will ok
+    #for finetune from loading other model init
     if init_fn is not None:
       init_fn(sess)
   

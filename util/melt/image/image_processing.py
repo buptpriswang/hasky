@@ -198,6 +198,7 @@ def process_image(encoded_image,
                   width,
                   resize_height=346,
                   resize_width=346,
+                  random_crop=True,
                   distort=True,
                   image_format=None):
   """Decode an image, resize and apply random distortions.
@@ -240,7 +241,7 @@ def process_image(encoded_image,
                                    method=tf.image.ResizeMethod.BILINEAR)
 
   # Crop to final dimensions.
-  if is_training:
+  if is_training and random_crop:
     image = tf.random_crop(image, [height, width, 3])
   else:
     # Central crop, assuming resize_height > height, resize_width > width.
@@ -332,6 +333,7 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                      is_training=False,
                      resize_height=346,
                      resize_width=346,
+                     random_crop=True,
                      distort=True,
                      slim_preprocessing=True,
                      weight_decay=0.00004,
@@ -363,6 +365,7 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                                                   width=width,
                                                   resize_height=resize_height,
                                                   resize_width=resize_width,
+                                                  random_crop=random_crop,
                                                   distort=distort,
                                                   image_format=image_format), 
                                                   encoded_image,
@@ -379,7 +382,7 @@ def create_image2feature_slim_fn(name='InceptionV3'):
         with slim.arg_scope(
           [slim.conv2d, slim.fully_connected],
           weights_regularizer=weights_regularizer,
-          trainable=trainable): #should this be faster then stop_gradient?
+          trainable=trainable): #should this be faster then stop_gradient? exp show this slim.arg_scope with trainable=False work
       
           #actually final num class layer not used for image feature purpose, but since in check point train using 1001, for simplicity here set 1001
           num_classes = 1001 
@@ -395,8 +398,8 @@ def create_image2feature_slim_fn(name='InceptionV3'):
             raise ValueError('not found pre logits!')
           #TODO check is it really ok? not finetune? seems still slow as im2txt it should be much faster then fintune.. FIXME?
           #TODO other method set not trainable, need to modify slim get_network_fn ?
-          # if not trainable:
-          #   image_feature = tf.stop_gradient(image_feature)  
+          #if not trainable: #just for safe.. actuall slim.arg_scope with train_able=False works
+          #  image_feature = tf.stop_gradient(image_feature)  
 
 
           #--below is the same for inception v3
@@ -419,7 +422,7 @@ def create_image2feature_slim_fn(name='InceptionV3'):
           #escape_fn3() #ok becasue scope.reuse_variables() here
           #but for predictor escape_fn3 = create_escape_construct_fn('XXX') you call it again, then escape_fn3() will fail need reuse
 
-        scope.reuse_variables()
+        scope.reuse_variables() #this is fine make function() '' scope resue, set True, but if not use function with ... will fail also
       return image_feature
 
     return construct_fn

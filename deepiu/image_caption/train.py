@@ -42,6 +42,8 @@ flags.DEFINE_string('algo', 'bow', 'default algo is bow(cbow), also support rnn,
 
 flags.DEFINE_string('vocab', '/tmp/train/vocab.bin', 'vocabulary binary file')
 
+flags.DEFINE_boolean('partial_restore', False, '')
+
 flags.DEFINE_boolean('debug', False, '')
 
 import sys, os
@@ -61,6 +63,8 @@ from deepiu.util import vocabulary
 from deepiu.util import text2ids
 
 from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod
+
+import tensorflow.contrib.slim as slim
 
 sess = None
 
@@ -273,7 +277,6 @@ def gen_predict_graph(predictor):
     tf.add_to_collection('beam_text', beam_text)
     tf.add_to_collection('beam_text_score', beam_text_score)
 
-#step = 0
 def train():
   input_app = InputApp.InputApp()
   input_results = input_app.gen_input()
@@ -295,7 +298,6 @@ def train():
     if predictor is not None and FLAGS.gen_predict:
      gen_predict_graph(predictor)
 
-    
     algos_factory.set_eval_mode(trainer)
     #print([x for x in tf.global_variables() if not x.op.name.startswith('Inception')])
 
@@ -312,14 +314,22 @@ def train():
         metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
 
   init_fn = None
+  restore_fn = None
   summary_excls = None
+  variables_to_restore = None
   if not FLAGS.pre_calc_image_feature and FLAGS.image_checkpoint_file and os.path.exists(FLAGS.image_checkpoint_file):
+    #TODO init_fn might also add loading from trained bow(pre dumped image feature) model
     init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
-    if predictor is not None and FLAGS.gen_predict:
-      #need to excl InceptionV3 summarys why inceptionV3 op might need image_feature_feed if gen_predict
-      #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: [melt.image.read_image(FLAGS.one_image)]}
-      #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: ['']}
-      summary_excls = [FLAGS.image_model_name]
+    # if predictor is not None and FLAGS.gen_predict:
+    #   #need to excl InceptionV3 summarys why inceptionV3 op might need image_feature_feed if gen_predict
+    #   #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: [melt.image.read_image(FLAGS.one_image)]}
+    #   #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: ['']}
+    #   summary_excls = [FLAGS.image_model_name]
+
+    #for finetune from simple bow(pre dumped image feature), if restart again need to set False
+    if FLAGS.partial_restore:
+      variables_to_restore = slim.get_variables_to_restore(include=[FLAGS.algo], exclude=['%s/OptimizeLoss/InceptionResnetV2'%FLAGS.algo])
+      restore_fn=init_fn
 
   #melt.print_global_varaiables()
   melt.apps.train_flow(ops, 
@@ -335,6 +345,9 @@ def train():
                        metric_eval_fn=metric_eval_fn,
                        summary_excls=summary_excls,
                        init_fn=init_fn,
+                       restore_fn=restore_fn,
+                       variables_to_restore=variables_to_restore,
+                       save_all_scope=True,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
   
 def main(_):

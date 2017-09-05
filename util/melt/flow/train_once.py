@@ -14,7 +14,7 @@ from __future__ import division
 from __future__ import print_function
 
 from io import BytesIO
-import os
+import sys, os, traceback
 
 from melt.utils import logging
 #import logging
@@ -169,7 +169,7 @@ def train_once(sess,
         if num_steps_per_epoch is None:
           epoch_time_info = ''
         else:
-          epoch_time_info = ' 1epoch:[{:.1f}h]'.format(num_steps_per_epoch / interval_steps * elapsed / 3600)
+          epoch_time_info = ' 1epoch:[{:.2f}h]'.format(num_steps_per_epoch / interval_steps * elapsed / 3600)
         info.write('elapsed:[{:.3f}] batch_size:[{}]{} batches/s:[{:.2f}] insts/s:[{:.2f}] {} '.format(
                       elapsed, batch_size, gpu_info, steps_per_second, instances_per_second, epoch_time_info))
 
@@ -249,7 +249,8 @@ def train_once(sess,
         try:
           summary_str = sess.run(train_once.summary_op, feed_dict=eval_feed_dict) if train_once.summary_op is not None else ''
         except Exception:
-          print('warning!, summary_str = sess.run(train_once.summary_op, feed_dict=eval_feed_dict) fail')
+          logging.warning('summary_str = sess.run(train_once.summary_op, feed_dict=eval_feed_dict) fail')
+          #logging.warning(traceback.format_exc())
           summary_str = ''
         #all single value results will be add to summary here not using tf.scalar_summary..
         summary.ParseFromString(summary_str)

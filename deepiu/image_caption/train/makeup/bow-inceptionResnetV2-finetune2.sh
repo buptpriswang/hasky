@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/makeup/seq-basic-finetune
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow.inceptionResnetV2.nofinetune
+model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow.inceptionResnetV2.finetune2
 mkdir -p $model_dir
 
 python ./train.py \
@@ -34,7 +34,7 @@ python ./train.py \
   --eval_batch_size 200 \
   --num_gpus 0 \
   --min_after_dequeue 1000 \
-  --eval_interval_steps 1000 \
+  --eval_interval_steps 200 \
   --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
   --save_interval_steps 1000 \
@@ -53,9 +53,6 @@ python ./train.py \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
   --pre_calc_image_feature 0 \
-  --finetune_image_model 0 \
-  --distort_image 1 \ 
-  --random_crop 1 \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
