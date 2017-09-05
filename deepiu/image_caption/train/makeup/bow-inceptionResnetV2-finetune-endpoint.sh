@@ -25,9 +25,9 @@ python ./train.py \
   --fixed_eval_batch_size 10 \
   --num_fixed_evaluate_examples 1 \
   --num_evaluate_examples 10 \
-  --show_eval 0 \
-  --train_only 1 \
-  --metric_eval 0 \
+  --show_eval 1 \
+  --train_only 0 \
+  --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 32 \

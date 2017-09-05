@@ -296,7 +296,20 @@ def recent_checkpoint(model_dir, latest=False):
   return open('%s/checkpoint'%(model_dir)).readlines()[index].split()[-1].strip('"')
 
 def get_model_step(model_path):
-   return int(model_path.split('/')[-1].split('-')[-1]) 
+  return int(model_path.split('/')[-1].split('-')[-1]) 
+
+def get_model_epoch(model_path):
+  try:
+    return float(model_path.split('/')[-1].split('-')[-1]) 
+  except Exception:
+    return None
+
+def get_model_epoch_from_dir(model_dir):
+  model_path = get_model_path(model_dir)
+  try:
+    return float(model_path.split('/')[-1].split('-')[-2]) 
+  except Exception:
+    return None
 
 def get_model_step_from_dir(model_dir):
   model_path = get_model_path(model_dir)

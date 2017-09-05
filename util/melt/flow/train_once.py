@@ -47,7 +47,9 @@ def train_once(sess,
                num_steps_per_epoch=None,
                metric_eval_fn=None,
                metric_eval_interval_steps=0,
-               summary_excls=None):
+               summary_excls=None,
+               fixed_step=None #for epoch only, incase you change batch size
+               ):
 
   timer = gezi.Timer()
   if print_time:
@@ -57,7 +59,7 @@ def train_once(sess,
       train_once.metric_eval_timer = Timer()
    
   melt.set_global('step', step)
-  epoch = step / num_steps_per_epoch  if num_steps_per_epoch else -1
+  epoch = (fixed_step or step) / num_steps_per_epoch  if num_steps_per_epoch else -1
   epoch_str = 'epoch:%.4f'%(epoch) if num_steps_per_epoch else ''
   melt.set_global('epoch', '%.4f'%(epoch))
   

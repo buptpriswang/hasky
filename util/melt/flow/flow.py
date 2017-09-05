@@ -132,7 +132,8 @@ def tf_train_flow(train_once_fn,
   sess.run(init_op)
   
   #pre_step means the step last saved, train without pretrained,then -1
-  pre_step = -1;
+  pre_step = -1
+  fixed_pre_step = -1  #fixed pre step is for epoch num to be correct if yu change batch size
   model_path = _get_model_path(model_dir, save_model)
   model_dir = gezi.get_dir(model_dir) #incase you pass ./model/model-ckpt1000 -> ./model
   if model_path is not None:
@@ -147,8 +148,14 @@ def tf_train_flow(train_once_fn,
     logging.info('restore ok from saver with scope %s only'%restore_scope)
     timer.print()
     pre_step = melt.get_model_step(model_path)
-    if 'epoch' in model_name:
-      pre_step *= num_steps_per_epoch
+    pre_epoch = melt.get_model_epoch(model_path)
+    fixed_pre_step = pre_step
+    if pre_epoch is not None:
+      #like using batch size 32, then reload train using batch size 64
+      if abs(pre_step * num_steps_per_epoch - pre_epoch) > 0.1:
+        logging.info('Warning, epoch is diff with pre_step * num_steps_per_epoch:{}, pre_epoch:{}, maybe you change batch size and we will adjust'.format(pre_step * num_steps_per_epoch, pre_epoch_eval_loss))
+        fixed_pre_step = int(pre_epoch * num_steps_per_epoch)
+
     #for non 0 eopochs  without this will be
     #Attempting to use uninitialized value input/input_producer/limit_epochs/epochs
     #but add this might face 'Tensor' object has no attribute 'initializer' for import meta graph might be bug
@@ -183,6 +190,7 @@ def tf_train_flow(train_once_fn,
   tf.train.write_graph(sess.graph_def, model_dir, 'train.pbtxt')
   try:
     step = start = pre_step +  1
+    fixed_step = fixed_pre_step + 1
     #hack just for save one model after load
     if num_steps and num_steps < step:
       print('just load and resave then exit', file=sys.stderr)
@@ -198,7 +206,7 @@ def tf_train_flow(train_once_fn,
     best_epoch_eval_loss = 1e20
     num_allowed_bad_epochs = 4 #allow 5 non decrease eval loss epochs  before stop
     while not coord.should_stop():
-      stop = train_once_fn(sess, step, is_start=(step==start))
+      stop = train_once_fn(sess, step, is_start=(step==start), fixed_step=fixed_step)
       if save_model and step:
         #step 0 is also saved! actually train one step and save
         if step % save_interval_steps == 0:
@@ -208,8 +216,10 @@ def tf_train_flow(train_once_fn,
                      global_step=step)
           timer.print()
         #if save_interval_epochs and num_steps_per_epoch and step % (num_steps_per_epoch * save_interval_epochs) == 0:
-        if save_interval_epochs and num_steps_per_epoch and step % num_steps_per_epoch == 0:
-          epoch = step // num_steps_per_epoch
+        #if save_interval_epochs and num_steps_per_epoch and step % num_steps_per_epoch == 0:
+        if save_interval_epochs and num_steps_per_epoch and fixed_step % num_steps_per_epoch == 0:
+          #epoch = step // num_steps_per_epoch
+          epoch = fixed_step // num_steps_per_epoch
           eval_loss = melt.eval_loss()
           if eval_loss:
             #['eval_loss:3.2','eal_accuracy:4.3']
@@ -256,6 +266,7 @@ def tf_train_flow(train_once_fn,
       if max_num_epochs and num_steps_per_epoch and step // num_steps_per_epoch >= max_num_epochs:
         raise tf.errors.OutOfRangeError(None, None,'Reached max num epochs of %d'%max_num_epochs)
       step += 1
+      fixed_step += 1
   except tf.errors.OutOfRangeError, e:
     if not (step==start) and save_model and step % save_interval_steps != 0:
       saver.save(sess, 

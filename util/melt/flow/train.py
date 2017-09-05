@@ -176,7 +176,7 @@ def train_flow(ops,
   else:
     print('Will not save log')
 
-  def train_once_(sess, step, is_start=False):
+  def train_once_(sess, step, is_start=False, fixed_step=None):
     train_once(sess, 
                step, 
                ops, 
@@ -197,7 +197,8 @@ def train_flow(ops,
                num_steps_per_epoch,
                metric_eval_fn=metric_eval_fn,
                metric_eval_interval_steps=metric_eval_interval_steps,
-               summary_excls=summary_excls)
+               summary_excls=summary_excls,
+               fixed_step=fixed_step)
   
   tf_train_flow(train_once_, 
                 model_dir, 
