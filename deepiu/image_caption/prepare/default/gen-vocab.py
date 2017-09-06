@@ -61,7 +61,10 @@ for line in sys.stdin:
     print(num, file=sys.stderr)
   l = line.rstrip().split('\t')
   
-  texts = l[1].split('\x01')
+  try:
+    texts = l[1].split('\x01')
+  except Exception:
+    print(line, file=sys.stderr)
   #texts = l[2].split('\x01')
   
   for text in texts:

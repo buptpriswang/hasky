@@ -17,9 +17,8 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('valid_resource_dir', '/home/gezi/new/temp/image-caption/lijiaoshou/tfrecord/seq-basic/valid/', '')
-flags.DEFINE_string('image_url_prefix', 'D:\\data\\\image-caption\\flickr\\imgs\\', 'http://b.hiphotos.baidu.com/tuba/pic/item/')
 #--if use image dir already info in image_features
-#flags.DEFINE_string('image_dir', None, 'input images dir')
+flags.DEFINE_string('image_dir', None, 'input images dir')
 #----------label fie dprecated
 flags.DEFINE_string('label_file', '/home/gezi/data/image-caption/flickr/test/results_20130124.token', '')
 flags.DEFINE_string('image_feature_file', '/home/gezi/data/image-caption/flickr/test/img2fea.txt', '')
@@ -241,7 +240,7 @@ def print_neareast_words_from_sorted(scores, indexes):
   logging.info(content_html.format(line))
 
 def print_img(img, i):
-  img_url = FLAGS.image_url_prefix + img  if not img.startswith("http://") else img
+  img_url = os.path.join(FLAGS.image_dir, img) if not img.startswith("http://") else img
   logging.info(img_html.format(
     img_url, 
     i, 

@@ -53,7 +53,7 @@ python ./train.py \
   --algo bow \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
-  --learning_rate 0.005 \
+  --learning_rate 0.01 \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \

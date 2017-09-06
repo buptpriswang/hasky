@@ -23,7 +23,8 @@ flags.DEFINE_string('output_directory', '/home/gezi/new/temp/image_caption/keywo
                          'converted result')
 
 flags.DEFINE_string('input_directory', '/home/gezi/new/data/keyword/feature', '')
-flags.DEFINE_string('image_dir', None, '')
+##--already in deepiu.evaluator
+#flags.DEFINE_string('image_dir', None, '')
 flags.DEFINE_string('info_dir', None, '')
 flags.DEFINE_string('name', 'train', '')
 flags.DEFINE_integer('threads', 12, 'Number of threads for dealing')
