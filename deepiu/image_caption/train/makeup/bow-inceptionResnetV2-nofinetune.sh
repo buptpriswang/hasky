@@ -54,7 +54,7 @@ python ./train.py \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
   --pre_calc_image_feature 0 \
   --finetune_image_model 0 \
-  --distort_image 1 \ 
+  --distort_image 1 \
   --random_crop 1 \
   --combiner=sum \
   --exclude_zero_index 1 \

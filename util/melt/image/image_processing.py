@@ -402,10 +402,10 @@ def create_image2feature_slim_fn(name='InceptionV3'):
           #if not trainable: #just for safe.. actuall slim.arg_scope with train_able=False works
           #  image_feature = tf.stop_gradient(image_feature)  
           if finetune_end_point: #None or ''
-            logging.info('fintune from end point:{} {}'.format(finetune_end_point, end_points[finetune_end_point]))
+            logging.info('fintune image model from end point:{} {}'.format(finetune_end_point, end_points[finetune_end_point]))
             tf.stop_gradient(end_points[finetune_end_point])
           elif trainable:
-            logging.info('fintune from scratch')
+            logging.info('fintune all image model layers')
 
           #--below is the same for inception v3
           # image_feature = melt.image.image_embedding.inception_v3(

@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import os, sys, traceback
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 import melt 
 import gezi
 from melt.utils import logging
@@ -99,8 +100,8 @@ def tf_train_flow(train_once_fn,
     #TODO melt.get_session is global session but may cause
     sess = melt.get_session()
   logging.info('tf_train_flow start')
-  print('max_models_keep:', max_models_keep)
-  print('save_interval_seconds:', save_interval_seconds)
+  print('max_models_keep:', max_models_keep, file=sys.stderr)
+  print('save_interval_seconds:', save_interval_seconds, file=sys.stderr)
   
   #this is usefull for you use another model with another scope, and just load and restore/save initalize your scope vars!
   #this is not for finetune but mainly for like using another model as in predict like this introducing graph other model scope and ignore here
@@ -112,7 +113,14 @@ def tf_train_flow(train_once_fn,
     variables_to_save = variables_to_restore
   if save_all_scope:
     variables_to_save = None
-
+  
+  if variables_to_restore is None:
+    #load all var in checkpoint try to save all var(might more then original checkpoint) if not specifiy variables_to_save
+    varnames_in_checkpoint = melt.get_checkpoint_varnames(model_dir)
+    #print(varnames_in_checkpoint)
+    variables_to_restore = slim.get_variables_to_restore(include=varnames_in_checkpoint)
+  
+  #logging.info('variables_to_restore:{}'.format(variables_to_restore))
   loader = tf.train.Saver(var_list=variables_to_restore) 
 
   saver = tf.train.Saver(
@@ -152,16 +160,10 @@ def tf_train_flow(train_once_fn,
     fixed_pre_step = pre_step
     if pre_epoch is not None:
       #like using batch size 32, then reload train using batch size 64
-      if abs(pre_step * num_steps_per_epoch - pre_epoch) > 0.1:
-        logging.info('Warning, epoch is diff with pre_step * num_steps_per_epoch:{}, pre_epoch:{}, maybe you change batch size and we will adjust'.format(pre_step * num_steps_per_epoch, pre_epoch_eval_loss))
+      if abs(pre_step / num_steps_per_epoch - pre_epoch) > 0.1:
         fixed_pre_step = int(pre_epoch * num_steps_per_epoch)
-
-    #for non 0 eopochs  without this will be
-    #Attempting to use uninitialized value input/input_producer/limit_epochs/epochs
-    #but add this might face 'Tensor' object has no attribute 'initializer' for import meta graph might be bug
-    sess.run(tf.local_variables_initializer())
-    #https://stackoverflow.com/questions/44251666/how-to-initialize-tensorflow-variable-that-wasnt-saved-other-than-with-tf-globa
-    #melt.initialize_uninitialized_vars(sess)
+        logging.info('Warning, epoch is diff with pre_step / num_steps_per_epoch:{}, pre_epoch:{},maybe you change batch size and we will adjust to set pre_step as {}'\
+          .format(pre_step / num_steps_per_epoch, pre_epoch, fixed_pre_step))
   else:
     print('Train all start step 0', file=sys.stderr)
     #https://stackoverflow.com/questions/40220201/tensorflow-tf-initialize-all-variables-vs-tf-initialize-local-variables

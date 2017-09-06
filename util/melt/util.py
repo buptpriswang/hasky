@@ -12,8 +12,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python import pywrap_tensorflow
 
-import sys, os, glob
+import sys, os, glob, traceback
 import inspect
 
 import numpy as np
@@ -22,6 +23,35 @@ import gezi
 import melt 
 
 import melt.utils.logging as logging
+
+
+def get_checkpoint_varnames(model_dir):
+  try:
+    checkpoint_path = get_model_path(model_dir)
+    reader = pywrap_tensorflow.NewCheckpointReader(checkpoint_path)
+    var_to_shape_map = reader.get_variable_to_shape_map()
+    varnames = [var_name for var_name in var_to_shape_map]
+    return varnames
+  except Exception:
+    print(traceback.format_exc())
+    return None
+
+def varname_in_checkpoint(var_name, model_dir, mode='in'):
+  varnames = get_checkpoint_varnames(model_dir)
+  if not varnames:
+    return False 
+  else:
+    varnames_exists = False
+    for varname in varnames:
+      if mode == 'in':
+        if var_name in varname:
+          varnames_exists = True
+          break
+      elif mode == 'startswith':
+        if varname.startswith(var_name):
+          varnames_exists = True 
+          break 
+    return varnames_exists
 
 def try_add_to_collection(name, op):
   if not tf.get_collection(name):
@@ -295,12 +325,26 @@ def recent_checkpoint(model_dir, latest=False):
   index = -1 if latest else 1
   return open('%s/checkpoint'%(model_dir)).readlines()[index].split()[-1].strip('"')
 
+def checkpoint_exists_in(model_dir):
+  if not os.path.exists(model_dir):
+    return False
+  ckpt = tf.train.get_checkpoint_state(model_dir)
+  if ckpt and ckpt.model_checkpoint_path:
+    #input valid dir and return latest model
+    return True
+  elif os.path.isdir(model_dir):
+    return False
+  else:
+    #this might be user specified model like ./model/model-100.ckpt
+    #the file exists and we NOTICE we do not check if it is valid model file!
+    return True
+
 def get_model_step(model_path):
   return int(model_path.split('/')[-1].split('-')[-1]) 
 
 def get_model_epoch(model_path):
   try:
-    return float(model_path.split('/')[-1].split('-')[-1]) 
+    return float(model_path.split('/')[-1].split('-')[-2]) 
   except Exception:
     return None
 

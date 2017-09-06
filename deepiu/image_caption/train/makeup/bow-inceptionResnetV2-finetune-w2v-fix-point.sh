@@ -42,7 +42,7 @@ python ./train.py \
   --num_epochs 2000 \
   --num_metric_eval_examples 200 \
   --metric_eval_batch_size 100 \
-  --debug 1 \
+  --debug 0 \
   --num_negs 1 \
   --neg_left 0 \
   --neg_right 1 \
@@ -54,6 +54,7 @@ python ./train.py \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
   --pre_calc_image_feature 0 \
   --word_embedding_file $dir/'word2vec/word_embedding.npy' \
+  --learning_rate 0.01 \
   --finetune_word_embedding 0 \
   --loss point \
   --combiner=sum \
