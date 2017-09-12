@@ -14,7 +14,6 @@ python ./train.py \
 	--valid_resource_dir $valid_output_path \
 	--vocab $dir/vocab.txt \
   --num_records_file  $train_output_path/num_records.txt \
-  --image_url_prefix '' \
   --model_dir=$model_dir \
   --algo seq2seq \
   --num_sampled 0 \

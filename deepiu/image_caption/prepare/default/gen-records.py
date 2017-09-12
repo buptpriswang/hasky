@@ -344,9 +344,9 @@ def deal_file(file):
 
       texts = l[FLAGS.text_index].split('\x01')
 
-      #image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split('\x01')]
+      image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split('\x01')]
       #image_feature = [float(x) for x in l[FLAGS.image_feature_index].strip().split(' ')]
-      image_feature = [0.] * IMAGE_FEATURE_LEN
+      #image_feature = [0.] * IMAGE_FEATURE_LEN
       assert len(image_feature) == IMAGE_FEATURE_LEN, '%s %d'%(img, len(image_feature))
 
       is_top_text = True

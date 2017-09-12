@@ -132,13 +132,17 @@ def tf_train_flow(train_once_fn,
 
   ##TODO for safe restore all init will be ok ?
   #if variables_to_restore is None:
-  init_op = tf.group(tf.global_variables_initializer(),
-                     tf.local_variables_initializer())
+  init_op = tf.group(tf.global_variables_initializer(), #variables_initializer(global_variables())
+                    tf.local_variables_initializer()) #variables_initializer(local_variables())
   # else:
   #   init_op = tf.group(tf.variables_initializer(variables_to_restore),
   #                      tf.local_variables_initializer())
-  sess.run(init_op)
   
+  ##--mostly this will be fine except for using assistant predictor, initialize again! will make assistant predictor wrong
+  ##so assume to all run init op! if using assistant predictor, make sure it use another session
+  sess.run(init_op)
+  #melt.init_uninitialized_variables(sess)
+
   #pre_step means the step last saved, train without pretrained,then -1
   pre_step = -1
   fixed_pre_step = -1  #fixed pre step is for epoch num to be correct if yu change batch size

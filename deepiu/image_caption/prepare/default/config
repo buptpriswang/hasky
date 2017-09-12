@@ -1,8 +1,8 @@
-input_path=/home/gezi/new2/data/ai_challenger/ai_challenger_caption_train_20170902
-dir=/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic-finetune
+input_path=/home/gezi/new2/data/ai_challenger/image_caption/feature
+dir=/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic
 
-image_dir=/home/gezi/new2/data/ai_challenger/ai_challenger_caption_train_20170902/caption_train_images_20170902 
-win_image_dir=D:\\new2\data\ai_challenger\\ai_challenger_caption_train_20170902\\caption_train_images_20170902
+#image_dir=/home/gezi/new2/data/ai_challenger/image_caption/pic
+win_image_dir=D:\\new2\data\ai_challenger\\image_caption\\pic
 
 train_data_path=$input_path/train
 valid_data_path=$input_path/valid

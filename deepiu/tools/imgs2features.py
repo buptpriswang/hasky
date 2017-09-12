@@ -17,10 +17,10 @@ FLAGS = flags.FLAGS
   
 #--------- read data
 flags.DEFINE_string('image_dir', '', 'input images dir')
-flags.DEFINE_string('image_model_name', 'InceptionV3', '')
-flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
-flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
-flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
+flags.DEFINE_string('image_model_name', 'InceptionResnetV2', '')
+flags.DEFINE_integer('image_width', 299, 'default width of inception')
+flags.DEFINE_integer('image_height', 299, 'default height of inception')
+flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt', '')
 flags.DEFINE_integer('batch_size', 512, '')
 
 import sys, os, glob, traceback
@@ -42,7 +42,7 @@ def init():
                      tf.local_variables_initializer())
   sess.run(init_op)
   #---load inception model check point file
-  init_fn = melt.image.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
+  init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
   init_fn(sess)
 
 bad_imgs = []

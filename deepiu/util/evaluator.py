@@ -101,14 +101,8 @@ def init():
   #logging.set_logging_path(FLAGS.model_dir)
   if FLAGS.assistant_model_dir:
     global assistant_predictor
-    #assistant_predictor = algos_factory.gen_predictor(FLAGS.assistant_algo)
-    #melt.restore_scope_from_path(melt.get_session(), FLAGS.assistant_model_dir, FLAGS.assistant_algo)
-    ##try another session no work... so same session graph
-    #assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, sess=tf.Session())
-    #--since add 'score'... will confuse, just remove it.. hack!
-    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
-    melt.rename_from_collection('score', 'assistant_score')
-    melt.rename_from_collection('scores', 'assistant_scores')
+    #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
+    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='score', index=0, sess=tf.Session())
     print('assistant_predictor', assistant_predictor)
 
   test_dir = FLAGS.valid_resource_dir
@@ -239,8 +233,14 @@ def print_neareast_words_from_sorted(scores, indexes):
     line = ' '.join(['%s:%.6f'%(vocab.key(int(index)), scores[index]) for i, index in enumerate(indexes)])
   logging.info(content_html.format(line))
 
+def is_img(img):
+  return img.startswith('http:') or img.startswith('D:') or img.endswith('.jpg')
+
+def get_img_url(img):
+  return os.path.join(FLAGS.image_dir, img) if FLAGS.image_dir and not img.startswith("http://") else img
+
 def print_img(img, i):
-  img_url = os.path.join(FLAGS.image_dir, img) if not img.startswith("http://") else img
+  img_url = get_img_url(img)
   logging.info(img_html.format(
     img_url, 
     i, 
@@ -418,11 +418,12 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     if i % 100 == 0:
       label_text = '|'.join([text_strs[x] for x in hits])
       img_str = img
-      if img.startswith('http:') or img.startswith('D:'):
-        img_str = '<p><a href={0} target=_blank><img src={0} height=200></a></p>'.format(img)
-      logging.info('<P>obj:{} label:{}</P>'.format(img_str, label_text))
+      if is_img(img):
+        img_str = '{0}<p><a href={1} target=_blank><img src={1} height=200></a></p>'.format(img, get_img_url(img))
+      logging.info('<P>obj: {} label: {}</P>'.format(img_str, label_text))
       for j in range(5):
-        logging.info('<P>{} {} {} {}</P>'.format(j, indexes[j] in hits, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]]))
+        is_hit = indexes[j] in hits if not need_shuffle else index[indexes[j]] in hits
+        logging.info('<P>{} {} {} {}</P>'.format(j, is_hit, ids2text(texts[indexes[j]]), exact_score[exact_indexes[j]] if exact_predictor else score[i][indexes[j]]))
 
     #notice only work for recall@ or precision@ not work for ndcg@, if ndcg@ must use all
     num_positions = min(num_texts, FLAGS.metric_topn)

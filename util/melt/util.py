@@ -24,10 +24,21 @@ import melt
 
 import melt.utils.logging as logging
 
+#https://stackoverflow.com/questions/35164529/in-tensorflow-is-there-any-way-to-just-initialize-uninitialised-variables
+def init_uninitialized_variables(sess, list_of_variables = None):
+  if list_of_variables is None:
+    list_of_variables = tf.global_variables()
+  uninitialized_variables = list(tf.get_variable(name) for name in
+                                 sess.run(tf.report_uninitialized_variables(list_of_variables)))
+  uninitialized_variables = tf.group(uninitialized_variables, tf.local_variables_initializer())
+  sess.run(tf.variables_initializer(uninitialized_variables))
+  return unintialized_variables
 
 def get_checkpoint_varnames(model_dir):
+  checkpoint_path = get_model_path(model_dir)
+  if not os.path.exists(checkpoint_path) or os.path.isdir(checkpoint_path):
+    return None 
   try:
-    checkpoint_path = get_model_path(model_dir)
     reader = pywrap_tensorflow.NewCheckpointReader(checkpoint_path)
     var_to_shape_map = reader.get_variable_to_shape_map()
     varnames = [var_name for var_name in var_to_shape_map]

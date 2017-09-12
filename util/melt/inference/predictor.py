@@ -193,13 +193,13 @@ class SimPredictor(object):
 
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
-              lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, key='score', exact_key='score'):
-    self._predictor = SimPredictor(model_dir, index=0, lkey=lkey, rkey=rkey, key=key)
+              lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, key='score', exact_key='score', sess=None, exact_sess=None):
+    self._predictor = SimPredictor(model_dir, index=0, lkey=lkey, rkey=rkey, key=key, sess=sess)
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
     # <tf.Tensor 'seq2seq/main/Exp_4:0' shape=(?, 1) dtype=float32>]
     #this is becasue you use evaluator(predictor + exact_predictor) when train seq2seq, so load dual_bow will add one score..
-    self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lkey=exact_lkey, rkey=exact_rkey, key=exact_key)
+    self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lkey=exact_lkey, rkey=exact_rkey, key=exact_key, sess=exact_sess)
 
     self._num_rerank = num_rerank
 
