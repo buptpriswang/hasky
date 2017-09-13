@@ -314,35 +314,19 @@ def train():
 
     metric_eval_fn = None
     if FLAGS.metric_eval:
-      if not algos_factory.is_generative(FLAGS.algo) or FLAGS.assistant_model_dir:
-        metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
+      eval_rank = FLAGS.eval_rank and (not algos_factory.is_generative(FLAGS.algo) or FLAGS.assistant_model_dir) 
+      eval_translation = FLAGS.eval_translation and algos_factory.is_generative(FLAGS.algo)
+      metric_eval_fn = lambda: evaluator.evaluate(predictor, random=True, eval_rank=eval_rank, eval_translation=eval_translation)
 
   init_fn = None
   restore_fn = None
   summary_excls = None
-  #variables_to_restore = None
-
-  #TODO for better finetune
-  #1. add for melt.train_flow check model vars and only restore vars in checkpoint but by doing this we will save all vars not only in ori checkpoint
-  #2. for restore_fn  check checkpoint if say graph vars not in checkpoint then add restore_fn not None
 
   if not FLAGS.pre_calc_image_feature:
-    #TODO init_fn might also add loading from trained bow(pre dumped image feature) model
     init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
     if melt.checkpoint_exists_in(FLAGS.model_dir):
       if not melt.varname_in_checkpoint(FLAGS.image_model_name, FLAGS.model_dir):
         restore_fn=init_fn
-
-    # if predictor is not None and FLAGS.gen_predict:
-    #   #need to excl InceptionV3 summarys why inceptionV3 op might need image_feature_feed if gen_predict
-    #   #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: [melt.image.read_image(FLAGS.one_image)]}
-    #   #gen_eval_feed_dict = lambda: {predictor.image_feature_feed: ['']}
-    #   summary_excls = [FLAGS.image_model_name]
-
-    #for finetune from simple bow(pre dumped image feature), if restart again need to set False
-    # if FLAGS.partial_restore:
-    #   variables_to_restore = slim.get_variables_to_restore(include=[FLAGS.algo], exclude=['%s/OptimizeLoss/InceptionResnetV2'%FLAGS.algo])
-    #   restore_fn=init_fn
 
   #melt.print_global_varaiables()
   melt.apps.train_flow(ops, 
@@ -359,8 +343,6 @@ def train():
                        summary_excls=summary_excls,
                        init_fn=init_fn,
                        restore_fn=restore_fn,
-                       #variables_to_restore=variables_to_restore,
-                       #save_all_scope=True,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
   
 def main(_):

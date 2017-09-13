@@ -43,6 +43,11 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
     
     self.text_feed = tf.placeholder(tf.int64, [None, TEXT_MAX_WORDS], name='text')
+    tf.add_to_collection('lfeed', self.text_feed)
+    tf.add_to_collection('feed', self.text_feed)
+
+    self.beam_text = None 
+    self.beam_text_score = None
 
   def init(self, reuse=True):
     #self.image_process_fn = functools.partial(melt.image.image2feature_fn,
@@ -51,16 +56,17 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
                                               width=FLAGS.image_width,
                                               reuse=reuse)
 
-  def init_predict_text(self, decode_method=0, beam_size=5, convert_unk=True):
+  def init_predict_text(self, decode_method='greedy', beam_size=5, convert_unk=True):
     """
     init for generate texts
     """
-    text = self.build_predict_text_graph(self.image_feature_feed, 
+    text, score = self.build_predict_text_graph(self.image_feature_feed, 
       decode_method, 
       beam_size, 
       convert_unk)
-
-    return text
+    self.beam_text = text 
+    self.beam_text_score = score
+    return text, score
 
   def init_predict(self, exact_loss=False):
     self.score = self.build_predict_graph(self.image_feature_feed, 
@@ -118,16 +124,17 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     score = self.sess.run(self.score, feed_dict)
     return score
 
-  def predict_text(self, images, sep='/', index=0):
+  def predict_text(self, images):
     """
-    depreciated will remove
+    for translation evaluation only
     """
+    if self.beam_text is None:
+      self.init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam)
+
     feed_dict = {
       self.image_feature_feed: images,
       }
 
-    vocab = vocabulary.get_vocab()
-    generated_words = self.sess.run(self.text_list[index], feed_dict) 
-    texts = idslist2texts(generated_words, sep=sep)
+    texts, scores = self.sess.run([self.beam_text, self.beam_text_score], feed_dict=feed_dict)
 
-    return texts
+    return texts, scores

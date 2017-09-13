@@ -114,7 +114,6 @@ class Predictor(object):
 
     return self.sess
 
-
 class SimPredictor(object):
   def __init__(self, 
               model_dir=None, 
@@ -193,7 +192,8 @@ class SimPredictor(object):
 
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
-              lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, key='score', exact_key='score', sess=None, exact_sess=None):
+              lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, 
+              key='score', exact_key='score', sess=None, exact_sess=None):
     self._predictor = SimPredictor(model_dir, index=0, lkey=lkey, rkey=rkey, key=key, sess=sess)
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
@@ -266,4 +266,50 @@ class RerankSimPredictor(object):
       top_indices.append(index[:k])
 
     return np.array(top_values), np.array(top_indices)
+
+class TextPredictor(object):
+  def __init__(self, 
+              model_dir=None, 
+              key=None,
+              text_key='beam_text',
+              score_key='beam_text_score',
+              index=0,
+              meta_graph=None, 
+              model_name=None, 
+              debug=False, 
+              sess=None):
+    self._predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
+    self._index = index
+
+    self._text_key = text_key
+    self._score_key = score_key
+
+    if key is None:
+      try:
+        self._key = tf.get_collection('feed')[index]
+      except Exception:
+        self._key = tf.get_collection('lfeed')[index]
+
+  def inference(self, inputs, text_key=None, score_key=None, index=None):
+    if text_key is None:
+      text_key = self._text_key
+
+    if score_key is None:
+      score_key = self._score_key
+
+    if index is None:
+      index = self._index
+
+    feed_dict = {
+      self._key: inputs
+    }
+
+    return self._predictor.inference([text_key, score_key], feed_dict=feed_dict, index=index)
+
+  def predict(self, inputs, text_key=None, score_key=None, index=None):
+    return self.inference(inputs, text_key, score_key, index)
+
+  def predict_text(self, inputs, text_key=None, score_key=None, index=None):
+    return self.inference(inputs, text_key, score_key, index)
+
   

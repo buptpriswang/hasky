@@ -51,6 +51,8 @@ flags.DEFINE_integer('max_images', 20000, '')
 
 flags.DEFINE_boolean('eval_img2text', True, '')
 flags.DEFINE_boolean('eval_text2img', False, '')
+flags.DEFINE_boolean('eval_rank', True, '')
+flags.DEFINE_boolean('eval_translation', True, 'for generative method')
 
 import sys, os
 import gezi.nowarning
@@ -75,11 +77,14 @@ except Exception:
 
 from deepiu.util import algos_factory
 
+from gezi.metrics import Bleu, Meteor, Rouge, Cider
+
 import numpy as np
 import math
 
 all_distinct_texts = None
 all_distinct_text_strs = None
+all_distinct_text_id_strs = None #used only for evaluate translation
 
 img2text = None
 text2img = None
@@ -587,5 +592,121 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
   else:
     return rank_metrics2.get_metrics(), rank_metrics2.get_names()
   
+#---------for eval translation
+refs = None
+def prepare_refs():
+  global refs, all_distinct_text_id_strs
+  if refs is None:
+    if all_distinct_text_id_strs is None:
+      all_distinct_text_id_strs = [' '.join([str(x) for x in l if int(x) is not 0]) for l in all_distinct_texts]
+    refs = {}
+    for img, hits in img2text.items():
+      refs[img] = [all_distinct_text_id_strs[hit] for hit in hits]
+
+  return refs
+
+def translation_predicts(imgs, img_features, predictor, results):
+  texts, _ = predictor.predict_text(img_features)
+  texts = [x[0] for x in texts] #only use top prediction of beam search
+  for i in range(len(texts)):
+    #for eval even if only one predict must also be list, also exclude last end id
+    texts[i] = [' '.join([str(x) for x in texts[i][:list(texts[i]).index(vocab.end_id())]])] 
+    results[imgs[i]] = texts[i]
+
 def evaluate_translation(predictor, random=False, index=None):
-  pass
+  timer = gezi.Timer('evaluate_translation')
+
+  refs = prepare_refs()
+
+  imgs, img_features = get_image_names_and_features()
+  num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs)) 
+  if num_metric_eval_examples <= 0:
+    num_metric_eval_examples = len(imgs)
+
+  step = FLAGS.metric_eval_batch_size
+
+  if random:
+    if index is None:
+      index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
+    imgs = imgs[index]
+    img_features = img_features[index]
+    if isinstance(img_features[0], np.string_):
+      img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])
+
+  results = {}
+
+  start = 0
+  while start < num_metric_eval_examples:
+    end = start + step
+    if end > num_metric_eval_examples:
+      end = num_metric_eval_examples
+    print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
+    translation_predicts(imgs[start: end], img_features[start: end], predictor, results)
+    start = end
+    
+  scorers = [
+            (Bleu(4), ["bleu_1", "bleu_2", "bleu_3", "bleu_4"]),
+            (Meteor(),"meteor"),
+            (Rouge(), "rouge_l"),
+            (Cider(), "cider")
+        ]
+
+  score_list = []
+  metric_list = []
+
+  selected_refs = {}
+  selected_results = {}
+  #by doing this can force same .keys()
+  is_first = True
+  for key in results:
+    selected_refs[key] = refs[key]
+    selected_results[key] = results[key]
+    if is_first:
+      print(selected_results[key], selected_refs[key], len(selected_results[key]))
+      is_first = False
+    assert len(selected_results[key]) == 1, selected_results[key]
+  assert selected_results.keys() == selected_refs.keys(), '%d %d'%(len(selected_results.keys()), len(selected_refs.keys())) 
+
+  for scorer, method in scorers:
+    print('computing %s score...'%(scorer.method()), file=sys.stderr)
+    score, scores = scorer.compute_score(selected_refs, selected_results)
+    if type(method) == list:
+      for sc, scs, m in zip(score, scores, method):
+        score_list.append(sc)
+        metric_list.append(m)
+    else:
+      score_list.append(score)
+      metric_list.append(method)
+
+  avg_score = sum(score_list) / len(score_list)
+  score_list.append(avg_score)
+  metric_list.append('avg')
+  metric_list = ['trans_' + x for x in metric_list]
+
+  melt.logging_results(
+    score_list,
+    metric_list,
+    tag='evaluate: epoch:{} step:{} train:{} eval:{}'.format(
+      melt.epoch(), 
+      melt.step(),
+      melt.train_loss(),
+      melt.eval_loss()))
+
+  timer.print()
+
+  return score_list, metric_list
+
+
+def evaluate(predictor, random=False, index=None, eval_rank=True, eval_translation=False):
+  scores = []
+  metrics = []
+  if eval_rank:
+    sc, m = evaluate_scores(predictor, random=random, index=index)
+    scores += sc 
+    metrics += m 
+  if eval_translation:
+    sc, m = evaluate_translation(predictor, random=random, index=index)
+    scores += sc 
+    metrics += m     
+
+  return scores, metrics
