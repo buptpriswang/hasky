@@ -678,7 +678,9 @@ def evaluate_translation(predictor, random=False, index=None):
       score_list.append(score)
       metric_list.append(method)
 
-  avg_score = sum(score_list) / len(score_list)
+  score_list2 = [score_list[i] for i in range(len(score_list)) if i >= 3]
+  assert(len(score_list2) == 4)
+  avg_score = sum(score_list2) / len(score_list2)
   score_list.append(avg_score)
   metric_list.append('avg')
   metric_list = ['trans_' + x for x in metric_list]
