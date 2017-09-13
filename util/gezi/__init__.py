@@ -27,5 +27,7 @@ try:
   import gezi.bigdata_util
   from gezi.pydict import *
 except Exception:
-  print('import libgezi, segment bigdata_util pydict fail')
+  print('import libgezi, segment bigdata_util pydict metrics fail')
   pass
+
+import gezi.metrics

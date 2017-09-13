@@ -44,7 +44,7 @@ python ./train.py \
   --feed_dict 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
-  --seq_decode_method 0 \
+  --seq_decode_method greedy \
   --beam_size 10 \
   --decode_max_words 20 \
   --dynamic_batch_length 1 \

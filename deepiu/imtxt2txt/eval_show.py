@@ -21,11 +21,6 @@ FLAGS = flags.FLAGS
 flags.DEFINE_integer('num_text_topn', 5, '')
 flags.DEFINE_integer('num_word_topn', 50, '')
 
-#---------for rnn decode
-flags.DEFINE_integer('seq_decode_method', 0, """sequence decode method: 0 greedy, 1 sample, 2 full sample, 
-                                                3 beam (beam search ingraph), 4 beam search (outgraph/interactive)
-                                                Now only support greedy and beam search""")
-
 import functools
 import melt
 
@@ -80,7 +75,7 @@ def gen_eval_generated_texts_ops(input_app, input_results, predictor, eval_score
 
   #beam search(ingraph)
   generated_texts_beam, generated_texts_score_beam = build_predict_text_graph(
-                      decode_method=SeqDecodeMethod.beam)
+                      decode_method=SeqDecodeMethod.ingraph_beam)
 
   eval_ops = [evaluate_image_name, evaluate_input_text_str, evaluate_input_text, \
               evaluate_text_str, evaluate_text, \

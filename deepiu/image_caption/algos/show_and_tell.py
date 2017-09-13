@@ -131,7 +131,7 @@ class ShowAndTell(object):
     return image_embeddings
 
   #NOTICE mainly usage is not use neg! for generative method
-  def build_graph(self, image_feature, text, neg_text=None, exact_loss=False):
+  def build_graph(self, image_feature, text, neg_image_feature=None, neg_text=None, exact_loss=False):
     print('train:', self.is_training, 'evaluate:', self.is_evaluate, 'predict:', self.is_predict)
     
     image_emb = self.build_image_embeddings(image_feature)
@@ -173,5 +173,5 @@ class ShowAndTell(object):
       tf.add_to_collection('scores', scores)
     return loss
 
-  def build_train_graph(self, image_feature, text, neg_text=None):
+  def build_train_graph(self, image_feature, text, neg_image_feature=None, neg_text=None):
     return self.build_graph(image_feature, text, neg_text)

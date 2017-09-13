@@ -158,14 +158,14 @@ def gen_predict_graph(predictor):
                                         beam_size=FLAGS.beam_size, 
                                         convert_unk=False)
   text, text_score = init_predict_text(decode_method=FLAGS.seq_decode_method)
-  beam_text, beam_text_score = init_predict_text(decode_method=SeqDecodeMethod.beam)
+  beam_text, beam_text_score = init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam)
       
   tf.add_to_collection('text', text)
   tf.add_to_collection('text_score', text_score)
   tf.add_to_collection('beam_text', beam_text)          
   tf.add_to_collection('beam_text_score', beam_text_score)          
 
-  init_predict_text(decode_method=SeqDecodeMethod.beam_search)
+  init_predict_text(decode_method=SeqDecodeMethod.outgraph_beam)
   if FLAGS.use_attention:
     tf.add_to_collection('beam_search_alignments', tf.get_collection('attention_alignments')[-1])
 

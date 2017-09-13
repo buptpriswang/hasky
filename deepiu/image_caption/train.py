@@ -239,6 +239,11 @@ def gen_validate(input_app, input_results, trainer, predictor):
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 
+    #TODO check
+    if algos_factory.is_generative(FLAGS.algo):
+      eval_neg_text = None 
+      eval_neg_text_str = None 
+      
     if FLAGS.show_eval and (predictor is not None):
       eval_ops, deal_eval_results = \
         gen_evalulate(
@@ -270,7 +275,7 @@ def gen_predict_graph(predictor):
                                           beam_size=FLAGS.beam_size, 
                                           convert_unk=False)
     text, text_score = init_predict_text(decode_method=FLAGS.seq_decode_method)
-    beam_text, beam_text_score = init_predict_text(decode_method=SeqDecodeMethod.beam)
+    beam_text, beam_text_score = init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam)
 
     tf.add_to_collection('text', text)
     tf.add_to_collection('text_score', text_score)
@@ -309,8 +314,7 @@ def train():
 
     metric_eval_fn = None
     if FLAGS.metric_eval:
-      #generative can do this also but it is slow so just ingore this
-      if not algos_factory.is_generative(FLAGS.algo): 
+      if not algos_factory.is_generative(FLAGS.algo) or FLAGS.assistant_model_dir:
         metric_eval_fn = lambda: evaluator.evaluate_scores(predictor, random=True)
 
   init_fn = None

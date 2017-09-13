@@ -95,6 +95,8 @@ flags.DEFINE_boolean('switch_after_softmax', True, '')
 #TODO support feed_prev training mode for dynamic rnn decode
 flags.DEFINE_boolean('feed_prev', False, 'wether use feed_prev mode for rnn decode during training also')
 
+flags.DEFINE_string('seq_decode_method', 'greedy', '')
+
 import functools
 import melt 
 from deepiu.util import vocabulary
@@ -102,11 +104,11 @@ from deepiu.seq2seq.decoder import Decoder
 from tensorflow.python.util import nest
 
 class SeqDecodeMethod:
-  greedy = 0
-  sample = 1
-  full_sample = 2
-  beam = 3         # ingraph beam search
-  beam_search = 4  # outgraph beam search/ interactve beam search
+  greedy = 'greedy'
+  sample = 'sample'
+  full_sample = 'full_sample'
+  ingraph_beam = 'ingraph_beam'                
+  outgraph_beam = 'outgraph_beam'  
 
 class RnnDecoder(Decoder):
   def __init__(self, is_training=True, is_predict=False):
@@ -489,7 +491,7 @@ class RnnDecoder(Decoder):
     return generated_sequence, tf.zeros([batch_size,])
 
 
-  def generate_sequence_beam(self, input, max_words, 
+  def generate_sequence_ingraph_beam(self, input, max_words, 
                              initial_state=None, attention_states=None,
                              beam_size=5, convert_unk=True,
                              length_normalization_factor=0., 
@@ -579,7 +581,7 @@ class RnnDecoder(Decoder):
     #return paths, scores
 
 
-  def generate_sequence_beam_search(self, input, max_words=None, 
+  def generate_sequence_outgraph_beam(self, input, max_words=None, 
                                   initial_state=None, attention_states=None,
                                   beam_size=10, convert_unk=True,
                                   length_normalization_factor=0., 

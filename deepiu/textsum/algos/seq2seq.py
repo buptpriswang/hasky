@@ -133,7 +133,7 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
     score = self.sess.run(self.score, feed_dict)
     return score
 
-  def build_predict_text_graph(self, input_text, decode_method=0, beam_size=5, convert_unk=True):
+  def build_predict_text_graph(self, input_text, decode_method='greedy', beam_size=5, convert_unk=True):
     with tf.variable_scope("encode"):
       encoder_output, state = self.encoder.encode(input_text)
       if not FLAGS.use_attention:
@@ -152,12 +152,12 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
                                        convert_unk=convert_unk,
                                        input_text=input_text)
       else:
-        if decode_method == SeqDecodeMethod.beam:
-          decode_func = self.decoder.generate_sequence_beam
-        elif decode_method == SeqDecodeMethod.beam_search:
-          decode_func = self.decoder.generate_sequence_beam_search
+        if decode_method == SeqDecodeMethod.ingraph_beam:
+          decode_func = self.decoder.generate_sequence_ingraph_beam
+        elif decode_method == SeqDecodeMethod.outgraph_beam:
+          decode_func = self.decoder.generate_sequence_outgraph_beam
         else:
-          raise ValueError('not supported decode_method: %d' % decode_method)
+          raise ValueError('not supported decode_method: %s' % decode_method)
         
         input_text, input_text_length = melt.pad(input_text, end_id=self.encoder.end_id)
         #input_text = self.encoder.sequence

@@ -71,24 +71,29 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
  
 
   #TODO Notice when training this image always be float...  
-  def build_predict_text_graph(self, image, decode_method=0, beam_size=5, convert_unk=True):
+  def build_predict_text_graph(self, image, decode_method='greedy', beam_size=5, convert_unk=True):
     decoder_input = self.build_image_embeddings(image)
     state = None
-    
+    max_words = TEXT_MAX_WORDS
     if decode_method == SeqDecodeMethod.greedy:
       return self.decoder.generate_sequence_greedy(decoder_input, 
-                                            max_words=TEXT_MAX_WORDS, 
-                                            initial_state=state, 
-                                            convert_unk=convert_unk)
-    elif decode_method == SeqDecodeMethod.beam:
-      return self.decoder.generate_sequence_beam(decoder_input,
-                                                 max_words=TEXT_MAX_WORDS, 
-                                                 initial_state=state, 
-                                                 beam_size=beam_size, 
-                                                 convert_unk=convert_unk,
-                                                 length_normalization_factor=FLAGS.length_normalization_factor)
+                                     max_words=max_words, 
+                                     initial_state=state,
+                                     convert_unk=convert_unk)
     else:
-      raise ValueError('not supported decode_method: %d' % decode_method)
+      if decode_method == SeqDecodeMethod.ingraph_beam:
+        decode_func = self.decoder.generate_sequence_ingraph_beam
+      elif decode_method == SeqDecodeMethod.outgraph_beam:
+        decode_func = self.decoder.generate_sequence_outgraph_beam
+      else:
+        raise ValueError('not supported decode_method: %s' % decode_method)
+      
+      return decode_func(decoder_input, 
+                         max_words=max_words, 
+                         initial_state=state,
+                         beam_size=beam_size, 
+                         convert_unk=convert_unk,
+                         length_normalization_factor=FLAGS.length_normalization_factor)
 
   def build_predict_graph(self, image, text, exact_loss=False):
     #image = tf.reshape(image, [-1, self.image_feature_len])
@@ -113,7 +118,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     score = self.sess.run(self.score, feed_dict)
     return score
 
-  def predict_text(self, images, index=0):
+  def predict_text(self, images, sep='/', index=0):
     """
     depreciated will remove
     """
@@ -122,8 +127,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       }
 
     vocab = vocabulary.get_vocab()
-
     generated_words = self.sess.run(self.text_list[index], feed_dict) 
-    texts = idslist2texts(generated_words)
+    texts = idslist2texts(generated_words, sep=sep)
 
     return texts

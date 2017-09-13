@@ -4,7 +4,7 @@
 #          \file   evaluator.py
 #        \author   chenghuige  
 #          \date   2016-08-22 13:03:44.170552
-#   \Description  
+#   \Description   
 # ==============================================================================
 
   
@@ -295,8 +295,8 @@ def print_img_text_negscore_generatedtext(img, i, text, score,
     for i, text in enumerate(generated_text):
       print_generated_text_score(text, generated_text_score[i], name='gen__max', id=i)   
   
-  print('-----------------------', generated_text_beam, generated_text_beam.shape)
-  print(generated_text_score_beam, generated_text_score_beam.shape)
+  #print('-----------------------', generated_text_beam, generated_text_beam.shape)
+  #print(generated_text_score_beam, generated_text_score_beam.shape)
   if generated_text_beam is not None:
     try:
       print_generated_text_score(generated_text_beam, generated_text_score_beam)
@@ -509,6 +509,9 @@ def random_predict_index(seed=None):
   return  np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
 
 def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, exact_ratio=1.):
+  """
+  actually this is rank metrics evaluation, by default recall@1,2,5,10,50
+  """
   timer = gezi.Timer('evaluate_scores')
   init()
   if FLAGS.eval_img2text:
@@ -584,3 +587,5 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
   else:
     return rank_metrics2.get_metrics(), rank_metrics2.get_names()
   
+def evaluate_translation(predictor, random=False, index=None):
+  pass
