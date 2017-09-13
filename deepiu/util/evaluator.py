@@ -607,7 +607,8 @@ def prepare_refs():
 
 def translation_predicts(imgs, img_features, predictor, results):
   texts, _ = predictor.predict_text(img_features)
-  texts = [x[0] for x in texts] #only use top prediction of beam search
+  #only use top prediction of beam search
+  texts = [x[0] for x in texts]
   for i in range(len(texts)):
     #for eval even if only one predict must also be list, also exclude last end id
     texts[i] = [' '.join([str(x) for x in texts[i][:list(texts[i]).index(vocab.end_id())]])] 

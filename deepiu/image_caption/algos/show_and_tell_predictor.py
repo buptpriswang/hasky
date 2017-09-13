@@ -41,10 +41,12 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     else:
       self.image_feature_len = 2048
       self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
+
+    tf.add_to_collection('feed', self.image_feature_feed)
+    tf.add_to_collection('lfeed', self.image_feature_feed)
     
     self.text_feed = tf.placeholder(tf.int64, [None, TEXT_MAX_WORDS], name='text')
-    tf.add_to_collection('lfeed', self.text_feed)
-    tf.add_to_collection('feed', self.text_feed)
+    tf.add_to_collection('rfeed', self.text_feed)
 
     self.beam_text = None 
     self.beam_text_score = None

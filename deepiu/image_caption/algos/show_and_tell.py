@@ -143,7 +143,7 @@ class ShowAndTell(object):
     if neg_text is not None and (FLAGS.use_neg or FLAGS.show_neg):
       neg_losses = []
       num_negs = neg_text.get_shape()[1]
-      for i in xrange(num_negs):
+      for i in range(num_negs):
         tf.get_variable_scope().reuse_variables()
         neg_text_i = neg_text[:, i, :]
         neg_loss = self.decoder.sequence_loss(image_emb, neg_text_i, exact_loss=exact_loss)
