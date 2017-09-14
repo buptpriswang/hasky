@@ -368,6 +368,10 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
 
   print(predictor, exact_predictor)
 
+  if isinstance(img_features[0], np.string_):
+    assert(len(img_features) < 2000) #otherwise too big mem ..
+    img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])  
+
   random = True
   need_shuffle = False
   if FLAGS.max_texts > 0 and len(all_distinct_texts) > FLAGS.max_texts:
@@ -474,6 +478,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
       end = len(img_features)
     print('predicts images start:', start, 'end:', end, file=sys.stderr, end='\r')
     
+    #here might not accept raw image for bow predictor as assistant predictor TODO how to add image process here to gen feature first?
     score = predictor.predict(img_features[start: end], texts)
    
     scores.append(score)
@@ -539,8 +544,6 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
         index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
       imgs = imgs[index]
       img_features = img_features[index]
-      if isinstance(img_features[0], np.string_):
-        img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])
 
     rank_metrics = gezi.rank_metrics.RecallMetrics()
 

@@ -39,7 +39,6 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       self.image_feature_len = IMAGE_FEATURE_LEN 
       self.image_feature_feed = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
     else:
-      self.image_feature_len = 2048
       self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
 
     tf.add_to_collection('feed', self.image_feature_feed)
@@ -50,13 +49,6 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
 
     self.beam_text = None 
     self.beam_text_score = None
-
-  def init(self, reuse=True):
-    #self.image_process_fn = functools.partial(melt.image.image2feature_fn,
-    self.image_process_fn = functools.partial(melt.image.create_image2feature_fn(), 
-                                              height=FLAGS.image_height, 
-                                              width=FLAGS.image_width,
-                                              reuse=reuse)
 
   def init_predict_text(self, decode_method='greedy', beam_size=5, convert_unk=True):
     """
@@ -104,7 +96,6 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
                          length_normalization_factor=FLAGS.length_normalization_factor)
 
   def build_predict_graph(self, image, text, exact_loss=False):
-    #image = tf.reshape(image, [-1, self.image_feature_len])
     text = tf.reshape(text, [-1, TEXT_MAX_WORDS])
     
     loss = self.build_graph(image, text)
@@ -119,7 +110,6 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     default usage is one single image , single text predict one sim score
     """
     feed_dict = {
-      #self.image_feature_feed: image.reshape([-1, self.image_feature_len]),
       self.image_feature_feed: image,
       self.text_feed: text,
     }

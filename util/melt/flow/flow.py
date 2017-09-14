@@ -97,7 +97,7 @@ def tf_train_flow(train_once_fn,
   similary flow as tf_flow, but add model try reload and save
   """
   if sess is None:
-    #TODO melt.get_session is global session but may cause
+    #TODO melt.get_session is global session but may cause non close at last
     sess = melt.get_session()
   logging.info('tf_train_flow start')
   print('max_models_keep:', max_models_keep, file=sys.stderr)
@@ -140,7 +140,9 @@ def tf_train_flow(train_once_fn,
   
   ##--mostly this will be fine except for using assistant predictor, initialize again! will make assistant predictor wrong
   ##so assume to all run init op! if using assistant predictor, make sure it use another session
+  
   sess.run(init_op)
+  
   #melt.init_uninitialized_variables(sess)
 
   #pre_step means the step last saved, train without pretrained,then -1
@@ -157,7 +159,6 @@ def tf_train_flow(train_once_fn,
     if restore_fn is not None:
       restore_fn(sess)
     loader.restore(sess, model_path)
-    logging.info('restore ok from saver with scope %s only'%restore_scope)
     timer.print()
     pre_step = melt.get_model_step(model_path)
     pre_epoch = melt.get_model_epoch(model_path)

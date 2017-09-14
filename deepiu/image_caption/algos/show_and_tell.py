@@ -100,8 +100,12 @@ class ShowAndTell(object):
       assert melt.apps.image_processing.image_processing_fn is not None, 'forget melt.apps.image_processing.init()'
       self.image_process_fn = functools.partial(melt.apps.image_processing.image_processing_fn,
                                                 height=FLAGS.image_height, 
-                                                width=FLAGS.image_width)
-
+                                                width=FLAGS.image_width,
+                                                trainable=FLAGS.finetune_image_model,
+                                                is_training=is_training,
+                                                random_crop=FLAGS.random_crop_image,
+                                                finetune_end_point=FLAGS.finetune_end_point,
+                                                distort=FLAGS.distort_image)  
 
   def feed_ops(self):
     """

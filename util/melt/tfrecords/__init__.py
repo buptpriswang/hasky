@@ -1,6 +1,5 @@
 #deprecated use decode_then_shuffle and shuffle_then_decode
 import melt.tfrecords.read 
-import melt.tfrecords.read_sparse
 
 import melt.tfrecords.libsvm_decode
 

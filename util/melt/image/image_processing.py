@@ -67,9 +67,11 @@ def create_image_model_init_fn(image_model_name, image_checkpoint_file):
 
   saver = tf.train.Saver(variables_to_restore)
   def restore_fn(sess):
+    timer = gezi.Timer('restore image var')
     logging.info("Restoring image variables from checkpoint file %s",
-                        image_checkpoint_file)
+                      image_checkpoint_file)
     saver.restore(sess, image_checkpoint_file)
+    timer.print()
   return restore_fn
 
 def distort_image(image):

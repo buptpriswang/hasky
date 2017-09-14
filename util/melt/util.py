@@ -36,7 +36,10 @@ def init_uninitialized_variables(sess, list_of_variables = None):
 
 def get_checkpoint_varnames(model_dir):
   checkpoint_path = get_model_path(model_dir)
-  if not os.path.exists(checkpoint_path) or os.path.isdir(checkpoint_path):
+  #if model_dir is dir then checkpoint_path should be model path not model dir like
+  #/home/gezi/new/temp/image-caption/makeup/model/bow.inceptionResnetV2.finetune.later/model.ckpt-589.5-1011000
+  #if user input model_dir is like above model path we assume it to be correct and exists not check!
+  if os.path.isdir(checkpoint_path) or not os.path.exists(checkpoint_path + '.meta'):
     return None 
   try:
     reader = pywrap_tensorflow.NewCheckpointReader(checkpoint_path)

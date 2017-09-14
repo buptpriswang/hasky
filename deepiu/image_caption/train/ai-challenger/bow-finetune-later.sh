@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic-finetune
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.finetune
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.finetune.later
 mkdir -p $model_dir
 
 python ./train.py \
@@ -30,8 +30,8 @@ python ./train.py \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 32 \
-  --eval_batch_size 200 \
   --num_gpus 0 \
+  --eval_batch_size 200 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 200 \
   --metric_eval_interval_steps 1000 \
@@ -52,6 +52,7 @@ python ./train.py \
   --algo bow \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
+  --pre_calc_image_feature 0 \
   --learning_rate 0.01 \
   --combiner=sum \
   --exclude_zero_index 1 \
