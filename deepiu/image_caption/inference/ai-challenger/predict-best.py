@@ -12,7 +12,7 @@ from __future__ import division
 from __future__ import print_function
 
 import sys, os
-from deepiu.util.TextPredictor import TextPredictor
+from deepiu.util.text_predictor import TextPredictor
 
 image_dir = '/home/gezi/data2/data/ai_challenger/image_caption/pic/'
 image_file = '6275b5349168ac3fab6a493c509301d023cf39d3.jpg'

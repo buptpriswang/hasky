@@ -60,11 +60,8 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     #input image feature, assume text final feature already load
     self.fixed_text_feature_score = None
 
-    #TODO should be flags?
-    if FLAGS.pre_calc_image_feature:
-      self.image_feature_len = IMAGE_FEATURE_LEN 
-    else:
-      self.image_feature_len = 2048 #inception v3
+    self.image_feature_len = IMAGE_FEATURE_LEN 
+
 
   def init_predict(self, text_max_words=TEXT_MAX_WORDS):
     self.score = self.build_predict_graph(text_max_words)
@@ -123,6 +120,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
         self.image_feature_feed = tf.placeholder(tf.float32, [None, self.image_feature_len], name='image_feature')
       else:
         self.image_feature_feed =  tf.placeholder(tf.string, [None,], name='image_feature')
+      tf.add_to_collection('feed', self.image_feature_feed)
       tf.add_to_collection('lfeed', self.image_feature_feed)
     return self.image_feature_feed
 

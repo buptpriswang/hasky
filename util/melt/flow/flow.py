@@ -219,7 +219,7 @@ def tf_train_flow(train_once_fn,
         if step % save_interval_steps == 0:
           timer = gezi.Timer('save model step %d to %s'%(step, checkpoint_path))
           saver.save(sess, 
-                     _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 
+                     _get_checkpoint_path(checkpoint_path, fixed_step, num_steps_per_epoch), 
                      global_step=step)
           timer.print()
         #if save_interval_epochs and num_steps_per_epoch and step % (num_steps_per_epoch * save_interval_epochs) == 0:

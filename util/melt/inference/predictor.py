@@ -119,6 +119,7 @@ class Predictor(object):
 
     return self.sess
 
+#TODO lkey, rkey .. should be named as lfeed, rfeed
 class SimPredictor(object):
   def __init__(self, 
               model_dir, 
@@ -136,8 +137,13 @@ class SimPredictor(object):
 
     if lkey is None:
       self._lkey = tf.get_collection('lfeed')[index]
+    else:
+      self._lkey = lkey
+
     if rkey is None:
       self._rkey = tf.get_collection('rfeed')[index]
+    else:
+      self._rkey = rkey
 
   def inference(self, ltext, rtext=None, key=None, index=None):
     if key is None:
@@ -273,10 +279,34 @@ class RerankSimPredictor(object):
 
     return np.array(top_values), np.array(top_indices)
 
+class WordsImportancePredictor(object):
+  def __init__(self, model_dir, key=None, feed=None, index=0, sess=None):
+    self._predictor = Predictor(model_dir, sess=sess)
+    self._index = index 
+
+    if key is None:
+      self._key = tf.get_collection('words_importance')[index]
+    else:
+      self._key = key
+
+    if feed is None:
+      self._feed = tf.get_collection('rfeed')[index]
+    else:
+      self._feed = feed
+
+
+  def inference(self, inputs):
+    feed_dict = {self._feed: inputs}
+    return self._predictor.inference(self._key, feed_dict=feed_dict, index=self._index)
+
+  def predict(self, inputs):
+    return self.inference(inputs)
+
+
 class TextPredictor(object):
   def __init__(self, 
               model_dir, 
-              key=None,
+              feed=None,
               text_key='beam_text',
               score_key='beam_text_score',
               index=0,
@@ -290,11 +320,13 @@ class TextPredictor(object):
     self._text_key = text_key
     self._score_key = score_key
 
-    if key is None:
+    if feed is None:
       try:
-        self._key = tf.get_collection('feed')[index]
+        self._feed = tf.get_collection('feed')[index]
       except Exception:
-        self._key = tf.get_collection('lfeed')[index]
+        self._feed = tf.get_collection('lfeed')[index]
+    else:
+      self._feed = feed
 
   def inference(self, inputs, text_key=None, score_key=None, index=None):
     if text_key is None:
@@ -307,7 +339,7 @@ class TextPredictor(object):
       index = self._index
 
     feed_dict = {
-      self._key: inputs
+      self._feed: inputs
     }
 
     return self._predictor.inference([text_key, score_key], feed_dict=feed_dict, index=index)
@@ -317,5 +349,3 @@ class TextPredictor(object):
 
   def predict_text(self, inputs, text_key=None, score_key=None, index=None):
     return self.inference(inputs, text_key, score_key, index)
-
-  

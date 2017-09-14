@@ -141,8 +141,8 @@ def init():
     #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
     #by default now Predictor using tf.Session already, here for safe, if use same session then not work
     if is_raw_image(image_features):
-      print('assist predictor use deepiu.util.SimPredictor.SimPredictor as is raw image as input')
-      assistant_predictor = deepiu.util.SimPredictor.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0, 
+      print('assist predictor use deepiu.util.sim_predictor.SimPredictor as is raw image as input')
+      assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0, 
                                                                   image_checkpoint_path=FLAGS.image_checkpoint_file, image_model_name=FLAGS.image_model_name)
     else:
       assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)

@@ -22,5 +22,6 @@ import deepiu.util.evaluator
 import deepiu.util.input_flags 
 import deepiu.util.rank_loss 
 
-import deepiu.util.SimPredictor
-import deepiu.util.TextPredictor
+import deepiu.util.sim_predictor
+import deepiu.util.text_predictor
+import deepiu.util.words_importance_predictor
