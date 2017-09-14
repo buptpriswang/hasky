@@ -95,8 +95,6 @@ def run():
   print(bad_imgs, file=sys.stderr)
   print('All %d, Bad %d, BadRatio: %f'%(len(all_pics), len(bad_imgs), len(bad_imgs) / len(all_pics)), file=sys.stderr)
 
-
-
 def main(_):
   global img2feautres_op 
   img2feautres_op = build_graph(images_feed)

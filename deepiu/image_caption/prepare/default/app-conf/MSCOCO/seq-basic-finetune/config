@@ -1,0 +1,31 @@
+input_path=/home/gezi/new2/data/ai_challenger/image_caption
+dir=/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic-finetune
+
+image_dir=/home/gezi/new2/data/ai_challenger/image_caption/pic
+win_image_dir=D:\\new2\data\ai_challenger\\image_caption\\pic
+
+train_data_path=$input_path/train
+valid_data_path=$input_path/valid
+
+train_output_path=$dir/train
+valid_output_path=$dir/valid
+fixed_valid_output_path=$dir/fixed_valid
+
+resource_dir=/home/gezi/exp/tieba/urate/
+
+vocab_size=500000
+min_count=4
+
+seg_method=basic_single
+online_seg_method=basic
+feed_single=1
+
+#now set 0 to be same as bow for comparing, but its is better to set to 1 TODO
+shuffle_texts=0
+max_texts=0
+
+#export HADOOP_HOME=/home/img/chenghuige/soft/hadoop-client/hadoop
+#export PATH=$HADOOP_HOME/bin:$PATH
+
+hdfs_dir=/app/tuku/chenghuige/image-caption/seq-basic
+hdfs_train_output_path=$hdfs_dir/train

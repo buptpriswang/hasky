@@ -107,6 +107,7 @@ def init():
   if FLAGS.assistant_model_dir:
     global assistant_predictor
     #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
+    #by default now Predictor using tf.Session already, here for safe, if use same session then not work
     assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='score', index=0, sess=tf.Session())
     print('assistant_predictor', assistant_predictor)
 
