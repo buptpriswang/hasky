@@ -38,10 +38,10 @@ python ./train.py \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
-  --metric_eval_interval_steps 1000 \
+  --metric_eval_interval_steps 2000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
-  --num_metric_eval_examples 1000 \
+  --num_metric_eval_examples 500 \
   --metric_eval_batch_size 500 \
   --max_texts 20000 \
   --margin 0.5 \

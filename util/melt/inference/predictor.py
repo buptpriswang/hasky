@@ -10,6 +10,8 @@
 This predictor will read from checkpoint and meta graph, only depend on tensorflow
 no other code dpendences, so can help hadoop or online deploy,
 and also can run inference without code of building net/graph
+
+TODO test use tf.Session() instead of melt.get_session()
 """
   
 from __future__ import absolute_import
@@ -35,6 +37,7 @@ def get_model_dir_and_path(model_dir, model_name=None):
   #  raise ValueError(model_path)
   return os.path.dirname(model_path), model_path
 
+#tf.get_default_graph().get_all_collection_keys() get all keys
 def get_tensor_from_key(key, index=-1):
   if isinstance(key, str):
     try:
@@ -53,8 +56,10 @@ class Predictor(object):
     super(Predictor, self).__init__()
     self.sess = sess
     if self.sess is None:
+      ##---TODO tf.Session() if sess is None
       #self.sess = tf.InteractiveSession()
-      self.sess = melt.get_session() #make sure use one same global/share sess in your graph
+      #self.sess = melt.get_session() #make sure use one same global/share sess in your graph
+      self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) #by default to use new Session, so not conflict with previous Predictors(like overwide values)
       if debug:
         self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
     #ops will be map and internal list like
@@ -190,6 +195,7 @@ class SimPredictor(object):
       values = score[np.repeat(np.arange(x), N), indices.ravel()].reshape(x, k)
       return values, indices
 
+#different session for predictor and exact_predictor all using index 0! if work not correclty try to change Predictor default behave use melt.get_session() TODO
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
               lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, 
@@ -269,7 +275,7 @@ class RerankSimPredictor(object):
 
 class TextPredictor(object):
   def __init__(self, 
-              model_dir=None, 
+              model_dir, 
               key=None,
               text_key='beam_text',
               score_key='beam_text_score',

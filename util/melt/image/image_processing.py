@@ -339,10 +339,21 @@ def create_image2feature_slim_fn(name='InceptionV3'):
                      weight_decay=0.00004,
                      finetune_end_point=None,
                      image_format="jpeg",  #for safe just use decode_jpeg
-                     reuse=None):
-      
+                     reuse=None):      
       logging.info('image model trainable:{}, is_training:{}'.format(trainable, is_training))
 
+      #allow [batch_size, 1] as input
+      #print(encoded_image.shape) #should be (?,)
+      #encoded_image = tf.squeeze(encoded_image) #this will casue problem if input batch size is 1, so squeeze seems danerous TODO check
+      #if use tf.squeeze(encoded_image, 1) also not work, out of index TODO can if len(shape) > 1 squeeze ?
+
+      batch_size = encoded_image.get_shape()[0].value or tf.shape(encoded_image)[0]
+      encoded_image = tf.reshape(encoded_image, [batch_size,])
+      #below is alos ok? TODO CHECK
+      # shape_list = encoded_image.get_shape().as_list()
+      # if len(shape_list) > 1:
+      #   encoded_image = tf.squeeze(encoded_image, -1)
+      
       #preprocess_image
       net_name = gezi.to_gnu_name(name)
       #well this is slightly slow and the result is differnt from im2txt inceptionV3 usage result, 
@@ -354,8 +365,6 @@ def create_image2feature_slim_fn(name='InceptionV3'):
       #one thing intersting is use 2 tf.map_fn(1 decode image, 1 preprocess) will be much slower then use 1 tf.map_fn (decode image+ preprocess)
       if slim_preprocessing:
         preprocessing_fn = preprocessing_factory.get_preprocessing(net_name, is_training=(is_training and distort))
-        #allow [batch_size, 1] as input
-        encoded_image = tf.squeeze(encoded_image)
         image = tf.map_fn(lambda img: preprocessing_fn(decode_image(img, image_format=image_format, dtype=tf.float32), height, width),
                           encoded_image, dtype=tf.float32)
       else:

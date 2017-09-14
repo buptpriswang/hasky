@@ -18,11 +18,12 @@ import melt
 class ImageModel(object):
   def __init__(self, 
                image_checkpoint_file,
-               model_name='InceptionV3', 
+               model_name='InceptionResnetV2', 
                height=299, 
                width=299,
-               image_format='jpeg'):
-    self.sess = tf.Session()
+               image_format='jpeg',
+               sess=None):
+    self.sess = tf.Session() if sess is None else sess
     self.images_feed =  tf.placeholder(tf.string, [None,], name='images')
     self.img2feautres_op = self._build_graph(model_name, height, width, image_format=image_format)
 
@@ -30,7 +31,7 @@ class ImageModel(object):
                        tf.local_variables_initializer())
     self.sess.run(init_op)
     #---load inception model check point file
-    init_fn = melt.image.create_image_model_init_fn(model_name, image_checkpoint_file)
+    init_fn = melt.image.image_processing.create_image_model_init_fn(model_name, image_checkpoint_file)
     init_fn(self.sess)
 
 
@@ -42,8 +43,12 @@ class ImageModel(object):
                                                           image_format=image_format)
 
   def process(self, images):
+    if not isinstance(images, (list, tuple)):
+      images = [images]
+    if isinstance(images[0], str):
+      images = [melt.image.read_image(image) for image in images]
+
     return self.sess.run(self.img2feautres_op, feed_dict={self.images_feed: images})
 
-  def process_one_image(self, image_path):
-    image_raw = melt.image.read_image(image_path)
-    return self.process([image_raw])
+  def gen_feature(self, images):
+    return self.process(images)

@@ -122,6 +122,7 @@ global or inside function global sess will cause this but not big problem for co
     #config.operation_timeout_in_ms=600000
     #NOTICE https://github.com/tensorflow/tensorflow/issues/2130 but 5000 will cause init problem!
     #config.operation_timeout_in_ms=50000   # terminate on long hangs
+    #https://github.com/tensorflow/tensorflow/issues/2292 allow_soft_placement=True
     get_session.sess = tf.Session(config=config)
     if debug:
       from tensorflow.python import debug as tf_debug

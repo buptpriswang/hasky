@@ -108,8 +108,14 @@ def init():
     global assistant_predictor
     #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
     #by default now Predictor using tf.Session already, here for safe, if use same session then not work
-    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='score', index=0, sess=tf.Session())
+    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
+    #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
+    #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+    print(tf.get_default_graph().get_all_collection_keys())
+    melt.rename_from_collection('score', 'assistant_score')   
+    melt.rename_from_collection('scores', 'assistant_scores')
     print('assistant_predictor', assistant_predictor)
+    print(tf.get_default_graph().get_all_collection_keys())
 
   test_dir = FLAGS.valid_resource_dir
   global all_distinct_texts, all_distinct_text_strs
