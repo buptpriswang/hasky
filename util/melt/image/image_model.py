@@ -11,10 +11,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
 import tensorflow as tf
 
-import melt
+import numpy as np
   
+import melt
+
 class ImageModel(object):
   def __init__(self, 
                image_checkpoint_file,
@@ -23,7 +27,7 @@ class ImageModel(object):
                width=299,
                image_format='jpeg',
                sess=None):
-    self.sess = tf.Session() if sess is None else sess
+    self.sess = melt.gen_session() if sess is None else sess
     self.images_feed =  tf.placeholder(tf.string, [None,], name='images')
     self.img2feautres_op = self._build_graph(model_name, height, width, image_format=image_format)
 
@@ -43,9 +47,10 @@ class ImageModel(object):
                                                           image_format=image_format)
 
   def process(self, images):
-    if not isinstance(images, (list, tuple)):
+    if not isinstance(images, (list, tuple, np.ndarray)):
       images = [images]
-    if isinstance(images[0], str):
+
+    if isinstance(images[0], (str, np.string_)) and len(images[0]) < 1000:
       images = [melt.image.read_image(image) for image in images]
 
     return self.sess.run(self.img2feautres_op, feed_dict={self.images_feed: images})

@@ -3,8 +3,8 @@ cp $conf_path/conf.py .
 source $conf_path/config 
 
 model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.finetune.later
-#assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
-assistant_model_dir=''
+assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
+#assistant_model_dir=''
 mkdir -p $model_dir
 
 python ./train.py \
@@ -24,7 +24,7 @@ python ./train.py \
   --algo show_and_tell \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
-  --learning_rate 0.01 \
+  --learning_rate 0.008 \
   --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
@@ -40,7 +40,7 @@ python ./train.py \
   --eval_batch_size 200 \
   --min_after_dequeue 500 \
   --eval_interval_steps 500 \
-  --metric_eval_interval_steps 2000 \
+  --metric_eval_interval_steps 500 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
   --num_metric_eval_examples 100 \

@@ -18,11 +18,11 @@ FLAGS = flags.FLAGS
 #--------- read data
 flags.DEFINE_integer('key_index', 0, '')
 flags.DEFINE_integer('val_index', -1, '')
-flags.DEFINE_string('image_model_name', 'InceptionV3', 'or InceptionV3')
+flags.DEFINE_string('image_model_name', 'InceptionResnetV2', '')
 flags.DEFINE_boolean('slim_preprocessing', True, '')
 flags.DEFINE_integer('image_width', 299, 'default width of inception')
 flags.DEFINE_integer('image_height', 299, 'default height of inception')
-flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/inceptionv3/inception_v3.ckpt', '')
+flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt', '')
 flags.DEFINE_integer('batch_size', 512, 'for safe use 256, 512 will be fine, 600 will oom for gtx1080')
 flags.DEFINE_boolean('show_decode_error', False, '')
 

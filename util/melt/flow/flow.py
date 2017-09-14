@@ -240,7 +240,7 @@ def tf_train_flow(train_once_fn,
               with open(os.path.join(epoch_dir, 'best_eval_loss.txt'), 'w') as f:
                 f.write('%d %d %f\n'%(epoch, step, best_epoch_eval_loss))
               best_epoch_saver.save(sess, 
-                                    os.path.join(epoch_dir,'model.cpkt-best'))
+                                    os.path.join(epoch_dir,'model.ckpt-best'))
 
             with open(os.path.join(epoch_dir, 'eval_loss.txt'), 'a') as f:
                f.write('%d %d %f\n'%(epoch, step, eval_loss))
@@ -248,8 +248,8 @@ def tf_train_flow(train_once_fn,
               num_bad_epochs += 1
               if num_bad_epochs > num_allowed_bad_epochs:
                 logging.warning('Evaluate loss not decrease for last %d epochs'% (num_allowed_bad_epochs + 1))
-                if not os.path.exists(os.path.join(epoch_dir,'model.cpkt-noimprove')):
-                  best_epoch_saver.save(sess, os.path.join(epoch_dir,'model.cpkt-noimprove'))
+                if not os.path.exists(os.path.join(epoch_dir,'model.ckpt-noimprove')):
+                  best_epoch_saver.save(sess, os.path.join(epoch_dir,'model.ckpt-noimprove'))
                 ##-------well remove it since 
                 #if early_stop:
                 #  stop = True 
@@ -258,11 +258,11 @@ def tf_train_flow(train_once_fn,
             pre_epoch_eval_loss = eval_loss
           if step % (num_steps_per_epoch * save_interval_epochs) == 0:
             epoch_saver.save(sess, 
-                            os.path.join(epoch_dir,'model.cpkt-%d'%epoch), 
+                            os.path.join(epoch_dir,'model.ckpt-%d'%epoch), 
                             global_step=step)
           #--------do not add step
           # epoch_saver.save(sess, 
-          #        os.path.join(epoch_dir,'model.cpkt-%d'%epoch))
+          #        os.path.join(epoch_dir,'model.ckpt-%d'%epoch))
       if stop is True:
         print('Early stop running %d stpes'%(step), file=sys.stderr)
         raise tf.errors.OutOfRangeError(None, None,'Early stop running %d stpes'%(step))

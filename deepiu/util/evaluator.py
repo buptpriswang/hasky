@@ -79,6 +79,8 @@ from deepiu.util import algos_factory
 
 from gezi.metrics import Bleu, Meteor, Rouge, Cider
 
+import deepiu
+
 import numpy as np
 import math
 
@@ -101,21 +103,6 @@ def init():
 
   if inited:
     return
-
-  #for evaluation without train will also use evaluator so only set log path in train.py
-  #logging.set_logging_path(FLAGS.model_dir)
-  if FLAGS.assistant_model_dir:
-    global assistant_predictor
-    #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
-    #by default now Predictor using tf.Session already, here for safe, if use same session then not work
-    assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
-    #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
-    #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    print(tf.get_default_graph().get_all_collection_keys())
-    melt.rename_from_collection('score', 'assistant_score')   
-    melt.rename_from_collection('scores', 'assistant_scores')
-    print('assistant_predictor', assistant_predictor)
-    print(tf.get_default_graph().get_all_collection_keys())
 
   test_dir = FLAGS.valid_resource_dir
   global all_distinct_texts, all_distinct_text_strs
@@ -147,7 +134,27 @@ def init():
 
     init_labels()
 
-    inited = True
+  #for evaluation without train will also use evaluator so only set log path in train.py
+  #logging.set_logging_path(FLAGS.model_dir)
+  if FLAGS.assistant_model_dir:
+    global assistant_predictor
+    #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
+    #by default now Predictor using tf.Session already, here for safe, if use same session then not work
+    if is_raw_image(image_features):
+      print('assist predictor use deepiu.util.SimPredictor.SimPredictor as is raw image as input')
+      assistant_predictor = deepiu.util.SimPredictor.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0, 
+                                                                  image_checkpoint_path=FLAGS.image_checkpoint_file, image_model_name=FLAGS.image_model_name)
+    else:
+      assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
+    #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
+    #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+    print(tf.get_default_graph().get_all_collection_keys())
+    melt.rename_from_collection('score', 'assistant_score')   
+    melt.rename_from_collection('scores', 'assistant_scores')
+    print('assistant_predictor', assistant_predictor)
+    print(tf.get_default_graph().get_all_collection_keys())
+
+  inited = True
 
 def init_labels():
   get_bidrectional_lable_map()
@@ -168,6 +175,9 @@ def get_bidrectional_lable_map_txt2im():
     text2img_path = os.path.join(FLAGS.valid_resource_dir, 'text2img.npy')
     text2img = np.load(text2img_path).item()
   return text2img
+
+def is_raw_image(image_features):
+  return isinstance(image_features[0], np.string_)
 
 def hack_image_features(image_features):
   """
@@ -360,7 +370,6 @@ score_op = None
 def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, exact_ratio=1.):
   timer = gezi.Timer('preidctor.predict')
   # TODO gpu outofmem predict for showandtell#
-
   if exact_predictor is None:
     if assistant_predictor is not None:
       exact_predictor = predictor

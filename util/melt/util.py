@@ -132,6 +132,16 @@ global or inside function global sess will cause this but not big problem for co
       get_session.sess = tf_debug.LocalCLIDebugWrapperSession(get_session.sess)
   return get_session.sess
 
+def gen_session(log_device_placement=False, allow_soft_placement=True, debug=False):
+  config=tf.ConfigProto(
+      allow_soft_placement=allow_soft_placement, 
+      log_device_placement=log_device_placement)
+  sess = tf.Session(config=config)
+  if debug:
+    from tensorflow.python import debug as tf_debug
+    sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+  return sess
+
 #def get_session(log_device_placement=False, allow_soft_placement=True, debug=False):
 #  """
 #  TODO FIXME get_session will casue  at last

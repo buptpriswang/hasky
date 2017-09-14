@@ -121,7 +121,7 @@ class Predictor(object):
 
 class SimPredictor(object):
   def __init__(self, 
-              model_dir=None, 
+              model_dir, 
               lkey=None,
               rkey=None,
               key='score',

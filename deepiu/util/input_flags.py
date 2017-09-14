@@ -114,9 +114,9 @@ flags.DEFINE_string('finetune_end_point', None, 'if not None, only finetune from
 flags.DEFINE_boolean('distort_image', True, 'training option')
 flags.DEFINE_boolean('random_crop_image', True, 'training option')
 
-flags.DEFINE_string('image_model_name', 'InceptionV3', '')
-flags.DEFINE_integer('image_width', 299, 'default width of inception v3')
-flags.DEFINE_integer('image_height', 299, 'default height of inception v3')
+flags.DEFINE_string('image_model_name', 'InceptionResnetV2', '')
+flags.DEFINE_integer('image_width', 299, 'default width of inception')
+flags.DEFINE_integer('image_height', 299, 'default height of inception')
 
                                                   
 #---in melt.apps.image_processing.py

@@ -20,4 +20,7 @@ import deepiu.util.text2ids
 import deepiu.util.algos_factory
 import deepiu.util.evaluator
 import deepiu.util.input_flags 
-import deepiu.util.rank_loss
+import deepiu.util.rank_loss 
+
+import deepiu.util.SimPredictor
+import deepiu.util.TextPredictor

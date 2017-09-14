@@ -67,7 +67,7 @@ def create_image_model_init_fn(image_model_name, image_checkpoint_file):
 
   saver = tf.train.Saver(variables_to_restore)
   def restore_fn(sess):
-    timer = gezi.Timer('restore image var')
+    timer = gezi.Timer('restore image var from %s %s'%(image_model_name, image_checkpoint_file))
     logging.info("Restoring image variables from checkpoint file %s",
                       image_checkpoint_file)
     saver.restore(sess, image_checkpoint_file)
@@ -316,8 +316,7 @@ def create_image2feature_fn(name='InceptionV3'):
 
     return construct_fn
 
-
-def create_image2feature_slim_fn(name='InceptionV3'):
+def create_image2feature_slim_fn(name='InceptionResnetV2'):
   """
     #NOTICE how this method solve run/ scope problem, scope must before def
     using slim util to create image feature
