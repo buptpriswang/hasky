@@ -119,12 +119,12 @@ class Predictor(object):
 
     return self.sess
 
-#TODO lkey, rkey .. should be named as lfeed, rfeed
+#TODO lfeed, rfeed .. should be named as lfeed, rfeed
 class SimPredictor(object):
   def __init__(self, 
               model_dir, 
-              lkey=None,
-              rkey=None,
+              lfeed=None,
+              rfeed=None,
               key='score',
               index=0,
               meta_graph=None, 
@@ -135,15 +135,17 @@ class SimPredictor(object):
     self._key = key 
     self._index = index
 
-    if lkey is None:
-      self._lkey = tf.get_collection('lfeed')[index]
+    if lfeed is None:
+      self._lfeed = tf.get_collection('lfeed')[index]
     else:
-      self._lkey = lkey
+      self._lfeed = lfeed
 
-    if rkey is None:
-      self._rkey = tf.get_collection('rfeed')[index]
+    if rfeed is None:
+      self._rfeed = tf.get_collection('rfeed')[index]
     else:
-      self._rkey = rkey
+      self._rfeed = rfeed
+
+    self._sess = self._predictor.sess
 
   def inference(self, ltext, rtext=None, key=None, index=None):
     if key is None:
@@ -152,13 +154,13 @@ class SimPredictor(object):
       index = self._index
     if rtext is not None:
       feed_dict = {
-        self._lkey: ltext,
-        self._rkey: rtext
+        self._lfeed: ltext,
+        self._rfeed: rtext
       }
       return self._predictor.inference(key, feed_dict=feed_dict, index=index)
     else:
       feed_dict = {
-        self._lkey: ltext
+        self._lfeed: ltext
       }
       return self._predictor.inference(key, feed_dict=feed_dict, index=index)
 
@@ -184,8 +186,8 @@ class SimPredictor(object):
 
   def top_k(self, ltext, rtext, k=1, key=None):
     feed_dict = {
-      self._lkey: ltext,
-      self._rkey: rtext
+      self._lfeed: ltext,
+      self._rfeed: rtext
     }
     if key is None:
       key = 'nearby'
@@ -193,25 +195,28 @@ class SimPredictor(object):
       values, indices = self._predictor.inference(key, feed_dict=self._feed_dict, index=self._index)
       return values[:k], indices[:k]
     except Exception:
-      score = self.predict(ltext, rtext)
-      indices = (-score).argsort()[:k]
-      # result
-      x = arr.shape[0]
-      #like [0, 0, 1, 1] [1, 0, 0, 1] ->...  choose (0,1), (0, 0), (1,0), (1, 1)
-      values = score[np.repeat(np.arange(x), N), indices.ravel()].reshape(x, k)
-      return values, indices
+      # score = self.predict(ltext, rtext)
+      # indices = (-score).argsort()[:k]
+      # # result
+      # x = arr.shape[0]
+      # #like [0, 0, 1, 1] [1, 0, 0, 1] ->...  choose (0,1), (0, 0), (1,0), (1, 1)
+      # values = score[np.repeat(np.arange(x), N), indices.ravel()].reshape(x, k)
+      # return values, indices
+      scores = tf.get_collection(self._key)[self._index]
+      vals, indexes = tf.nn.top_k(scores, k)
+      return self._sess.run([vals, indexes], feed_dict=self._feed_dict)
 
 #different session for predictor and exact_predictor all using index 0! if work not correclty try to change Predictor default behave use melt.get_session() TODO
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
-              lkey=None, rkey=None, exact_lkey=None, exact_rkey=None, 
+              lfeed=None, rfeed=None, exact_lfeed=None, exact_rfeed=None, 
               key='score', exact_key='score', sess=None, exact_sess=None):
-    self._predictor = SimPredictor(model_dir, index=0, lkey=lkey, rkey=rkey, key=key, sess=sess)
+    self._predictor = SimPredictor(model_dir, index=0, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
     # <tf.Tensor 'seq2seq/main/Exp_4:0' shape=(?, 1) dtype=float32>]
     #this is becasue you use evaluator(predictor + exact_predictor) when train seq2seq, so load dual_bow will add one score..
-    self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lkey=exact_lkey, rkey=exact_rkey, key=exact_key, sess=exact_sess)
+    self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lfeed=exact_lfeed, rfeed=exact_rfeed, key=exact_key, sess=exact_sess)
 
     self._num_rerank = num_rerank
 

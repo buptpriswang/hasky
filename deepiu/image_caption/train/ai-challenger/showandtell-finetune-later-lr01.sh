@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic-finetune
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.finetune.later
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.finetune.later.lr01
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 #assistant_model_dir=''
 mkdir -p $model_dir
@@ -24,7 +24,7 @@ python ./train.py \
   --algo show_and_tell \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
-  --learning_rate 0.01 \
+  --learning_rate 0.1 \
   --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
