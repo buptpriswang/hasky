@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.sampling05
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 mkdir -p $model_dir
 
@@ -51,6 +51,7 @@ python ./train.py \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method greedy \
+  --scheduled_sampling_probability 0.5 \
   --dynamic_batch_length 1 \
   --log_device 0 \
   --work_mode full \

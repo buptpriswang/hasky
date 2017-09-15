@@ -92,8 +92,11 @@ flags.DEFINE_boolean('gen_copy_switch', False, '''mix gen and copy, using gen or
 
 flags.DEFINE_boolean('switch_after_softmax', True, '')
 
-#TODO support feed_prev training mode for dynamic rnn decode
+#feed_prev training mode not used, it can be find in satic rnn loop, to use previous gen instead of from input seq
+#but here for dynamic rnn Scheduled Sampling might better achive this
 flags.DEFINE_boolean('feed_prev', False, 'wether use feed_prev mode for rnn decode during training also')
+
+flags.DEFINE_float('scheduled_sampling_probability', 0., '0 means just from input seq')
 
 flags.DEFINE_string('seq_decode_method', 'greedy', '')
 
@@ -317,12 +320,26 @@ class RnnDecoder(Decoder):
     if FLAGS.gen_only:
       #gen only mode
       #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO see pointer_network in application seems ok.. why
-      outputs, state = tf.nn.dynamic_rnn(cell, 
-                                         inputs, 
-                                         initial_state=state, 
-                                         sequence_length=sequence_length,
-                                         dtype=tf.float32,
-                                         scope=self.scope)     
+      if FLAGS.scheduled_sampling_probability > 0.:
+        helper = melt.seq2seq.ScheduledEmbeddingTrainingHelper(inputs, tf.to_int32(sequence_length), 
+                                                               emb, tf.constant(FLAGS.scheduled_sampling_probability))
+        #helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+        my_decoder = melt.seq2seq.BasicDecoder(
+        #my_decoder = tf.contrib.seq2seq.BasicDecoder(
+        #my_decoder = melt.seq2seq.BasicDecoder(
+             cell=cell,
+             helper=helper,
+             initial_state=state)
+        outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+        #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+        outputs = outputs.rnn_output
+      else:
+        outputs, state = tf.nn.dynamic_rnn(cell, 
+                                           inputs, 
+                                           initial_state=state, 
+                                           sequence_length=sequence_length,
+                                           dtype=tf.float32,
+                                           scope=self.scope)     
 
       #--------below is ok but slower then dynamic_rnn 3.4batch -> 3.1 batch/s
       #helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
@@ -338,7 +355,15 @@ class RnnDecoder(Decoder):
       ##outputs = outputs.rnn_output
     else:
     	#---copy only or gen copy
-      helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+      if FLAGS.scheduled_sampling_probability > 0.:
+        #not tested yet TODO
+        helper = melt.seq2seq.ScheduledEmbeddingTrainingHelper(inputs, tf.to_int32(sequence_length), 
+                                                               emb, tf.constant(FLAGS.scheduled_sampling_probability))
+        Decoder_ =  melt.seq2seq.BasicDecoder
+      else:      
+        #as before
+        helper = melt.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
+        Decoder_ = melt.seq2seq.BasicTrainingDecoder
 
       indices = melt.batch_values_to_indices(tf.to_int32(input_text))
       if FLAGS.copy_only:
@@ -362,7 +387,7 @@ class RnnDecoder(Decoder):
                                          time, indices, targets, sampled_values, batch_size, cell_output, cell_state)
 
 
-      my_decoder = melt.seq2seq.BasicTrainingDecoder(
+      my_decoder = Decoder_(
         cell=cell,
         helper=helper,
         initial_state=state,
@@ -370,6 +395,8 @@ class RnnDecoder(Decoder):
         output_fn=output_fn)
       outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
       #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
+      if FLAGS.scheduled_sampling_probability > 0.:
+        outputs = outputs.rnn_output
 
     tf.add_to_collection('outputs', outputs)
     
