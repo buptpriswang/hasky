@@ -395,7 +395,7 @@ class RnnDecoder(Decoder):
         output_fn=output_fn)
       outputs, state, _ = tf.contrib.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
       #outputs, state, _ = melt.seq2seq.dynamic_decode(my_decoder, scope=self.scope)
-      if FLAGS.scheduled_sampling_probability > 0.:
+      if hasattr(outputs, 'rnn_output'):
         outputs = outputs.rnn_output
 
     tf.add_to_collection('outputs', outputs)
