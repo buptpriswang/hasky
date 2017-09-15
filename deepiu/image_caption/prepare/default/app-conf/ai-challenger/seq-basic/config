@@ -20,7 +20,6 @@ seg_method=basic_single
 online_seg_method=basic
 feed_single=1
 
-#now set 0 to be same as bow for comparing, but its is better to set to 1 TODO
 shuffle_texts=0
 max_texts=0
 

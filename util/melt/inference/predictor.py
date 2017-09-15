@@ -23,6 +23,7 @@ from tensorflow.python import debug as tf_debug
 
 import os, sys
 import numpy as np
+import gezi
 import melt 
 
 def get_model_dir_and_path(model_dir, model_name=None):
@@ -92,6 +93,7 @@ class Predictor(object):
     restore graph from meta file then restore values from checkpoint file
     """
     model_dir, model_path = get_model_dir_and_path(model_dir, model_name)
+    timer = gezi.Timer('restore meta grpah and model ok %s'%model_path)
     self.model_path = model_path
     if meta_graph is None:
       meta_graph = '%s.meta'%model_path
@@ -99,7 +101,6 @@ class Predictor(object):
     saver = tf.train.import_meta_graph(meta_graph)
     #print('import graph ok %s'%meta_graph, file=sys.stderr)
     saver.restore(self.sess, model_path)
-    print('restore meta grpah and model ok %s'%model_path, file=sys.stderr)
     if random_seed is not None:
       tf.set_random_seed(random_seed)
 
@@ -117,6 +118,7 @@ class Predictor(object):
     #https://stackoverflow.com/questions/44251666/how-to-initialize-tensorflow-variable-that-wasnt-saved-other-than-with-tf-globa
     #melt.initialize_uninitialized_vars(self.sess)
 
+    timer.print()
     return self.sess
 
 #TODO lfeed, rfeed .. should be named as lfeed, rfeed

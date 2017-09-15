@@ -64,9 +64,6 @@ from deepiu.util import text2ids
 import conf  
 from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK, IMAGE_FEATURE_LEN
 
-print('ENCODE_UNK', ENCODE_UNK, file=sys.stderr)
-assert ENCODE_UNK == text2ids.ENCODE_UNK
-
 gtexts = []
 gtext_strs = []
 
@@ -109,7 +106,6 @@ def is_luanma(words, word_ids):
       if libstring_util.is_gbk_dual(word):
         return True 
   return False
-
 
 pic_info_map = {}
 def read_pic_info():
@@ -486,6 +482,10 @@ def run():
     np.save(os.path.join(FLAGS.output_directory, 'image_features.npy'), np.array(image_features))
 
 def main(_):
+  assert ENCODE_UNK == text2ids.ENCODE_UNK
+  print('seg_method', FLAGS.seg_method, file=sys.stderr)
+  print('feed_single', FLAGS.feed_single, file=sys.stderr)
+
   run()
 
 if __name__ == '__main__':

@@ -22,7 +22,6 @@ model_dir = '/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell/'
 vocab_path = '/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic/vocab.txt'
 
 predictor = TextPredictor(model_dir, vocab_path, image_model_checkpoint_path, image_model_name='InceptionResnetV2')
-
 text = predictor.predict_best(image_path)
 
 print(text)

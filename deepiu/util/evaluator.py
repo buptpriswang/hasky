@@ -149,8 +149,14 @@ def init():
     #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
     #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     print(tf.get_default_graph().get_all_collection_keys())
+    #HACK for safe when inference, TODO can use a separate graph? 
     melt.rename_from_collection('score', 'assistant_score')   
     melt.rename_from_collection('scores', 'assistant_scores')
+    melt.rename_from_collection('feed', 'assistant_feed')
+    melt.rename_from_collection('lfeed', 'assistant_lfeed')
+    melt.rename_from_collection('rfeed', 'assistant_rfeed')
+    melt.rename_from_collection('rfeed2', 'assistant_rfeed2')
+    melt.rename_from_collection('textsim', 'assistant_textsim')
     print('assistant_predictor', assistant_predictor)
     print(tf.get_default_graph().get_all_collection_keys())
 
@@ -381,14 +387,28 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     assert(len(img_features) < 2000) #otherwise too big mem ..
     img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])  
 
+  img2text = get_bidrectional_lable_map()
+
   random = True
   need_shuffle = False
   if FLAGS.max_texts > 0 and len(all_distinct_texts) > FLAGS.max_texts:
+    assert random
     if not random:
       texts = all_distinct_texts[:FLAGS.max_texts]
     else:
       need_shuffle = True
+
+      all_hits = set()
+      for img in (imgs):
+        hits = img2text[img]
+        for hit in hits:
+          all_hits.add(hit)
+      
       index = np.random.choice(len(all_distinct_texts), FLAGS.max_texts, replace=False)
+      index = [x for x in index if x not in all_hits]
+      index = list(all_hits) + index 
+      index = index[:FLAGS.max_texts]
+      index = np.array(index)
       texts = all_distinct_texts[index]
   else:
     texts = all_distinct_texts
@@ -410,7 +430,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
   score = np.concatenate(scores, 1)
   print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
-  img2text = get_bidrectional_lable_map()
+
   num_texts = texts.shape[0]
 
   for i, img in enumerate(imgs):

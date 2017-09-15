@@ -20,9 +20,9 @@ with gezi.Timer('abc') as timer:
 """
 import sys, time
 class Timer():
-  def __init__(self, info=''):
+  def __init__(self, info='', print_before=False):
     self.start_time = time.time()
-    if info:
+    if info and print_before:
       print('%s start'%info, file=sys.stderr)
     self.info = info
 

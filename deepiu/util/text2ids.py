@@ -139,11 +139,11 @@ def ids2words(text_ids, print_end=True):
       break
   return words
 
-def ids2text(text_ids, sep='/'):
-  return sep.join(ids2words(text_ids))
+def ids2text(text_ids, sep='/', print_end=True):
+  return sep.join(ids2words(text_ids, print_end=print_end))
 
-def idslist2texts(text_ids_list, sep='/'):
-  return [ids2text(text_ids) for text_ids in text_ids_list]
+def idslist2texts(text_ids_list, sep='/', print_end=True):
+  return [ids2text(text_ids, sep=sep, print_end=print_end) for text_ids in text_ids_list]
   #return [sep.join([vocab.key(int(id)) for id in text_ids if id > 0 and id < vocab.size()]) for text_ids in text_ids_list]
 
 

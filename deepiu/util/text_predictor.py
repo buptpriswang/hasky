@@ -40,11 +40,12 @@ class TextPredictor(object):
     scores = scores[0]
     return np.array([ids2text.translate(text) for text in texts]), scores
 
+  def word_ids(self, image):
+    return self._predict(image)
+
   def translate(self, image):
     texts, scores = self._predict(image)
-    texts = texts[0]
-    scores = scores[0]
-    return ids2text.translate(texts[0])
+    return [ids2text.translate(text[0]) for text in texts]
 
   def predict_best(self, image):
     return self.translate(image)

@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.keep07
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 mkdir -p $model_dir
 
@@ -22,6 +22,7 @@ python ./train.py \
   --model_dir=$model_dir \
   --assistant_model_dir $assistant_model_dir \
   --algo show_and_tell \
+  --keep_prob 0.7 \
   --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \

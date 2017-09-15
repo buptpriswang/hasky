@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#encoding=utf8
 # ==============================================================================
 #          \file   to_flickr_caption.py
 #        \author   chenghuige  
@@ -40,6 +41,8 @@ counter = WordCounter(
     saveCountInfo=FLAGS.save_count_info)
 
 import sys,os
+reload(sys)
+sys.setdefaultencoding('utf8')
 import numpy as np
 import melt
 
@@ -69,6 +72,7 @@ for line in sys.stdin:
   
   for text in texts:
     text = text.lower()
+    text = text.strip().replace('。','') 
     words = segmentor.Segment(text, FLAGS.seg_method)
     if num % 10000 == 0:
       print(text, '|'.join(words), len(words), file=sys.stderr)
@@ -80,6 +84,7 @@ for line in sys.stdin:
     counter.add(END_WORD)
   num += 1
 
- 
+counter.add(START_WORD)
+
 print(FLAGS.out_dir, file=sys.stderr)
 counter.save(FLAGS.out_dir + '/vocab.bin', FLAGS.out_dir + '/vocab.txt')

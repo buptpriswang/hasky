@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#encoding=gbk
+#encoding=utf-8
 # ==============================================================================
 #          \file   inference.py
 #        \author   chenghuige  
@@ -20,6 +20,6 @@ vocab_path = '/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic
 
 predictor = WordsImportancePredictor(model_dir, vocab_path)
 
-scores = predictor.predict(['田地里有一个双手拿着工具的男人在干活'])
+scores = predictor.predict(['缁挎补娌圭殑鐢板湴閲屾湁涓�涓弻鎵嬫嬁鐫�宸ュ叿鐨勭敺浜哄湪骞叉椿'])
 
 print(scores)

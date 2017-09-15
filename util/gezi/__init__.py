@@ -20,14 +20,24 @@ from gezi.util import *
 from gezi.rank_metrics import *
 from gezi.topn import *
 
+#if using baidu segmentor set encoding='gbk'
+encoding='utf8' 
+#encoding='gbk'
+
+import traceback
 try:
   from gezi.libgezi_util import *
   import gezi.libgezi_util as libgezi_util
   from gezi.segment import *
   import gezi.bigdata_util
-  from gezi.pydict import *
 except Exception:
-  print('import libgezi, segment bigdata_util pydict metrics fail')
-  pass
+	print(traceback.format_exc(), file=sys.stderr)
+	print('import libgezi, segment bigdata_util fail')
+
+try:
+	from gezi.pydict import *
+except Exception:
+	print(traceback.format_exc(), file=sys.stderr)
+	print('import pydict fail')
 
 import gezi.metrics
