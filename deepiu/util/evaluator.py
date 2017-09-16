@@ -53,6 +53,7 @@ flags.DEFINE_boolean('eval_img2text', True, '')
 flags.DEFINE_boolean('eval_text2img', False, '')
 flags.DEFINE_boolean('eval_rank', True, '')
 flags.DEFINE_boolean('eval_translation', True, 'for generative method')
+flags.DEFINE_boolean('eval_translation_reseg', True, 'for different seg tranining but use same seg if True')
 
 import sys, os
 import gezi.nowarning
@@ -637,7 +638,11 @@ def prepare_refs():
   global refs, all_distinct_text_id_strs
   if refs is None:
     if all_distinct_text_id_strs is None:
-      all_distinct_text_id_strs = [' '.join([str(x) for x in l if int(x) is not 0]) for l in all_distinct_texts]
+      if not FLAGS.eval_translation_reseg:
+        all_distinct_text_id_strs = [' '.join([str(x) for x in l if int(x) is not 0]) for l in all_distinct_texts]
+      else:
+        import jieba
+        all_distinct_text_id_strs = [' '.join([x.encode('utf-8') for x in jieba.cut(''.join([vocab.key(int(x)) for x in l if int(x) is not 0]))]) for l in all_distinct_texts]
     refs = {}
     for img, hits in img2text.items():
       refs[img] = [all_distinct_text_id_strs[hit] for hit in hits]
@@ -650,7 +655,12 @@ def translation_predicts(imgs, img_features, predictor, results):
   texts = [x[0] for x in texts]
   for i in range(len(texts)):
     #for eval even if only one predict must also be list, also exclude last end id
-    texts[i] = [' '.join([str(x) for x in texts[i][:list(texts[i]).index(vocab.end_id())]])] 
+    if not FLAGS.eval_translation_reseg:
+      texts[i] = [' '.join([str(x) for x in texts[i][:list(texts[i]).index(vocab.end_id())]])] 
+    else:
+      import jieba
+      texts[i] = ''.join([vocab.key(int(x)) for x in texts[i][:list(texts[i]).index(vocab.end_id())]])
+      texts[i] = [' '.join([x.encode('utf-8') for x in jieba.cut(texts[i])])]
     results[imgs[i]] = texts[i]
 
 def evaluate_translation(predictor, random=False, index=None):
@@ -702,7 +712,7 @@ def evaluate_translation(predictor, random=False, index=None):
     selected_refs[key] = refs[key]
     selected_results[key] = results[key]
     if is_first:
-      print(selected_results[key], selected_refs[key], len(selected_results[key]))
+      print('|'.join(selected_results[key]), '|'.join(selected_refs[key]), len(selected_results[key]))
       is_first = False
     assert len(selected_results[key]) == 1, selected_results[key]
   assert selected_results.keys() == selected_refs.keys(), '%d %d'%(len(selected_results.keys()), len(selected_refs.keys())) 

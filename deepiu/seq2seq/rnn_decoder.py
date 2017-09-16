@@ -317,10 +317,11 @@ class RnnDecoder(Decoder):
     if self.is_predict and (exact_prob or exact_loss):
       softmax_loss_function = None
 
+    scheduled_sampling_probability = FLAGS.scheduled_sampling_probability if self.is_training else 0.
     if FLAGS.gen_only:
       #gen only mode
       #for attention wrapper can not use dynamic_rnn if aligments_history=True TODO see pointer_network in application seems ok.. why
-      if FLAGS.scheduled_sampling_probability > 0.:
+      if scheduled_sampling_probability > 0.:
         helper = melt.seq2seq.ScheduledEmbeddingTrainingHelper(inputs, tf.to_int32(sequence_length), 
                                                                emb, tf.constant(FLAGS.scheduled_sampling_probability))
         #helper = tf.contrib.seq2seq.TrainingHelper(inputs, tf.to_int32(sequence_length))
@@ -355,7 +356,7 @@ class RnnDecoder(Decoder):
       ##outputs = outputs.rnn_output
     else:
     	#---copy only or gen copy
-      if FLAGS.scheduled_sampling_probability > 0.:
+      if scheduled_sampling_probability > 0.:
         #not tested yet TODO
         helper = melt.seq2seq.ScheduledEmbeddingTrainingHelper(inputs, tf.to_int32(sequence_length), 
                                                                emb, tf.constant(FLAGS.scheduled_sampling_probability))
