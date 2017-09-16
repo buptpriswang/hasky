@@ -42,8 +42,6 @@ flags.DEFINE_string('algo', 'bow', 'default algo is bow(cbow), also support rnn,
 
 flags.DEFINE_string('vocab', '/tmp/train/vocab.bin', 'vocabulary binary file')
 
-#flags.DEFINE_boolean('partial_restore', False, '')
-
 flags.DEFINE_boolean('debug', False, '')
 
 import sys, os
@@ -65,6 +63,8 @@ from deepiu.util import text2ids
 from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod
 
 import tensorflow.contrib.slim as slim
+
+import traceback
 
 sess = None
 
@@ -358,13 +358,21 @@ def main(_):
   if not FLAGS.num_gpus:
     FLAGS.num_gpus = melt.get_num_gpus()
   
-  FLAGS.pre_calc_image_feature = not(FLAGS.image_checkpoint_file and os.path.exists(FLAGS.image_checkpoint_file))   
-  if not FLAGS.pre_calc_image_feature:
-    melt.apps.image_processing.init(FLAGS.image_model_name)
+  has_image_model = FLAGS.image_checkpoint_file and os.path.exists(FLAGS.image_checkpoint_file)
+  if has_image_model:
+    melt.apps.image_processing.init(FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
+
+  FLAGS.pre_calc_image_feature = FLAGS.pre_calc_image_feature or (not has_image_model)
+
 
   vocabulary.init()
   text2ids.init()
-  evaluator.init()
+  try:
+    evaluator.init()
+  except Exception:
+    print(traceback.format_exc(), file=sys.stderr)
+    print('evaluator init fail will not do metric eval')
+    FLAGS.metric_eval = False
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))

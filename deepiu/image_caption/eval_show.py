@@ -168,8 +168,11 @@ def deal_eval_generated_texts_results(results):
   melt.print_results(results, ['eval_loss'])
 
 def gen_eval_generated_texts_ops(input_app, input_results, predictor, eval_scores, eval_neg_text=None, eval_neg_text_str=None):
-  #need distinct_texts.npy distinct_text_strs.npy
-  evaluator.init()
+  #need distinct_texts.npy distinct_text_strs.npy 
+  try:
+    evaluator.init()
+  except Exception:
+    pass
 
   evaluate_image_name, evaluate_image_feature, evaluate_text, evaluate_text_str = input_results[input_app.fixed_input_valid_name]
   num_evaluate_examples = input_app.num_evaluate_examples

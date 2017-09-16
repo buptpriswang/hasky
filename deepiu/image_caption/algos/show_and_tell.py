@@ -35,6 +35,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean('image_as_init_state', False, 'by default will treat image as input not inital state(im2txt usage)')
+flags.DEFINE_boolean('show_atten_tell', False, '')
 
 import functools
 
@@ -59,8 +60,10 @@ class ShowAndTell(object):
     super(ShowAndTell, self).__init__()
 
     if FLAGS.image_as_init_state:
+      #just use default method here is ok!
       assert FLAGS.add_text_start is True, 'need to add text start for im2tx mode'
     else:
+      #just for experiment to be same as im2txt but result is worse
       assert FLAGS.add_text_start is False, 'normal mode must not add text start'
 
     #---------should be show_and_tell/model_init_1
@@ -125,32 +128,54 @@ class ShowAndTell(object):
     """
     if not FLAGS.pre_calc_image_feature:
       image_feature = self.image_process_fn(image_feature)
+    elif FLAGS.show_atten_tell:
+      #if pre calc and use attention need to reshape as featue is slim.flattened
+      image_feature = tf.reshape(image_feature, [-1, FLAGS.image_attention_size, int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)])
+
     with tf.variable_scope("image_embedding") as scope:
       image_embeddings = tf.contrib.layers.fully_connected(
           inputs=image_feature,
-          num_outputs=self.emb_dim,
+          num_outputs=self.emb_dim,  #turn image to word embdding space, same feature length
           activation_fn=None,
           weights_initializer=self.initializer,
           biases_initializer=None,
           scope=scope)
     return image_embeddings
 
+  def init_attention(self, image_embs):
+    """
+    for attention mode only
+    """
+    input = tf.reduce_mean(image_embs, 1)
+    #-------for simple make it like rnn encoding
+    with tf.variable_scope("attention_embedding") as scope:
+      states = tf.contrib.layers.fully_connected(
+          inputs=image_embs,
+          num_outputs=FLAGS.rnn_hidden_size,
+          activation_fn=None,
+          weights_initializer=self.initializer,
+          biases_initializer=None,
+          scope=scope)
+    return input, states
+
   #NOTICE for generative method, neg support removed to make simple!
   def build_graph(self, image_feature, text, neg_image_feature=None, neg_text=None, exact_loss=False):
-
-    print('train:', self.is_training, 'evaluate:', self.is_evaluate, 'predict:', self.is_predict)
     
     image_emb = self.build_image_embeddings(image_feature)
-    
+
+    attention_states = None 
+    if FLAGS.show_atten_tell:
+      image_emb, attention_states = self.init_attention(image_emb)
+
     if not FLAGS.image_as_init_state:
-      scores = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)
+      scores = self.decoder.sequence_loss(text, input=image_emb, attention_states=attention_states, exact_loss=exact_loss)
     else:
       #for im2txt one more step at first
       with tf.variable_scope(self.decoder.scope) as scope:
         zero_state = self.decoder.cell.zero_state(batch_size=melt.get_batch_size(image_emb), dtype=tf.float32)
         _, initial_state = self.decoder.cell(image_emb, zero_state)
       #will pad start in decoder.sequence_loss
-      scores = self.decoder.sequence_loss(text, initial_state=initial_state)
+      scores = self.decoder.sequence_loss(text, initial_state=initial_state, attention_states=attention_states)
 
     if not self.is_training and not self.is_predict: #evaluate mode
       tf.add_to_collection('scores', scores)

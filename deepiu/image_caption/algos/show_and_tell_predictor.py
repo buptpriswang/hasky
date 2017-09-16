@@ -72,21 +72,27 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
 
   #TODO Notice when training this image always be float...  
   def build_predict_text_graph(self, image, decode_method='greedy', beam_size=5, convert_unk=True):
-    decoder_input = self.build_image_embeddings(image)
+    image_emb = self.build_image_embeddings(image)
+
+    attention_states = None 
+    if FLAGS.show_atten_tell:
+      image_emb, attention_states = self.init_attention(image_emb)
+
     state = None
     if FLAGS.image_as_init_state:
       #for im2txt one more step at first
       with tf.variable_scope(self.decoder.scope) as scope:
-        batch_size=melt.get_batch_size(decoder_input)
+        batch_size=melt.get_batch_size(image_emb)
         zero_state = self.decoder.cell.zero_state(batch_size, dtype=tf.float32)
-        _, state = self.decoder.cell(decoder_input, zero_state)
-        decoder_input = self.decoder.get_start_embedding_input(batch_size)
+        _, state = self.decoder.cell(image_emb, zero_state)
+        image_emb= self.decoder.get_start_embedding_input(batch_size)
   
     max_words = TEXT_MAX_WORDS
     if decode_method == SeqDecodeMethod.greedy:
-      return self.decoder.generate_sequence_greedy(decoder_input, 
+      return self.decoder.generate_sequence_greedy(image_emb, 
                                      max_words=max_words, 
                                      initial_state=state,
+                                     attention_states=attention_states,
                                      convert_unk=convert_unk)
     else:
       if decode_method == SeqDecodeMethod.ingraph_beam:
@@ -96,11 +102,12 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       else:
         raise ValueError('not supported decode_method: %s' % decode_method)
       
-      return decode_func(decoder_input, 
+      return decode_func(image_emb, 
                          max_words=max_words, 
                          initial_state=state,
                          beam_size=beam_size, 
                          convert_unk=convert_unk,
+                         attention_states=attention_states,
                          length_normalization_factor=FLAGS.length_normalization_factor)
 
   def build_predict_graph(self, image, text, exact_loss=False):

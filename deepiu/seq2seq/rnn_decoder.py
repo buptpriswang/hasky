@@ -100,6 +100,7 @@ flags.DEFINE_float('scheduled_sampling_probability', 0., '0 means just from inpu
 
 flags.DEFINE_string('seq_decode_method', 'greedy', '')
 
+import sys
 import functools
 import melt 
 from deepiu.util import vocabulary
@@ -176,16 +177,16 @@ class RnnDecoder(Decoder):
       assert FLAGS.use_attention is True, 'must use attention if not gen_only mode seq2seq'
       FLAGS.gen_only = False
       if FLAGS.gen_copy_switch:
-        print('-------gen copy switch mode!')
+        print('rnn decoder gen copy switch mode!', file=sys.stderr)
         FLAGS.gen_copy = False
         FLAGS.copy_only = False
       elif FLAGS.gen_copy:
-        print('-------gen copy mode !')
+        print('rnn decoder gen copy mode !', file=sys.stderr)
         FLAGS.copy_only = False
       else:
-        print('-------copy only mode !')
+        print('rnn decoder copy only mode !', file=sys.stderr)
     else:
-      print('--------gen only mode')
+      print('rnn decoder gen only mode', file=sys.stderr)
 
     #if use copy mode use score as alignment(no softmax)
     self.score_as_alignment = False if FLAGS.gen_only else True
@@ -482,7 +483,7 @@ class RnnDecoder(Decoder):
     """
     if emb is None:
       emb = self.emb
-
+      
     batch_size = melt.get_batch_size(input)
     if attention_states is None:
       cell = self.cell 

@@ -11,6 +11,7 @@ python ./gen-records.py  \
   --feed_single $feed_single \
   --image_dir "$image_dir" \
   --info_dir "$info_dir" \
+  --small_feature $small_feature \
   --name test
 
 python ./gen-distinct-texts.py --dir=$valid_output_path --shuffle $shuffle_texts --max_texts $max_texts 

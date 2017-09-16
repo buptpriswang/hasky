@@ -42,6 +42,8 @@ flags.DEFINE_integer('image_feature_index', -1, '')
 #flags.DEFINE_integer('text_index', 2, '')
 #flags.DEFINE_integer('image_feature_index', 1, '')
 
+flags.DEFINE_boolean('small_feature', True, '')
+
 """
 use only top query?
 use all queries ?
@@ -416,7 +418,11 @@ def deal_file(file):
               image_labels[img] = set()
 
             image_names.append(img)
-            image_features.append(image_feature)
+            if FLAGS.small_feature:
+              image_features.append(image_feature)
+            else:
+              #actually save pic path instead of image feature
+              image_features.append(os.path.join(FLAGS.image_dir, img.replace('/', '_')))
 
           if FLAGS.num_max_records > 0:
             #if fixed valid only get one click for each image
@@ -432,7 +438,7 @@ def run():
     files = files[:FLAGS.num_max_inputs]
 
   print(FLAGS.input_directory, len(files))
-
+  print('small_feature:', FLAGS.small_feature)
   print('image_dir:', FLAGS.image_dir, 'info_dir:', FLAGS.info_dir)
   if FLAGS.info_dir and os.path.exists(FLAGS.info_dir):
     print('deal imgtextfile', file=sys.stderr)

@@ -111,7 +111,7 @@ def init():
   global all_distinct_texts, all_distinct_text_strs
   global vocab, vocab_size
   if all_distinct_texts is None:
-    print('loading valid resorce from:', test_dir)
+    print('loading valid resource from:', test_dir)
     #vocabulary.init()
     text2ids.init()
     vocab = vocabulary.vocab

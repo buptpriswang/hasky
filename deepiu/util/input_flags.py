@@ -103,7 +103,8 @@ flags.DEFINE_string('decode_name', 'text', '')
 flags.DEFINE_string('decode_str_name', 'text_str', '')
 
 #--------for image caption  TODO move to image_caption/input.py ?
-flags.DEFINE_boolean('pre_calc_image_feature', True, '')
+flags.DEFINE_boolean('pre_calc_image_feature', False, 'will set to true if not has image model auto in train.py')
+
 flags.DEFINE_string('image_checkpoint_file', None, '''None means image model from scratch or not use image model 
                                                       /home/gezi/data/inceptionv3/inception_v3.ckpt''')
 flags.DEFINE_boolean('finetune_image_model', True, '''by default will be finetune otherwise
@@ -115,6 +116,8 @@ flags.DEFINE_boolean('distort_image', True, 'training option')
 flags.DEFINE_boolean('random_crop_image', True, 'training option')
 
 flags.DEFINE_string('image_model_name', 'InceptionResnetV2', '')
+flags.DEFINE_string('image_endpoint_feature_name', None, 'mostly None for showandtell, not None for show attend and tell, but not always!')
+flags.DEFINE_integer('image_attention_size', 64, '')
 flags.DEFINE_integer('image_width', 299, 'default width of inception')
 flags.DEFINE_integer('image_height', 299, 'default height of inception')
 
