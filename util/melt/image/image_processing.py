@@ -333,7 +333,7 @@ image_model_info = {
                         }
 }
 
-def create_image2feature_slim_fn(name='InceptionResnetV2'):
+def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
   """
     #NOTICE how this method solve run/ scope problem, scope must before def
     using slim util to create image feature
@@ -362,7 +362,6 @@ def create_image2feature_slim_fn(name='InceptionResnetV2'):
                      weight_decay=0.00004,
                      finetune_end_point=None,
                      image_format="jpeg",  #for safe just use decode_jpeg
-                     feature_name=None,
                      reuse=None):      
       logging.info('image model trainable:{}, is_training:{}'.format(trainable, is_training))
 
