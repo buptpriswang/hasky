@@ -26,6 +26,8 @@ import numpy as np
 import gezi
 import melt 
 
+from operator import itemgetter
+
 def get_model_dir_and_path(model_dir, model_name=None):
   model_path = model_dir
   ckpt = tf.train.get_checkpoint_state(model_dir)
@@ -356,3 +358,33 @@ class TextPredictor(object):
 
   def predict_text(self, inputs, text_key=None, score_key=None, index=None):
     return self.inference(inputs, text_key, score_key, index)
+
+class EnsembleTextPredictor(object):
+  def __init__(self, 
+              model_dirs, 
+              feed=None,
+              text_key='beam_text',
+              score_key='beam_text_score',
+              index=0):
+    if not isinstance(model_dirs, (list, tuple)):
+      model_dirs = [model_dirs]
+    self._predictors = [TextPredictor(model_dir, feed=feed, text_key=text_key, score_key=score_key, index=index + i) for i in range(len(model_dirs))]
+
+  def inference(self, inputs):
+    m = {}
+    for predictor in self._predictors:
+      texts, scores = predictor.inference(inputs)
+      for text, score in zip(texts, scores):
+        m.setdefault(text, 0.)
+        m[text] += score 
+    results = sorted(m.items(), key=itemgetter(1), reverse=True)
+    #https://stackoverflow.com/questions/12974474/how-to-unzip-a-list-of-tuples-into-individual-lists
+    texts, scores = zip(*results)
+    scores /= float(len(self._predictors))
+    return np.array(texts), np.array(scores)
+
+  def predict(self, inputs):
+    return self.inference(inputs)
+
+  def predict_text(self, inputs):
+    return self.inference(inputs)

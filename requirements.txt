@@ -1,0 +1,20 @@
+tensorflow
+numpy
+
+#in util you need to set PYTHON_PATH include ./util 
+gezi
+melt
+
+#for prepare, text segment
+jieba
+
+#for tensorflow image related, you need to set PYTHON_PATH include it
+slim
+
+#---for ipynb show
+matplotlib
+scipy
+scikit-image
+
+#---for prepare, counting words and vocabulary(c++ pywrap might turn all to py work TODO)
+libword_counter

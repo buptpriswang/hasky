@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.sampling05
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.sampling10
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 mkdir -p $model_dir
 

@@ -14,4 +14,4 @@ from __future__ import print_function
 import tensorflow as tf
 
 from melt.inference.predictor_base import * 
-from melt.inference.predictor import Predictor, SimPredictor, RerankSimPredictor, WordsImportancePredictor, TextPredictor
+from melt.inference.predictor import Predictor, SimPredictor, RerankSimPredictor, WordsImportancePredictor, TextPredictor, EnsembleTextPredictor
