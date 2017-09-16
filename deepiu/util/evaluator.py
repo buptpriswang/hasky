@@ -712,7 +712,7 @@ def evaluate_translation(predictor, random=False, index=None):
     selected_refs[key] = refs[key]
     selected_results[key] = results[key]
     if is_first:
-      print('|'.join(selected_results[key]), '|'.join(selected_refs[key]), len(selected_results[key]))
+      logging.info('{}{}{}'.format('|'.join(selected_results[key]), '---', '|'.join(selected_refs[key])))
       is_first = False
     assert len(selected_results[key]) == 1, selected_results[key]
   assert selected_results.keys() == selected_refs.keys(), '%d %d'%(len(selected_results.keys()), len(selected_refs.keys())) 
