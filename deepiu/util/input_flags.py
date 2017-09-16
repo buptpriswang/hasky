@@ -104,6 +104,7 @@ flags.DEFINE_string('decode_str_name', 'text_str', '')
 
 #--------for image caption  TODO move to image_caption/input.py ?
 flags.DEFINE_boolean('pre_calc_image_feature', False, 'will set to true if not has image model auto in train.py')
+flags.DEFINE_boolean('has_image_model', False, '')
 
 flags.DEFINE_string('image_checkpoint_file', None, '''None means image model from scratch or not use image model 
                                                       /home/gezi/data/inceptionv3/inception_v3.ckpt''')

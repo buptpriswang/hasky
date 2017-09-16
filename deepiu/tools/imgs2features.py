@@ -99,9 +99,6 @@ def run():
 def main(_):
   global img2feautres_op 
   img2feautres_op = build_graph(images_feed)
-  if FLAGS.feature_name is not None:
-    import tensorflow.contrib.slim as slim
-    img2feautres_op = slim.flatten(img2feautres_op)
 
   global sess
   sess = tf.Session()

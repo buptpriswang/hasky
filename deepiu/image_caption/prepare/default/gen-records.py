@@ -25,6 +25,7 @@ flags.DEFINE_string('output_directory', '/home/gezi/new/temp/image_caption/keywo
 flags.DEFINE_string('input_directory', '/home/gezi/new/data/keyword/feature', '')
 ##--already in deepiu.evaluator
 #flags.DEFINE_string('image_dir', None, '')
+flags.DEFINE_string('big_feature_image_dir', None, 'hack for big featue')
 flags.DEFINE_string('info_dir', None, '')
 flags.DEFINE_string('name', 'train', '')
 flags.DEFINE_integer('threads', 12, 'Number of threads for dealing')
@@ -422,7 +423,7 @@ def deal_file(file):
               image_features.append(image_feature)
             else:
               #actually save pic path instead of image feature
-              image_features.append(os.path.join(FLAGS.image_dir, img.replace('/', '_')))
+              image_features.append(os.path.join(FLAGS.big_feature_image_dir, img.replace('/', '_')))
 
           if FLAGS.num_max_records > 0:
             #if fixed valid only get one click for each image

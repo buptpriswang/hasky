@@ -62,6 +62,8 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
 
     self.image_feature_len = IMAGE_FEATURE_LEN 
 
+    self.image_model = None
+
 
   def init_predict(self, text_max_words=TEXT_MAX_WORDS):
     self.score = self.build_predict_graph(text_max_words)
@@ -98,6 +100,12 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     return self.score
 
   def predict(self, image, text):
+    #hack for big feature problem, input is reading raw image...
+    if FLAGS.pre_calc_image_feature and isinstance(image[0], (str, np.string_)):
+      if self.image_model is None:
+        self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name, sess=self.sess)
+      image = self.image_model.gen_feature(image)  
+  
     feed_dict = {
       #self.image_feature_feed: image.reshape([1, self.image_feature_len]),
       self.image_feature_feed: image,

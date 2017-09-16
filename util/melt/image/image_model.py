@@ -25,9 +25,11 @@ class ImageModel(object):
                model_name='InceptionResnetV2', 
                height=299, 
                width=299,
+               feature_name=None,
                image_format='jpeg',
                sess=None):
     self.sess = melt.gen_session() if sess is None else sess
+    self.feature_name = feature_name
     self.images_feed =  tf.placeholder(tf.string, [None,], name='images')
     self.img2feautres_op = self._build_graph(model_name, height, width, image_format=image_format)
 
@@ -39,8 +41,9 @@ class ImageModel(object):
     init_fn(self.sess)
 
 
+
   def _build_graph(self, model_name, height, width, image_format=None):
-    melt.apps.image_processing.init(model_name)
+    melt.apps.image_processing.init(model_name, self.feature_name)
     return melt.apps.image_processing.image_processing_fn(self.images_feed,  
                                                           height=height, 
                                                           width=width,

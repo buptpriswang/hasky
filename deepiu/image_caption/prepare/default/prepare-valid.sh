@@ -10,6 +10,7 @@ python ./gen-records.py  \
   --np_save=1 \
   --feed_single $feed_single \
   --image_dir "$image_dir" \
+  --big_feature_image_dir "$big_feature_image_dir" \
   --info_dir "$info_dir" \
   --small_feature $small_feature \
   --name test

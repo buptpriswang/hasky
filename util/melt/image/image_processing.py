@@ -352,7 +352,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
     def construct_fn(encoded_image, 
                      height, 
                      width, 
-                     trainable=True,  #by default is trainable, if not you can just use preprocess 
+                     trainable=False, 
                      is_training=False,
                      resize_height=346,
                      resize_width=346,
@@ -435,6 +435,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
               raise ValueError('not found pre logits!')
           else:
             image_feature = end_points[feature_name]
+            image_feature = slim.flatten(image_feature)
           #TODO check is it really ok? not finetune? seems still slow as im2txt it should be much faster then fintune.. FIXME?
           #TODO other method set not trainable, need to modify slim get_network_fn ?
           #if not trainable: #just for safe.. actuall slim.arg_scope with train_able=False works

@@ -4,7 +4,11 @@ cp $conf_path/conf.py .
 source $conf_path/config  
 
 model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell
-assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
+##FIXME ValueError: At least two variables have the same name: InceptionResnetV2/Repeat_1/block17_5/Branch_1/Conv2d_0c_7x1/weights
+##so now no eval rank
+#assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.atten
+#assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
+assistant_model_dir=''
 mkdir -p $model_dir
 
 python ./train.py \
@@ -20,9 +24,10 @@ python ./train.py \
   --image_feature_bin $valid_output_path/'image_features.npy' \
   --num_records_file  $train_output_path/num_records.txt \
   --model_dir=$model_dir \
-  --assistant_model_dir $assistant_model_dir \
+  --assistant_model_dir="$assistant_model_dir" \
   --algo show_and_tell \
   --show_atten_tell 1 \
+  --eval_rank 0 \
   --image_attention_size 64 \
   --image_endpoint_feature_name Conv2d_7b_1x1 \
   --pre_calc_image_feature 1 \
@@ -35,7 +40,7 @@ python ./train.py \
   --num_evaluate_examples 10 \
   --show_eval 1 \
   --train_only 0 \
-  --metric_eval 0 \
+  --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
   --batch_size 256 \
@@ -43,8 +48,8 @@ python ./train.py \
   --eval_batch_size 1000 \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
-  --eval_interval_steps 300 \
-  --metric_eval_interval_steps 300 \
+  --eval_interval_steps 500 \
+  --metric_eval_interval_steps 500 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
   --num_metric_eval_examples 500 \

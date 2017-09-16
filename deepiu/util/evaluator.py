@@ -147,6 +147,7 @@ def init():
       print('assist predictor use deepiu.util.sim_predictor.SimPredictor as is raw image as input')
       assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0, 
                                                                   image_checkpoint_path=FLAGS.image_checkpoint_file, image_model_name=FLAGS.image_model_name)
+      print('assistant predictor init ok')
     else:
       assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
     #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.

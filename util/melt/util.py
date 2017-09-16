@@ -24,6 +24,9 @@ import melt
 
 import melt.utils.logging as logging
 
+def is_raw_image(image_features):
+  return isinstance(image_features[0], np.string_)
+
 #https://stackoverflow.com/questions/35164529/in-tensorflow-is-there-any-way-to-just-initialize-uninitialised-variables
 def init_uninitialized_variables(sess, list_of_variables = None):
   if list_of_variables is None:

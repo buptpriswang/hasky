@@ -31,7 +31,6 @@ from deepiu.seq2seq.rnn_decoder import SeqDecodeMethod
 
 class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
   def __init__(self):
-    #super(ShowAndTellPredictor, self).__init__()
     melt.PredictorBase.__init__(self)
     ShowAndTell.__init__(self, is_training=False, is_predict=True)
 
@@ -49,6 +48,8 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
 
     self.beam_text = None 
     self.beam_text_score = None
+
+    self.image_model = None
 
   def init_predict_text(self, decode_method='greedy', beam_size=5, convert_unk=True):
     """
@@ -69,7 +70,6 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     tf.add_to_collection('score', self.score)
     return self.score
  
-
   #TODO Notice when training this image always be float...  
   def build_predict_text_graph(self, image, decode_method='greedy', beam_size=5, convert_unk=True):
     image_emb = self.build_image_embeddings(image)
@@ -124,6 +124,12 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     """
     default usage is one single image , single text predict one sim score
     """
+    #hack for big feature problem, input is reading raw image...
+    if FLAGS.pre_calc_image_feature and isinstance(images[0], (str, np.string_)):
+      if self.image_model is None:
+        self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name, sess=self.sess)
+      images = self.image_model.gen_feature(images)
+
     feed_dict = {
       self.image_feature_feed: image,
       self.text_feed: text,
@@ -135,6 +141,12 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     """
     for translation evaluation only
     """
+    #hack for big feature problem, input is reading raw image...
+    if FLAGS.pre_calc_image_feature and isinstance(images[0], (str, np.string_)):
+      if self.image_model is None:
+        self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name, sess=self.sess)
+      images = self.image_model.gen_feature(images)
+
     if self.beam_text is None:
       self.init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam)
 

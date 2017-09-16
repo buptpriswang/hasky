@@ -4,6 +4,7 @@ dir=/home/gezi/new2/temp/image-caption/ai-challenger/tfrecord/seq-basic-atten
 small_feature=0
 
 #image_dir=/home/gezi/new2/data/ai_challenger/image_caption/pic
+big_feature_image_dir=/home/gezi/new2/data/ai_challenger/image_caption/pic
 win_image_dir=D:\\new2\\data\\ai_challenger\\image_caption\\pic\\
 
 train_data_path=$input_path/train

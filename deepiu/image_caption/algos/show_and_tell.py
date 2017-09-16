@@ -66,11 +66,6 @@ class ShowAndTell(object):
       #just for experiment to be same as im2txt but result is worse
       assert FLAGS.add_text_start is False, 'normal mode must not add text start'
 
-    #---------should be show_and_tell/model_init_1
-    #print('ShowAndTell init:', tf.get_variable_scope().name)
-    #self.abcd = melt.init_bias(3)
-    #print('ShowAndTell bias', self.abcd.name)
-
     self.is_training = is_training 
     self.is_predict = is_predict
     self.is_evaluate = (not is_training) and (not is_predict)
@@ -93,8 +88,6 @@ class ShowAndTell(object):
     self.decoder.set_embedding(emb)
     
     self.emb_dim = FLAGS.emb_dim
-    #TODO for safe, can add_text_start but add 0 not calc weight or 
-    #do additional cell(image_embedding, state) and pass state with start_id as input like im2text
 
     self.initializer = tf.random_uniform_initializer(
         minval=-FLAGS.initializer_scale,
@@ -128,8 +121,8 @@ class ShowAndTell(object):
     """
     if not FLAGS.pre_calc_image_feature:
       image_feature = self.image_process_fn(image_feature)
-    elif FLAGS.show_atten_tell:
-      #if pre calc and use attention need to reshape as featue is slim.flattened
+    
+    if FLAGS.show_atten_tell:
       image_feature = tf.reshape(image_feature, [-1, FLAGS.image_attention_size, int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)])
 
     with tf.variable_scope("image_embedding") as scope:
