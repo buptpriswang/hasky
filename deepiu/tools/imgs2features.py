@@ -22,6 +22,7 @@ flags.DEFINE_integer('image_width', 299, 'default width of inception')
 flags.DEFINE_integer('image_height', 299, 'default height of inception')
 flags.DEFINE_string('image_checkpoint_file', '/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt', '')
 flags.DEFINE_integer('batch_size', 512, '')
+flags.DEFINE_string('feature_name', None, '')
 
 import sys, os, glob, traceback
 import melt
@@ -32,7 +33,7 @@ images_feed =  tf.placeholder(tf.string, [None,], name='images')
 img2feautres_op = None
 
 def build_graph(images):
-  melt.apps.image_processing.init(FLAGS.image_model_name)
+  melt.apps.image_processing.init(FLAGS.image_model_name, feature_name=FLAGS.feature_name)
   return melt.apps.image_processing.image_processing_fn(images,  
                                                         height=FLAGS.image_height, 
                                                         width=FLAGS.image_width)
@@ -98,6 +99,9 @@ def run():
 def main(_):
   global img2feautres_op 
   img2feautres_op = build_graph(images_feed)
+  if FLAGS.feature_name is not None:
+    import tensorflow.contrib.slim as slim
+    img2feautres_op = slim.flatten(img2feautres_op)
 
   global sess
   sess = tf.Session()

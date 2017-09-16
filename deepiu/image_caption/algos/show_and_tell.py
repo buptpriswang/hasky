@@ -34,8 +34,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean('use_neg', False, 'use neg means using hinge loss(rank nce)')
-flags.DEFINE_boolean('show_neg', False, 'show neg means show neg score')
+flags.DEFINE_boolean('image_as_init_state', False, 'by default will treat image as input not inital state(im2txt usage)')
 
 import functools
 
@@ -59,7 +58,10 @@ class ShowAndTell(object):
   def __init__(self, is_training=True, is_predict=False):
     super(ShowAndTell, self).__init__()
 
-    assert FLAGS.add_text_start is False
+    if FLAGS.image_as_init_state:
+      assert FLAGS.add_text_start is True, 'need to add text start for im2tx mode'
+    else:
+      assert FLAGS.add_text_start is False, 'normal mode must not add text start'
 
     #---------should be show_and_tell/model_init_1
     #print('ShowAndTell init:', tf.get_variable_scope().name)
@@ -72,7 +74,6 @@ class ShowAndTell(object):
 
     #if is_training:
     logging.info('num_sampled:{}'.format(FLAGS.num_sampled))
-    logging.info('use_neg:{}'.format(FLAGS.use_neg))
     logging.info('num_sampled:{}'.format(FLAGS.num_sampled))
     logging.info('log_uniform_sample:{}'.format(FLAGS.log_uniform_sample))
     logging.info('num_layers:{}'.format(FLAGS.num_layers))
@@ -140,8 +141,16 @@ class ShowAndTell(object):
     print('train:', self.is_training, 'evaluate:', self.is_evaluate, 'predict:', self.is_predict)
     
     image_emb = self.build_image_embeddings(image_feature)
-
-    scores = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)
+    
+    if not FLAGS.image_as_init_state:
+      scores = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)
+    else:
+      #for im2txt one more step at first
+      with tf.variable_scope(self.decoder.scope) as scope:
+        zero_state = self.decoder.cell.zero_state(batch_size=melt.get_batch_size(image_emb), dtype=tf.float32)
+        _, initial_state = self.decoder.cell(image_emb, zero_state)
+      #will pad start in decoder.sequence_loss
+      scores = self.decoder.sequence_loss(text, initial_state=initial_state)
 
     if not self.is_training and not self.is_predict: #evaluate mode
       tf.add_to_collection('scores', scores)

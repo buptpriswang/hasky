@@ -199,7 +199,7 @@ def tf_train_flow(train_once_fn,
     step = start = pre_step +  1
     fixed_step = fixed_pre_step + 1
     #hack just for save one model after load
-    if num_steps and num_steps < step:
+    if num_steps < 0 or (num_steps and num_steps < step):
       print('just load and resave then exit', file=sys.stderr)
       saver.save(sess, 
                  _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 

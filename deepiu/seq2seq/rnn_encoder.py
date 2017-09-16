@@ -68,6 +68,7 @@ class RnnEncoder(Encoder):
                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),
                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
+  #TODO  add scope
   def encode(self, sequence, emb=None, input=None, output_method=None):
     if emb is None:
       emb = self.emb 

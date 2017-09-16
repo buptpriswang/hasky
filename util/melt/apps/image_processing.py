@@ -20,11 +20,11 @@ image_processing_fn = None
 import melt
 from melt import logging
 
-def init(image_model_name='InceptionResnetV2', im2text_prcocessing=False):
+def init(image_model_name='InceptionResnetV2', feature_name=None, im2text_prcocessing=False):
   global image_processing_fn 
   if image_processing_fn is None:
     if im2text_prcocessing:
   	  image_processing_fn = melt.image.image_processing.create_image2feature_fn(image_model_name)
     else:
-		  image_processing_fn = melt.image.image_processing.create_image2feature_slim_fn(image_model_name)
+		  image_processing_fn = melt.image.image_processing.create_image2feature_slim_fn(image_model_name, feature_name=feature_name)
   return image_processing_fn

@@ -362,6 +362,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2'):
                      weight_decay=0.00004,
                      finetune_end_point=None,
                      image_format="jpeg",  #for safe just use decode_jpeg
+                     feature_name=None,
                      reuse=None):      
       logging.info('image model trainable:{}, is_training:{}'.format(trainable, is_training))
 
@@ -425,14 +426,16 @@ def create_image2feature_slim_fn(name='InceptionResnetV2'):
           
           # for key in end_points:
           #   print(key, end_points[key].shape)
-
-          if 'PreLogitsFlatten' in end_points:
-            image_feature = end_points['PreLogitsFlatten']
-          elif 'PreLogits' in end_points:
-            net = end_points['PreLogits']
-            image_feature = slim.flatten(net, scope="flatten")
+          if feature_name is None:
+            if 'PreLogitsFlatten' in end_points:
+              image_feature = end_points['PreLogitsFlatten']
+            elif 'PreLogits' in end_points:
+              net = end_points['PreLogits']
+              image_feature = slim.flatten(net, scope="flatten")
+            else:
+              raise ValueError('not found pre logits!')
           else:
-            raise ValueError('not found pre logits!')
+            image_feature = end_points[feature_name]
           #TODO check is it really ok? not finetune? seems still slow as im2txt it should be much faster then fintune.. FIXME?
           #TODO other method set not trainable, need to modify slim get_network_fn ?
           #if not trainable: #just for safe.. actuall slim.arg_scope with train_able=False works

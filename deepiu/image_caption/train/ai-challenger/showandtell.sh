@@ -53,7 +53,7 @@ python ./train.py \
   --seq_decode_method greedy \
   --length_normalization_factor 0. \
   --keep_prob 1. \
-  --scheduled_sampling_probability 0.5 \
+  --scheduled_sampling_probability 0. \
   --beam_size 10 \
   --dynamic_batch_length 1 \
   --log_device 0 \

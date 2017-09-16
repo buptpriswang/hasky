@@ -115,7 +115,8 @@ class SeqDecodeMethod:
 
 class RnnDecoder(Decoder):
   def __init__(self, is_training=True, is_predict=False):
-    self.scope = 'rnn'
+    #TODO should be rnn_decode
+    self.scope = 'rnn' 
     self.is_training = is_training 
     self.is_predict = is_predict
     
@@ -262,7 +263,7 @@ class RnnDecoder(Decoder):
                     emb=None):
     """
     for general seq2seq input is None, sequence will pad <GO>, inital_state is last state from encoder
-    for img2text/showandtell input is image_embedding, inital_state is None/zero set
+    for showandtell input is image_embedding, inital_state is None/zero set, if use im2txt mode set image_as_init_state=True will do as above, need to PAD <GO> !
     TODO since exact_porb and exact_loss same value, may remove exact_prob
     NOTICE! assume sequence to be padded by zero and must have one instance full length(no zero!)
     """

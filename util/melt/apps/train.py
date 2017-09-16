@@ -25,7 +25,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('num_epochs', 0, 'Number of epochs to run trainer.')
-flags.DEFINE_integer('num_steps', 0, 'Number of steps to run trainer.')
+flags.DEFINE_integer('num_steps', 0, 'Number of steps to run trainer. 0 means run forever, -1 means you just want to build graph and save without training(chaning model value)')
 #-------model
 flags.DEFINE_boolean('save_model', True, '')
 flags.DEFINE_float('save_interval_epochs', 1, 'if 0 will not save, by default 1 epoch 1 model in modeldir/epoch, you can change to 2, 0.1 etc')

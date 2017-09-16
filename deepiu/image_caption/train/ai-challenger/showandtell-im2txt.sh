@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell.im2txt
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 mkdir -p $model_dir
 
@@ -32,7 +32,7 @@ python ./train.py \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 128 \
+  --batch_size 256 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
   --min_after_dequeue 500 \
@@ -54,6 +54,8 @@ python ./train.py \
   --length_normalization_factor 0. \
   --keep_prob 1. \
   --scheduled_sampling_probability 0. \
+  --image_as_init_state 1 \
+  --add_text_start 1 \
   --beam_size 10 \
   --dynamic_batch_length 1 \
   --log_device 0 \

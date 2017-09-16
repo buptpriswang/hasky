@@ -325,6 +325,7 @@ def train():
   init_fn = None
   restore_fn = None
   summary_excls = None
+  variables_to_save = slim.get_variables_to_restore(exclude=["bow"]) if (algos_factory.is_generative(FLAGS.algo) and FLAGS.assistant_model_dir) else None
 
   if not FLAGS.pre_calc_image_feature:
     init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
@@ -347,6 +348,7 @@ def train():
                        summary_excls=summary_excls,
                        init_fn=init_fn,
                        restore_fn=restore_fn,
+                       variables_to_save=variables_to_save,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
   
 def main(_):
