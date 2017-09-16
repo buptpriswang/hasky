@@ -78,7 +78,7 @@ except Exception:
 
 from deepiu.util import algos_factory
 
-from gezi.metrics import Bleu, Meteor, Rouge, Cider
+from gezi.metrics import Bleu, Meteor, Rouge, Cider, PTBTokenizer
 
 import deepiu
 
@@ -98,6 +98,8 @@ image_features = None
 assistant_predictor = None
 
 inited = False
+
+tokenizer = None
 
 def init():
   global inited
@@ -707,15 +709,21 @@ def evaluate_translation(predictor, random=False, index=None):
   selected_refs = {}
   selected_results = {}
   #by doing this can force same .keys()
-  is_first = True
   for key in results:
     selected_refs[key] = refs[key]
     selected_results[key] = results[key]
-    if is_first:
-      logging.info('predict&label:{}{}{}'.format('|'.join(selected_results[key]), '---', '|'.join(selected_refs[key])))
-      is_first = False
     assert len(selected_results[key]) == 1, selected_results[key]
   assert selected_results.keys() == selected_refs.keys(), '%d %d'%(len(selected_results.keys()), len(selected_refs.keys())) 
+
+  if FLAGS.eval_translation_reseg:
+    print('tokenization...', file=sys.stderr)
+    global tokenizer
+    if tokenizer is None:
+      tokenizer = PTBTokenizer()
+    selected_refs  = tokenizer.tokenize(selected_refs)
+    selected_results = tokenizer.tokenize(selected_results)
+
+  logging.info('predict&label:{}{}{}'.format('|'.join(selected_results.items()[0][1]), '---', '|'.join(selected_refs.items()[0][1])))
 
   for scorer, method in scorers:
     print('computing %s score...'%(scorer.method()), file=sys.stderr)

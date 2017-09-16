@@ -29,26 +29,26 @@ class TextPredictor(object):
 
     ids2text.init(vocab_path)
 
-  def _predict(self, image):
+  def _predict(self, image, length_normalization_fator=None, beam_size=None):
     if self.image_model is not None:
       image = self.image_model.gen_feature(image)
-    return self.predictor.predict(image)
+    return self.predictor.predict(image, length_normalization_fator, beam_size)
   
-  def predict_text(self, image):
-    return self._predict(image)
+  def predict_text(self, image, length_normalization_fator=None, beam_size=None):
+    return self._predict(image, length_normalization_fator, beam_size)
 
-  def predict(self, image):
-    texts, scores = self._predict(image)
+  def predict(self, image, length_normalization_fator=None, beam_size=None):
+    texts, scores = self._predict(image, length_normalization_fator, beam_size)
     texts = texts[0]
     scores = scores[0]
     return np.array([ids2text.translate(text) for text in texts]), scores
 
-  def word_ids(self, image):
-    return self._predict(image)
+  def word_ids(self, image, length_normalization_fator=None, beam_size=None):
+    return self._predict(image, length_normalization_fator, beam_size)
 
-  def translate(self, image):
-    texts, scores = self._predict(image)
+  def translate(self, image, length_normalization_fator=None, beam_size=None):
+    texts, scores = self._predict(image, length_normalization_fator, beam_size)
     return [ids2text.translate(text[0]) for text in texts]
 
-  def predict_best(self, image):
-    return self.translate(image)
+  def predict_best(self, image, length_normalization_fator=None, beam_size=None):
+    return self.translate(image, length_normalization_fator, beam_size)

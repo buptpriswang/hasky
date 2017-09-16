@@ -318,6 +318,8 @@ class TextPredictor(object):
               feed=None,
               text_key='beam_text',
               score_key='beam_text_score',
+              length_normalization_fator_feed='length_normalization_fator_feed',
+              beam_size_feed='beam_size_feed',
               index=0,
               meta_graph=None, 
               model_name=None, 
@@ -336,8 +338,14 @@ class TextPredictor(object):
         self._feed = tf.get_collection('lfeed')[index]
     else:
       self._feed = feed
+    
+    try:
+      self._length_normalization_fator_feed = tf.get_collection(length_normalization_fator_feed)[index]
+      self._beam_size_feed = tf.get_collection(beam_size_feed)[index]
+    except Exception:
+      pass
 
-  def inference(self, inputs, text_key=None, score_key=None, index=None):
+  def inference(self, inputs, length_normalization_fator=None, beam_size=None, text_key=None, score_key=None, index=None):
     if text_key is None:
       text_key = self._text_key
 
@@ -351,12 +359,18 @@ class TextPredictor(object):
       self._feed: inputs
     }
 
+    if length_normalization_fator is not None:
+      feed[self._length_normalization_fator_feed] = length_normalization_fator
+
+    if beam_size is not None:
+      feed_dict[self._beam_size_feed] = beam_size
+
     return self._predictor.inference([text_key, score_key], feed_dict=feed_dict, index=index)
 
-  def predict(self, inputs, text_key=None, score_key=None, index=None):
+  def predict(self, inputs, length_normalization_fator=None, beam_size=None, text_key=None, score_key=None, index=None):
     return self.inference(inputs, text_key, score_key, index)
 
-  def predict_text(self, inputs, text_key=None, score_key=None, index=None):
+  def predict_text(self, inputs, length_normalization_fator=None, beam_size=None, text_key=None, score_key=None, index=None):
     return self.inference(inputs, text_key, score_key, index)
 
 class EnsembleTextPredictor(object):
@@ -370,10 +384,10 @@ class EnsembleTextPredictor(object):
       model_dirs = [model_dirs]
     self._predictors = [TextPredictor(model_dir, feed=feed, text_key=text_key, score_key=score_key, index=index + i) for i in range(len(model_dirs))]
 
-  def inference(self, inputs):
+  def inference(self, inputs, length_normalization_fator=None, beam_size=None):
     m = {}
     for predictor in self._predictors:
-      texts, scores = predictor.inference(inputs)
+      texts, scores = predictor.inference(inputs, length_normalization_fator, beam_size)
       for text, score in zip(texts, scores):
         m.setdefault(text, 0.)
         m[text] += score 

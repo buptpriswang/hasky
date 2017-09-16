@@ -270,7 +270,11 @@ def gen_predict_graph(predictor):
   if algos_factory.is_generative(FLAGS.algo):
     exact_score = predictor.init_predict(exact_loss=True)
     tf.add_to_collection('exact_score', exact_score)
-
+    
+    ##TODO
+    # beam_size = tf.placeholder_with_default(FLAGS.beam_size, shape=None)
+    # tf.add_to_collection('beam_size_feed', beam_size)
+    
     init_predict_text = functools.partial(predictor.init_predict_text, 
                                           beam_size=FLAGS.beam_size, 
                                           convert_unk=False)

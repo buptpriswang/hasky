@@ -186,6 +186,7 @@ def gen_predict_graph(predictor):
 
   #-----generateive
   print('beam_size', FLAGS.beam_size)
+  #TODO make beam size placeholder ?
   init_predict_text = functools.partial(predictor.init_predict_text, 
                                         beam_size=FLAGS.beam_size, 
                                         convert_unk=False)

@@ -316,6 +316,23 @@ def create_image2feature_fn(name='InceptionV3'):
 
     return construct_fn
 
+
+image_model_info = {
+  'vgg_19': { 
+              'feature_dim': 512,
+              'num_features': 196 #14*14
+            },
+  'InceptionV3': { 
+                  'feature_dim':2048 
+                 },
+  'InceptionResnetV2' : { 
+                            'feature_dim': 1536,
+                            'feature_end_point': 'PreLogitsFlatten',
+                            'num_features': 64, #8*8
+                            'features_end_point': 'Conv2d_7b_1x1' 
+                        }
+}
+
 def create_image2feature_slim_fn(name='InceptionResnetV2'):
   """
     #NOTICE how this method solve run/ scope problem, scope must before def
@@ -325,6 +342,11 @@ def create_image2feature_slim_fn(name='InceptionResnetV2'):
   #TODO '' can not work to be used as to escope scope ..., so if want to escape and call this function 
   #anywher need to modify slim code to let slim code with scope None '' instead of name here like InceptionV3 
   #HACK add another socpe.. to escape.. see hasky/jupter/scope.ipynb
+
+  ##notice for vgg.. scope is also in gnu format unlike IncepitonV3 -> inception_v3 TODO seems vgg not work?
+  ##ValueError: Can not squeeze dim[1], expected a dimension of 1, got 3 for 'bow/main/image_text_sim/vgg_19/fc8/squeezed' (op: 'Squeeze') with input shapes: [32,3,3,1001].
+  #name = 'vgg_19' 
+
   with tf.variable_scope('') as scope:
   #with tf.variable_scope(name) as scope: #name will be set in slim nets
     def construct_fn(encoded_image, 
@@ -400,6 +422,10 @@ def create_image2feature_slim_fn(name='InceptionResnetV2'):
           #TODO might modify to let scope be '' ?
           net_fn = nets_factory.get_network_fn(net_name, num_classes=num_classes, is_training=is_image_model_training)
           logits, end_points = net_fn(image)
+          
+          # for key in end_points:
+          #   print(key, end_points[key].shape)
+
           if 'PreLogitsFlatten' in end_points:
             image_feature = end_points['PreLogitsFlatten']
           elif 'PreLogits' in end_points:

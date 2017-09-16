@@ -55,9 +55,6 @@ while True:
   image_file = raw_input('image_file like 6275b5349168ac3fab6a493c509301d023cf39d3.jpg:')
   if image_file == 'q':
     break
-    
-  if not image_file.endswith('.jpg'):
-    image_file += '.jpg'
 
   image_path = os.path.join(image_dir, image_file)
   print('image_path:', image_path)

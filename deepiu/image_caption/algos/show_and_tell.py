@@ -134,47 +134,23 @@ class ShowAndTell(object):
           scope=scope)
     return image_embeddings
 
-  #NOTICE mainly usage is not use neg! for generative method
+  #NOTICE for generative method, neg support removed to make simple!
   def build_graph(self, image_feature, text, neg_image_feature=None, neg_text=None, exact_loss=False):
+
     print('train:', self.is_training, 'evaluate:', self.is_evaluate, 'predict:', self.is_predict)
     
     image_emb = self.build_image_embeddings(image_feature)
 
-    pos_loss = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)
-
-    loss = None
-    scores = None
-    if neg_text is not None and (FLAGS.use_neg or FLAGS.show_neg):
-      neg_losses = []
-      num_negs = neg_text.get_shape()[1]
-      for i in range(num_negs):
-        tf.get_variable_scope().reuse_variables()
-        neg_text_i = neg_text[:, i, :]
-        neg_loss = self.decoder.sequence_loss(image_emb, neg_text_i, exact_loss=exact_loss)
-        neg_losses.append(neg_loss)
-
-      neg_losses = tf.concat(neg_losses, 1)
-      
-      if FLAGS.use_neg:
-        #neg_losses [batch_size, num_neg_text] 
-        loss = melt.hinge_loss(-pos_loss, -neg_losses, FLAGS.margin)
-      
-      scores = tf.concat([pos_loss, neg_losses], 1)
-
-    if loss is None:
-      if not self.is_predict:
-        loss = tf.reduce_mean(pos_loss)
-      else:
-        loss = pos_loss
-      
-      if scores is None:
-        if neg_text is not None:
-          scores = tf.concat([pos_loss, pos_loss], 1)
-        else:
-          scores = pos_loss
+    scores = self.decoder.sequence_loss(text, input=image_emb, exact_loss=exact_loss)
 
     if not self.is_training and not self.is_predict: #evaluate mode
       tf.add_to_collection('scores', scores)
+
+    if not self.is_predict:
+      loss = tf.reduce_mean(scores)
+    else:
+      loss = scores
+      
     return loss
 
   def build_train_graph(self, image_feature, text, neg_image_feature=None, neg_text=None):

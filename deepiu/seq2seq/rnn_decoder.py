@@ -118,7 +118,7 @@ class RnnDecoder(Decoder):
     self.scope = 'rnn'
     self.is_training = is_training 
     self.is_predict = is_predict
-
+    
     assert not (FLAGS.decode_copy and FLAGS.decode_use_alignment)
 
     vocabulary.init()
