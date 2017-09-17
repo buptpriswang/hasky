@@ -69,18 +69,18 @@ class MemoryEncoder(ShowAndTellEncoder):
     ShowAndTellEncoder.__init__(self, is_training, is_predict, emb_dim, initializer)
 
   def encode(self, image_features):
-    image_emb = self.build_image_embeddings(image_features)
+    image_embs = self.build_image_embeddings(image_features)
     #to make it like rnn encoder outputs
     with tf.variable_scope("attention_embedding") as scope:
       encoder_output = tf.contrib.layers.fully_connected(
-          inputs=image_emb,
+          inputs=image_embs,
           num_outputs=FLAGS.rnn_hidden_size,
           activation_fn=None,
           weights_initializer=self.initializer,
           biases_initializer=None,
           scope=scope)
     state = None
-    image_emb = tf.reduce_mean(image_features, 1)
+    image_emb = tf.reduce_mean(image_embs, 1)
     return encoder_output, state, image_emb
 
 class ShowAttendAndTellEncoder(ImageEncoder):
@@ -115,4 +115,51 @@ class ShowAttendAndTellEncoder(ImageEncoder):
     image_emb = None
     encoder_output = image_features
     state = self.get_initial_lstm(image_features)
+    return encoder_output, state, image_emb
+
+
+class RnnEncoder(ShowAndTellEncoder):
+  """
+  using rnn to encode image features
+  """
+  def __init__(self, is_training=False, is_predict=False,
+               emb_dim=None, initializer=None):
+    ShowAndTellEncoder.__init__(self, is_training, is_predict, emb_dim, initializer)
+
+  def encode(self, image_features):
+    image_embs = self.build_image_embeddings(image_features)
+    #to make it like rnn encoder outputs
+    with tf.variable_scope("attention_embedding") as scope:
+      encoder_output = tf.contrib.layers.fully_connected(
+          inputs=image_embs,
+          num_outputs=FLAGS.rnn_hidden_size,
+          activation_fn=None,
+          weights_initializer=self.initializer,
+          biases_initializer=None,
+          scope=scope)
+    state = None
+    image_emb = tf.reduce_mean(image_embs, 1)
+    return encoder_output, state, image_emb
+
+class RnnControllerEncoder(ShowAndTellEncoder):
+  """
+  using rnn/lstm controller for some steps to encode image features
+  """
+  def __init__(self, is_training=False, is_predict=False,
+               emb_dim=None, initializer=None):
+    ShowAndTellEncoder.__init__(self, is_training, is_predict, emb_dim, initializer)
+
+  def encode(self, image_features):
+    image_embs = self.build_image_embeddings(image_features)
+    #to make it like rnn encoder outputs
+    with tf.variable_scope("attention_embedding") as scope:
+      encoder_output = tf.contrib.layers.fully_connected(
+          inputs=image_embs,
+          num_outputs=FLAGS.rnn_hidden_size,
+          activation_fn=None,
+          weights_initializer=self.initializer,
+          biases_initializer=None,
+          scope=scope)
+    state = None
+    image_emb = tf.reduce_mean(image_embs, 1)
     return encoder_output, state, image_emb
