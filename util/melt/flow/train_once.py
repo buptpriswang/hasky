@@ -262,7 +262,7 @@ def train_once(sess,
       melt.add_summarys(summary, train_average_loss, names_, suffix='train_avg%dsteps'%eval_interval_steps) 
 
       if metric_evaluate:
-        melt.add_summarys(summary, evaluate_results, evaluate_names, prefix='evaluate')
+        melt.add_summarys(summary, evaluate_results, evaluate_names, prefix='eval')
       
       train_once.summary_writer.add_summary(summary, step)
       train_once.summary_writer.flush()

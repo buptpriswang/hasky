@@ -18,13 +18,14 @@ import melt
 class ImageModel(object):
   def __init__(self, 
                image_checkpoint_file,
-               model_name='InceptionV3', 
+               model_name=None, 
                height=299, 
                width=299,
                image_format=None,
                sess=None):
     self.sess = melt.gen_session() if sess is None else sess
     self.images_feed =  tf.placeholder(tf.string, [None,], name='images')
+    model_name = model_name or 'InceptionResnetV2'
     self.img2feautres_op = self._build_graph(model_name, height, width, image_format=image_format)
 
     init_op = tf.group(tf.global_variables_initializer(),

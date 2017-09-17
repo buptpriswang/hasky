@@ -72,24 +72,26 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
  
   #TODO Notice when training this image always be float...  
   def build_predict_text_graph(self, image, decode_method='greedy', beam_size=5, convert_unk=True):
-    attention_states, initial_state, image_emb = self.encoder.encode(self.process(image))
+    image_emb = self.build_image_embeddings(image)
+
+    attention_states = None 
+    if FLAGS.show_atten_tell:
+      image_emb, attention_states = self.init_attention(image_emb)
+
+    state = None
     if FLAGS.image_as_init_state:
       #for im2txt one more step at first
       with tf.variable_scope(self.decoder.scope) as scope:
         batch_size=melt.get_batch_size(image_emb)
         zero_state = self.decoder.cell.zero_state(batch_size, dtype=tf.float32)
-        _, initial_state = self.decoder.cell(image_emb, zero_state)
-        image_emb = self.decoder.get_start_embedding_input(batch_size)
-    elif image_emb is None:
-      #TODO check
-      batch_size=melt.get_batch_size(image)
-      image_emb = self.decoder.get_start_embedding_input(batch_size)
-
+        _, state = self.decoder.cell(image_emb, zero_state)
+        image_emb= self.decoder.get_start_embedding_input(batch_size)
+  
     max_words = TEXT_MAX_WORDS
     if decode_method == SeqDecodeMethod.greedy:
       return self.decoder.generate_sequence_greedy(image_emb, 
                                      max_words=max_words, 
-                                     initial_state=initial_state,
+                                     initial_state=state,
                                      attention_states=attention_states,
                                      convert_unk=convert_unk)
     else:
@@ -102,7 +104,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       
       return decode_func(image_emb, 
                          max_words=max_words, 
-                         initial_state=initial_state,
+                         initial_state=state,
                          beam_size=beam_size, 
                          convert_unk=convert_unk,
                          attention_states=attention_states,
@@ -123,11 +125,11 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     default usage is one single image , single text predict one sim score
     """
     #hack for big feature problem, input is reading raw image...
-    if FLAGS.pre_calc_image_feature and isinstance(image[0], (str, np.string_)):
+    if FLAGS.pre_calc_image_feature and isinstance(images[0], (str, np.string_)):
       if self.image_model is None:
         #notice must not pass self.sess! will reload fail FIXME TODO
         self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
-      image = self.image_model.gen_feature(image)
+      images = self.image_model.gen_feature(images)
 
     feed_dict = {
       self.image_feature_feed: image,

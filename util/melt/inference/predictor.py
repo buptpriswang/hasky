@@ -127,27 +127,22 @@ class Predictor(object):
 class SimPredictor(object):
   def __init__(self, 
               model_dir, 
+              key=None, 
               lfeed=None,
               rfeed=None,
-              key='score',
               index=0,
               meta_graph=None, 
               model_name=None, 
               debug=False, 
               sess=None):
     self._predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
-    self._key = key 
+    key = key or 'score'
+    lfeed = lfeed or 'lfeed'
+    rfeed = rfeed or 'rfeed'
+    self._key = tf.get_collection(key)[index] 
     self._index = index
-
-    if lfeed is None:
-      self._lfeed = tf.get_collection('lfeed')[index]
-    else:
-      self._lfeed = lfeed
-
-    if rfeed is None:
-      self._rfeed = tf.get_collection('rfeed')[index]
-    else:
-      self._rfeed = rfeed
+    self._lfeed = tf.get_collection(lfeed)[index]
+    self._rfeed = tf.get_collection(rfeed)[index]
 
     self._sess = self._predictor.sess
 
@@ -214,7 +209,7 @@ class SimPredictor(object):
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
               lfeed=None, rfeed=None, exact_lfeed=None, exact_rfeed=None, 
-              key='score', exact_key='score', sess=None, exact_sess=None):
+              key=None, exact_key=None, sess=None, exact_sess=None):
     self._predictor = SimPredictor(model_dir, index=0, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,

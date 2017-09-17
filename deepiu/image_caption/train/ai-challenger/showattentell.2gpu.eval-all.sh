@@ -1,10 +1,13 @@
-conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
+conf_path=./prepare/default/app-conf/ai-challenger/seq-basic-atten/
 
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell
+##TODO now ok but will load two image model graph init in two session, too much gpu mem usage, so just set samll metric_eval_examples, 500 -> 200 
+## and eval rank will be slow here for generative model so can just disable eval rank during training and set metric eval examples to 500 
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
+#assistant_model_dir=''
 mkdir -p $model_dir
 
 python ./train.py \
@@ -20,8 +23,16 @@ python ./train.py \
   --image_feature_bin $valid_output_path/'image_features.npy' \
   --num_records_file  $train_output_path/num_records.txt \
   --model_dir=$model_dir \
-  --assistant_model_dir $assistant_model_dir \
+  --assistant_model_dir="$assistant_model_dir" \
   --algo show_and_tell \
+  --show_atten_tell 1 \
+  --eval_rank 1 \
+  --eval_translation 1 \
+  --image_attention_size 64 \
+  --image_endpoint_feature_name Conv2d_7b_1x1 \
+  --pre_calc_image_feature 1 \
+  --image_model InceptionResnetV2 \
+  --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
   --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \
@@ -32,17 +43,17 @@ python ./train.py \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 128 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
-  --min_after_dequeue 500 \
+  --min_after_dequeue 5000 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
   --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
-  --num_metric_eval_examples 500 \
-  --metric_eval_batch_size 500 \
+  --num_metric_eval_examples 200 \
+  --metric_eval_batch_size 200 \
   --max_texts 20000 \
   --margin 0.5 \
   --feed_dict 0 \

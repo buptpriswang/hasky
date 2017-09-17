@@ -143,13 +143,15 @@ def init():
     global assistant_predictor
     #use another session different from main graph, otherwise variable will be destroy/re initailized in melt.flow
     #by default now Predictor using tf.Session already, here for safe, if use same session then not work
+    #NOTICE must use seperate sess!!
     if is_raw_image(image_features) and not melt.varname_in_checkpoint(FLAGS.image_model_name, FLAGS.assistant_model_dir):
       print('assist predictor use deepiu.util.sim_predictor.SimPredictor as is raw image as input')
-      assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0, 
-                                                                  image_checkpoint_path=FLAGS.image_checkpoint_file, image_model_name=FLAGS.image_model_name)
+      assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, 
+                                                                   image_checkpoint_path=FLAGS.image_checkpoint_file, 
+                                                                   image_model_name=FLAGS.image_model_name)
       print('assistant predictor init ok')
     else:
-      assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir, key='assistant_score', index=0)
+      assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir)
     #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
     #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     print(tf.get_default_graph().get_all_collection_keys())
@@ -737,9 +739,10 @@ def evaluate_translation(predictor, random=False, index=None):
       score_list.append(score)
       metric_list.append(method)
 
-  score_list2 = [score_list[i] for i in range(len(score_list)) if i >= 3]
-  assert(len(score_list2) == 4)
-  avg_score = sum(score_list2) / len(score_list2)
+  score_list, metric_list = score_list[3:], metric_list[3:]
+  assert(len(score_list) == 4)
+
+  avg_score = sum(score_list) / len(score_list)
   score_list.append(avg_score)
   metric_list.append('avg')
   metric_list = ['trans_' + x for x in metric_list]

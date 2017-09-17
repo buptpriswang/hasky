@@ -40,14 +40,13 @@ class ImageModel(object):
     init_fn = melt.image.image_processing.create_image_model_init_fn(model_name, image_checkpoint_file)
     init_fn(self.sess)
 
-
-
   def _build_graph(self, model_name, height, width, image_format=None):
     melt.apps.image_processing.init(model_name, self.feature_name)
     return melt.apps.image_processing.image_processing_fn(self.images_feed,  
                                                           height=height, 
                                                           width=width,
-                                                          image_format=image_format)
+                                                          image_format=image_format,
+                                                          feature_name=self.feature_name)
 
   def process(self, images):
     if not isinstance(images, (list, tuple, np.ndarray)):

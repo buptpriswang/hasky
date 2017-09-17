@@ -20,13 +20,16 @@ import melt
 class SimPredictor(object):
   def __init__(self, model_dir,  
                image_checkpoint_path=None, 
-               image_model_name='InceptionResnetV2', 
-                key='score', index=0,
-                sess=None):
+               image_model_name=None, 
+               key=None, 
+               lfeed=None, 
+               rfeed=None, 
+               index=0,
+               sess=None):
     self.image_model = None
     if image_checkpoint_path is not None:
       self.image_model = melt.image.ImageModel(image_checkpoint_path, image_model_name, sess=sess)
-    self.predictor = melt.SimPredictor(model_dir, key=key, index=index, sess=sess)
+    self.predictor = melt.SimPredictor(model_dir, key=key, lfeed=lfeed, rfeed=rfeed, index=index, sess=sess)
     self.sess = self.predictor._sess
     self.index = index
 

@@ -21,6 +21,7 @@ import deepiu.seq2seq.rnn_encoder
 import deepiu.seq2seq.cnn_encoder
 import deepiu.seq2seq.rnn_decoder
 import deepiu.seq2seq.seq2seq 
+import deepiu.seq2seq.image_encoder
 import deepiu.seq2seq.encoder_factory
 
 import deepiu.seq2seq.embedding

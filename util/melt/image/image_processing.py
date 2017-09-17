@@ -361,6 +361,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
                      slim_preprocessing=True,
                      weight_decay=0.00004,
                      finetune_end_point=None,
+                     feature_name=feature_name,
                      image_format="jpeg",  #for safe just use decode_jpeg
                      reuse=None):      
       logging.info('image model trainable:{}, is_training:{}'.format(trainable, is_training))

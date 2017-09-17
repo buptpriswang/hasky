@@ -52,7 +52,9 @@ python ./train.py \
   --feed_single $feed_single \
   --seq_decode_method greedy \
   --scheduled_sampling_probability 0.5 \
-  --length_normalization_factor 0. \
+  --length_normalization_factor 1. \
+  --beam_size 10 \
+  --keep_prob 1. \
   --dynamic_batch_length 1 \
   --log_device 0 \
   --work_mode full \

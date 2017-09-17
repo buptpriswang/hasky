@@ -275,8 +275,8 @@ def dynamic_decode(decoder,
       return (time + 1, outputs_ta, next_state, next_inputs, next_finished,
               next_sequence_lengths)
 
-    print(initial_time, initial_outputs_ta, initial_state, initial_inputs,
-            initial_finished, initial_sequence_lengths)
+    #print(initial_time, initial_outputs_ta, initial_state, initial_inputs,
+    #        initial_finished, initial_sequence_lengths)
 
     res = control_flow_ops.while_loop(
         condition,

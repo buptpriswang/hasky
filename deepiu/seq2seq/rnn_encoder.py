@@ -35,6 +35,9 @@ from deepiu.util import vocabulary
 from deepiu.seq2seq.encoder import Encoder
 
 class RnnEncoder(Encoder):
+  """
+  this is for text as input will first embedding lookup
+  """
   def __init__(self, is_training=True, is_predict=False):
     super(RnnEncoder, self).__init__()
     self.is_training = is_training

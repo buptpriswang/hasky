@@ -61,7 +61,7 @@ def get_embedding_cpu(name='emb', height=None, emb_dim=None, trainable=True):
 def get_or_restore_embedding(name='emb'):
   # cpu for adgrad optimizer
   if (not FLAGS.word_embedding_file) or glob.glob(FLAGS.model_dir + '/model.ckpt*'):
-    logging.info('Word embedding random init or from model_dir :{} and finetune=:{}'.format(
+    logging.info('Word embedding random init or from model_dir:{} and trainable=:{}'.format(
         FLAGS.model_dir, FLAGS.finetune_word_embedding))
     emb = get_embedding(
         name=name, trainable=FLAGS.finetune_word_embedding)
@@ -71,7 +71,7 @@ def get_or_restore_embedding(name='emb'):
     # still adgrad must cpu..
     # if not fintue emb this will be ok if fintune restart will ok ? must not use word embedding file? os.path.exists(FLAGS.model_dir) ? judge?
     # or will still try to load from check point ? TODO for safe you could re run by setting word_embedding_file as None or ''
-    logging.info('Loading word embedding from :{} and finetune=:{}'.format(
+    logging.info('Loading word embedding from:{} and trainable=:{}'.format(
         FLAGS.word_embedding_file, FLAGS.finetune_word_embedding))
     emb = melt.load_constant(
         FLAGS.word_embedding_file, name=name, trainable=FLAGS.finetune_word_embedding)

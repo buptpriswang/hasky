@@ -254,7 +254,6 @@ class RecallMetrics():
   def __init__(self):
     self.names = [
       'recall@1',
-      'recall@2',
       'recall@5',
       'recall@10',
       'recall@50',
@@ -266,7 +265,6 @@ class RecallMetrics():
   def add(self, labels):
     metrics = [
       recall_at_k(labels, 1),
-      recall_at_k(labels, 2),
       recall_at_k(labels, 5),
       recall_at_k(labels, 10),
       recall_at_k(labels, 50)

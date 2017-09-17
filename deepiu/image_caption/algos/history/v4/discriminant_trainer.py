@@ -76,8 +76,7 @@ class DiscriminantTrainer(object):
                                                 is_training=is_training,
                                                 random_crop=FLAGS.random_crop_image,
                                                 finetune_end_point=FLAGS.finetune_end_point,
-                                                distort=FLAGS.distort_image,
-                                                feature_name=FLAGS.image_endpoint_feature_name)  
+                                                distort=FLAGS.distort_image)  
 
     self.image_mlp_dims = [int(x) for x in FLAGS.image_mlp_dims.split(',')] if FLAGS.image_mlp_dims is not '0' else None
     self.text_mlp_dims = [int(x) for x in FLAGS.text_mlp_dims.split(',')] if FLAGS.text_mlp_dims is not '0' else None

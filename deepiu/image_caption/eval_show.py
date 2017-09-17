@@ -95,10 +95,6 @@ def gen_eval_show_ops(input_app, input_results, predictor, eval_scores, eval_neg
   #@TODO at some steps we might want to use eval_score
   eval_ops += [pos_scores, neg_scores, evaluate_neg_text_str, evaluate_neg_text]
 
-  print('eval_ops:')
-  for eval_op in eval_ops:
-    print(eval_op)
-
   return eval_ops
 
 #-----------for show and tell textsum/seq2seq, all generated text method
@@ -208,9 +204,5 @@ def gen_eval_generated_texts_ops(input_app, input_results, predictor, eval_score
   
   if eval_neg_text is not None:
     eval_ops += [neg_scores, evaluate_neg_text_str, evaluate_neg_text]
-
-  print('eval_ops:')
-  for eval_op in eval_ops:
-    print(eval_op)
 
   return eval_ops

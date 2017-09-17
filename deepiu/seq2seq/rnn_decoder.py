@@ -69,7 +69,7 @@ flags.DEFINE_integer('predict_sample_seed', 0, '')
 
 flags.DEFINE_boolean('use_attention', False, 'wether to use attention for decoder')
 flags.DEFINE_boolean('alignment_history', False, '')
-flags.DEFINE_string('attention_option', 'luong', 'luong or bahdanau, luong seems faster and slightly better when visualizing alignments')
+flags.DEFINE_string('attention_option', 'luong', 'luong(multiply) or bahdanau(additive), luong seems faster and slightly better when visualizing alignments')
 
 flags.DEFINE_integer('beam_size', 10, 'for seq decode beam search size')
 flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.py otherwise use decode_max_words')
