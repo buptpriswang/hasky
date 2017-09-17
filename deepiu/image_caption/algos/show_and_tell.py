@@ -168,7 +168,7 @@ class ShowAndTell(object):
         zero_state = self.decoder.cell.zero_state(batch_size=melt.get_batch_size(image_emb), dtype=tf.float32)
         _, initial_state = self.decoder.cell(image_emb, zero_state)
       #will pad start in decoder.sequence_loss
-      scores = self.decoder.sequence_loss(text, initial_state=initial_state, attention_states=attention_states)
+      scores = self.decoder.sequence_loss(text, initial_state=initial_state, attention_states=attention_states, exact_loss=exact_loss)
 
     if not self.is_training and not self.is_predict: #evaluate mode
       tf.add_to_collection('scores', scores)

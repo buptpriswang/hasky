@@ -103,7 +103,7 @@ class DiscriminantPredictor(DiscriminantTrainer, melt.PredictorBase):
     #hack for big feature problem, input is reading raw image...
     if FLAGS.pre_calc_image_feature and isinstance(image[0], (str, np.string_)):
       if self.image_model is None:
-        self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name, sess=self.sess)
+        self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
       image = self.image_model.gen_feature(image)  
   
     feed_dict = {

@@ -1,9 +1,8 @@
-conf_path=./prepare/default/app-conf/makeup/seq-basic-finetune
+conf_path=./prepare/default/app-conf/ai-challenger/seq-basic-atten
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-#frist run bow-inceptionResnetV2.sh then copy it's model path as bow.inceptionResnetV2.finetune.later
-model_dir=/home/gezi/new/temp/image-caption/makeup/model/bow.inceptionResnetV2.finetune.later
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.atten
 mkdir -p $model_dir
 
 python ./train.py \
@@ -13,7 +12,7 @@ python ./train.py \
   --valid_resource_dir=$valid_output_path \
   --vocab=$dir/vocab.txt \
   --num_records_file=$train_output_path/num_records.txt \
-  --image_url_prefix='D:\data\image-text-sim\evaluate\imgs\' \
+  --image_dir=$win_image_dir \
   --label_file=$valid_output_path/'image_labels.npy' \
   --image_feature_file=$valid_data_path/'test' \
   --image_name_bin=$valid_output_path/'image_names.npy' \
@@ -31,9 +30,9 @@ python ./train.py \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 32 \
-  --eval_batch_size 200 \
+  --batch_size 128 \
   --num_gpus 0 \
+  --eval_batch_size 200 \
   --min_after_dequeue 1000 \
   --eval_interval_steps 1000 \
   --metric_eval_interval_steps 1000 \
@@ -43,6 +42,7 @@ python ./train.py \
   --num_epochs 2000 \
   --num_metric_eval_examples 200 \
   --metric_eval_batch_size 100 \
+  --max_texts 20000 \
   --debug 0 \
   --num_negs 1 \
   --neg_left 0 \
@@ -53,8 +53,8 @@ python ./train.py \
   --algo bow \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
-  --finetune_image_model 1 \
-  --learning_rate 0.01 \
+  --image_endpoint_feature_name Conv2d_7b_1x1 \
+  --pre_calc_image_feature 1 \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \

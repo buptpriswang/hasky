@@ -6,9 +6,9 @@ source $conf_path/config
 model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell
 ##FIXME ValueError: At least two variables have the same name: InceptionResnetV2/Repeat_1/block17_5/Branch_1/Conv2d_0c_7x1/weights
 ##so now no eval rank
-#assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.atten
+assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.atten
 #assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
-assistant_model_dir=''
+#assistant_model_dir=''
 mkdir -p $model_dir
 
 python ./train.py \
@@ -46,7 +46,7 @@ python ./train.py \
   --batch_size 128 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
-  --min_after_dequeue 500 \
+  --min_after_dequeue 5000 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
   --metric_eval_interval_steps 500 \

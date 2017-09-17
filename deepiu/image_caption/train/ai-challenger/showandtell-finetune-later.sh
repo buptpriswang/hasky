@@ -24,6 +24,8 @@ python ./train.py \
   --algo show_and_tell \
   --image_model InceptionResnetV2 \
   --image_checkpoint_file='/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt' \
+  --pre_calc_image_feature 0 \
+  --finetune_image_model 1 \
   --learning_rate 0.01 \
   --num_sampled 0 \
   --log_uniform_sample 1 \
