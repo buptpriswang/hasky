@@ -64,9 +64,9 @@ class Vocabulary(object):
     self.reverse_vocab = reverse_vocab  # reverse_vocab[id] = word
 
     # Save special word ids.
-    self.start_id = vocab[start_word]
-    self.end_id = vocab[end_word]
-    self.unk_id = vocab[unk_word]
+    self._start_id = vocab[start_word]
+    self._end_id = vocab[end_word]
+    self._unk_id = vocab[unk_word]
 
   def word_to_id(self, word):
     """Returns the integer word id of a word string."""
@@ -85,17 +85,26 @@ class Vocabulary(object):
   def id_to_word(self, word_id):
     """Returns the word string of an integer word id."""
     if word_id >= len(self.reverse_vocab):
-      return self.reverse_vocab[self.unk_id]
+      return self.reverse_vocab[self._unk_id]
     else:
       return self.reverse_vocab[word_id]
 
   def key(self, word_id):
     """Returns the word string of an integer word id."""
     if word_id >= len(self.reverse_vocab):
-      return self.reverse_vocab[self.unk_id]
+      return self.reverse_vocab[self._unk_id]
     else:
       return self.reverse_vocab[word_id]
 
   def size(self):
     return len(self.reverse_vocab)
+
+  def start_id(self):
+    return self._start_id 
+
+  def end_id(self):
+    return self._end_id
+
+  def unk_id(self):
+    return self._unk_id
 

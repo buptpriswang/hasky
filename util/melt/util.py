@@ -622,9 +622,9 @@ def monitor_embedding(emb, vocab, vocab_size):
   histogram_summary('emb_3/4', tf.gather(emb, vocab_size // 4 * 3))
   histogram_summary('emb_end', tf.gather(emb, vocab_size - 1))
   histogram_summary('emb_end2', tf.gather(emb, vocab_size - 2))
-  histogram_summary('emb_start_id', tf.gather(emb, vocab.start_id))
-  histogram_summary('emb_end_id', tf.gather(emb, vocab.end_id))
-  histogram_summary('emb_unk_id', tf.gather(emb, vocab.unk_id))
+  histogram_summary('emb_start_id', tf.gather(emb, vocab.start_id()))
+  histogram_summary('emb_end_id', tf.gather(emb, vocab.end_id()))
+  histogram_summary('emb_unk_id', tf.gather(emb, vocab.unk_id()))
 
 def visualize_embedding(emb, vocab_txt):
   # You can add multiple embeddings. Here we add only one.
