@@ -38,7 +38,7 @@ python ./train.py \
   --eval_batch_size 1000 \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
-  --eval_interval_steps 500 \
+  --eval_interval_steps 512 \
   --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \

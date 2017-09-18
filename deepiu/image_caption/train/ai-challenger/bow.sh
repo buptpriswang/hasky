@@ -33,7 +33,7 @@ python ./train.py \
   --batch_size 256 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
-  --min_after_dequeue 1000 \
+  --min_after_dequeue 512 \
   --eval_interval_steps 1000 \
   --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
