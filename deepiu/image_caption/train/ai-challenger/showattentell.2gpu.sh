@@ -65,7 +65,9 @@ python ./train.py \
   --length_normalization_factor 1. \
   --keep_prob 1. \
   --scheduled_sampling_probability 0. \
-  --beam_size 10 \
+  --beam_size 3 \
+  --emb_dim 512 \
+  --rnn_hidden_size 512 \
   --dynamic_batch_length 1 \
   --log_device 0 \
   --work_mode full \

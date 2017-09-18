@@ -38,7 +38,7 @@ python ./train.py \
   --min_after_dequeue 500 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
-  --metric_eval_interval_steps 2000 \
+  --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
   --num_metric_eval_examples 500 \
@@ -51,10 +51,12 @@ python ./train.py \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method greedy \
-  --length_normalization_factor 0. \
+  --length_normalization_factor 1. \
   --keep_prob 1. \
   --scheduled_sampling_probability 0. \
-  --beam_size 10 \
+  --beam_size 3 \
+  --emb_dim 512 \
+  --rnn_hidden_size 512 \
   --dynamic_batch_length 1 \
   --log_device 0 \
   --work_mode full \

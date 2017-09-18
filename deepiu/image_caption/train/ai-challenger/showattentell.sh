@@ -4,9 +4,8 @@ cp $conf_path/conf.py .
 source $conf_path/config  
 
 model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell
-##FIXME ValueError: At least two variables have the same name: InceptionResnetV2/Repeat_1/block17_5/Branch_1/Conv2d_0c_7x1/weights
-##so now no eval rank
-#assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.atten
+##TODO now ok but will load two image model graph init in two session, too much gpu mem usage, so just set samll metric_eval_examples, 500 -> 200 
+## and eval rank will be slow here for generative model so can just disable eval rank during training and set metric eval examples to 500 
 #assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 assistant_model_dir=''
 mkdir -p $model_dir
@@ -28,6 +27,7 @@ python ./train.py \
   --algo show_and_tell \
   --show_atten_tell 1 \
   --eval_rank 0 \
+  --eval_translation 1 \
   --image_attention_size 64 \
   --image_endpoint_feature_name Conv2d_7b_1x1 \
   --pre_calc_image_feature 1 \
@@ -46,10 +46,10 @@ python ./train.py \
   --batch_size 256 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
-  --min_after_dequeue 500 \
+  --min_after_dequeue 5000 \
   --learning_rate 0.1 \
   --eval_interval_steps 500 \
-  --metric_eval_interval_steps 500 \
+  --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
   --num_metric_eval_examples 500 \
@@ -62,10 +62,12 @@ python ./train.py \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
   --seq_decode_method greedy \
-  --length_normalization_factor 0. \
+  --length_normalization_factor 1. \
   --keep_prob 1. \
   --scheduled_sampling_probability 0. \
-  --beam_size 10 \
+  --beam_size 3 \
+  --emb_dim 512 \
+  --rnn_hidden_size 512 \
   --dynamic_batch_length 1 \
   --log_device 0 \
   --work_mode full \

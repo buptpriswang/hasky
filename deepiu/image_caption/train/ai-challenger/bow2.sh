@@ -2,7 +2,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic
 cp $conf_path/conf.py .
 source $conf_path/config 
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow2
 mkdir -p $model_dir
 
 python ./train.py \
@@ -56,7 +56,6 @@ python ./train.py \
   --dynamic_batch_length 1 \
   --emb_dim 512 \
   --image_mlp_dims 512,512 \
-  --text_mlp_dims 512,512 \
   --model_dir $model_dir \
   --num_records 0 \
   --min_records 12 \

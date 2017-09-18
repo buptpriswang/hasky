@@ -23,9 +23,6 @@ flags.DEFINE_boolean('encode_start_mark', False, """need <S> start mark""")
 flags.DEFINE_boolean('encode_end_mark', False, """need </S> end mark""")
 flags.DEFINE_string('encoder_end_mark', '</S>', "or <GO> if NUM_RESERVED_IDS >=3, will use id 2  <PAD2> as <GO>, especailly for seq2seq encoding")
 
-#TODO check now word emb is 256 and rnn is 1024 big like im2txt change all to 512?
-flags.DEFINE_integer('rnn_hidden_size', 1024, 'rnn cell state hidden size, flickr used to use emb_dim 256 and rnn_hidden_size 256')
-
 import functools
 import melt
 logging = melt.logging

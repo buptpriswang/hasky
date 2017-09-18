@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell3
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 mkdir -p $model_dir
 
@@ -53,10 +53,10 @@ python ./train.py \
   --seq_decode_method greedy \
   --length_normalization_factor 1. \
   --keep_prob 1. \
+  --emb_dim 256 \
+  --rnn_hidden_size 1024 \
   --scheduled_sampling_probability 0. \
   --beam_size 3 \
-  --emb_dim 512 \
-  --rnn_hidden_size 512 \
   --dynamic_batch_length 1 \
   --log_device 0 \
   --work_mode full \

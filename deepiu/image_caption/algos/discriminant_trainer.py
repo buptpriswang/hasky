@@ -16,8 +16,8 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('image_mlp_dims', '1024,1024', '')
-flags.DEFINE_string('text_mlp_dims', '1024,1024', '')
+flags.DEFINE_string('image_mlp_dims', '512,512', '')
+flags.DEFINE_string('text_mlp_dims', '512,512', '')
 
 
 flags.DEFINE_boolean('fix_image_embedding', False, 'image part all fixed, so just fintune text part')

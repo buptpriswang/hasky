@@ -22,3 +22,4 @@ flags.DEFINE_integer('num_layers', 1, 'or > 1')
 flags.DEFINE_boolean('feed_initial_sate', False, """set true just like ptb_word_lm to feed 
                                                   last batch final state to be inital state 
                                                   but experiments not show better result(similar)""")
+flags.DEFINE_integer('rnn_hidden_size', 512, 'rnn cell state hidden size, follow im2txt set default as 512')
