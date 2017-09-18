@@ -75,6 +75,7 @@ flags.DEFINE_string('global_scope', '', '')
 flags.DEFINE_string('main_scope', 'main', 'or use other main_scope like run, this is mainly graph scope for varaible reuse')
 
 from tensorflow.python import debug as tf_debug
+import tensorflow.contrib.slim as slim
 
 __pacage__ = None 
 from six.moves import xrange  # pylint: disable=redefined-builti
@@ -85,6 +86,12 @@ import melt
 #or from melt.utils import logging
 import melt.utils.logging as logging
 #import logging
+
+def get_global_scope():
+  global_scope = ''
+  if FLAGS.add_global_scope:
+    global_scope = FLAGS.global_scope if FLAGS.global_scope else FLAGS.algo
+  return global_scope
 
 def gen_learning_rate():
   #TODO if app crash reload then we should set smaller learning rate, may adgrad can combine with exponential_decay ?
@@ -126,10 +133,13 @@ def train_flow(ops,
                restore_fn=None,
                restore_scope=None,
                save_all_scope=False,
-               variables_to_restore=None,  #variables_to_restore = slim.get_variables_to_restore(exclude=['fc6', 'fc7', 'fc8'])
+               variables_to_restore=None, 
                variables_to_save=None,
                sess=None):
-
+  """
+   #variables_to_restore = slim.get_variables_to_restore(exclude=['fc6', 'fc7', 'fc8']) not used much 
+   variables_to_save might be used but will hack here since we also want to save like seq2seq/OptimizeLoss/
+  """
   if sess is None:
     sess = melt.get_session()
   if debug:
@@ -217,6 +227,11 @@ def train_flow(ops,
     eval_interval_steps = 1
     metric_eval_interval_steps /= FLAGS.eval_interval_steps
     save_model = False
+
+  #TODO hack seq2seq/OptimizeLoss/seq2seq/main/decode/rnn/basic_lstm_cell/kernel/Adagrad (DT_FLOAT) [1280,4096] need to save
+  if variables_to_save is not None:
+    variables_to_save = list(set(variables_to_save) | set(slim.get_variables(get_global_scope() + '/OptimizeLoss')))
+    #print('final varables_to_save', variables_to_save)
 
   return melt.flow.train_flow(
              ops, 

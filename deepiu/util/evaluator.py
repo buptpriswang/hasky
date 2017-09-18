@@ -154,7 +154,7 @@ def init():
       assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir)
     #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
     #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    print(tf.get_default_graph().get_all_collection_keys())
+    print('collcection_keys:', tf.get_default_graph().get_all_collection_keys())
     #HACK for safe when inference, TODO can use a separate graph? 
     melt.rename_from_collection('score', 'assistant_score')   
     melt.rename_from_collection('scores', 'assistant_scores')
@@ -164,7 +164,7 @@ def init():
     melt.rename_from_collection('rfeed2', 'assistant_rfeed2')
     melt.rename_from_collection('textsim', 'assistant_textsim')
     print('assistant_predictor', assistant_predictor)
-    print(tf.get_default_graph().get_all_collection_keys())
+    print('collcection_keys:', tf.get_default_graph().get_all_collection_keys())
 
   inited = True
 

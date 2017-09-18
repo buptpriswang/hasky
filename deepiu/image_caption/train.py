@@ -325,7 +325,11 @@ def train():
   init_fn = None
   restore_fn = None
   summary_excls = None
+  #variables_to_save = None
+  #print('all variables', slim.get_variables())
+  #TODO this is hack, but still might some time say if assistant predictor bow also include image model InceptionResnetV2 might also save that, but save additional vars not hurt!
   variables_to_save = slim.get_variables_to_restore(exclude=["bow"]) if (algos_factory.is_generative(FLAGS.algo) and FLAGS.assistant_model_dir) else None
+  #print('variables_to_save', variables_to_save)
 
   if not FLAGS.pre_calc_image_feature:
     init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
@@ -367,6 +371,8 @@ def main(_):
 
   vocabulary.init()
   text2ids.init()
+
+  #must init before main graph so to escape like show_and_tell/bow/main/image_text_sim_8/cosine/...
   try:
     evaluator.init()
   except Exception:
@@ -380,9 +386,7 @@ def main(_):
   global sess
   sess = melt.get_session(log_device_placement=FLAGS.log_device_placement)
 
-  global_scope = ''
-  if FLAGS.add_global_scope:
-    global_scope = FLAGS.global_scope if FLAGS.global_scope else FLAGS.algo
+  global_scope = melt.apps.train.get_global_scope()
   with tf.variable_scope(global_scope):
     train()
  

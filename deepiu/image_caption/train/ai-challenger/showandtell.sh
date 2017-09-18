@@ -5,6 +5,7 @@ source $conf_path/config
 
 model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
+#assistant_model_dir=''
 mkdir -p $model_dir
 
 python ./train.py \
@@ -20,7 +21,7 @@ python ./train.py \
   --image_feature_bin $valid_output_path/'image_features.npy' \
   --num_records_file  $train_output_path/num_records.txt \
   --model_dir=$model_dir \
-  --assistant_model_dir $assistant_model_dir \
+  --assistant_model_dir="$assistant_model_dir" \
   --algo show_and_tell \
   --num_sampled 0 \
   --log_uniform_sample 1 \
