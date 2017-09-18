@@ -14,4 +14,4 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-MIN_AFTER_QUEUE = 5000
+MIN_AFTER_QUEUE = 500
