@@ -19,6 +19,7 @@ from gezi.avg_score import *
 from gezi.util import * 
 from gezi.rank_metrics import *
 from gezi.topn import *
+from gezi.vocabulary import Vocabulary
 
 #if using baidu segmentor set encoding='gbk'
 encoding='utf8' 

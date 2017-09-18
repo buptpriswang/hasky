@@ -14,8 +14,10 @@ from __future__ import print_function
 
 #@TODO----remove this ? only need vocab_size
 #@FIXME work around to be safe in virtual env for hadoop, if import not at first will segmentation fault after finishing double free core
-import gezi.nowarning
-from libword_counter import Vocabulary
+# import gezi.nowarning
+# from libword_counter import Vocabulary
+
+from gezi import Vocabulary
 
 import tensorflow as tf 
 flags = tf.app.flags
@@ -46,11 +48,11 @@ def get_vocab_size():
 
 def end_id():
   init()
-  return vocab.end_id() 
+  return vocab.end_id
 
 def start_id():
   init()
-  return vocab.start_id()
+  return vocab.start_id
 
 def go_id():
   init()
@@ -67,7 +69,7 @@ def init(vocab_path=None):
     vocab_size = vocab.size() if not FLAGS.vocab_size else min(vocab.size(), FLAGS.vocab_size)
     logging.info('vocab_size:{}'.format(vocab_size))
     assert vocab_size > FLAGS.num_reserved_ids, 'empty vocab, wrong vocab path? %s'%FLAGS.vocab
-    logging.info('vocab_start:{} id:{}'.format(vocab.key(vocab.start_id()), vocab.start_id()))
-    logging.info('vocab_end:{} id:{}'.format(vocab.key(vocab.end_id()), vocab.end_id()))
-    logging.info('vocab_unk:{} id:{}'.format(vocab.key(vocab.unk_id()), vocab.unk_id()))
+    logging.info('vocab_start:{} id:{}'.format(vocab.key(vocab.start_id), vocab.start_id))
+    logging.info('vocab_end:{} id:{}'.format(vocab.key(vocab.end_id), vocab.end_id))
+    logging.info('vocab_unk:{} id:{}'.format(vocab.key(vocab.unk_id), vocab.unk_id))
 
