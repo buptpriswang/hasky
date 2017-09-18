@@ -230,7 +230,9 @@ def train_flow(ops,
 
   #TODO hack seq2seq/OptimizeLoss/seq2seq/main/decode/rnn/basic_lstm_cell/kernel/Adagrad (DT_FLOAT) [1280,4096] need to save
   if variables_to_save is not None:
-    variables_to_save = list(set(variables_to_save) | set(slim.get_variables(get_global_scope() + '/OptimizeLoss')))
+    optimize_vars = set(slim.get_variables(get_global_scope() + '/OptimizeLoss'))
+    assert optimize_vars, 'optimizer must has scope %s'%(get_global_scope() + '/OptimizeLoss')
+    variables_to_save = list(set(variables_to_save) | optimize_vars)
     #print('final varables_to_save', variables_to_save)
 
   return melt.flow.train_flow(

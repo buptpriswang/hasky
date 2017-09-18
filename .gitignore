@@ -7,6 +7,9 @@
 *checkpoint.ipynb
 *.swp
 *.crc
+*.jpg
+*.jpeg
+*.pdf
 *.vshistory
 .localhistory
 .vs 

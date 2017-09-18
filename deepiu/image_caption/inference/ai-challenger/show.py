@@ -18,7 +18,7 @@ from deepiu.util import ids2text, text2ids
 import melt, gezi
 import numpy as np 
 import traceback
-
+#FIXME ValueError: At least two variables have the same name: InceptionResnetV2/Repeat/block35_9/Conv2d_1x1/biases  
 try:
   import conf
   from conf import TEXT_MAX_WORDS
@@ -29,16 +29,18 @@ image_dir = '/home/gezi/data2/data/ai_challenger/image_caption/pic/'
 image_file = '6275b5349168ac3fab6a493c509301d023cf39d3.jpg'
 
 image_model_checkpoint_path = '/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt'
-model_dir = '/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell/'
+model_dir = '/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell/'
 sim_model_dir = '/home/gezi/new/temp/image-caption/ai-challenger/model/bow/'
 vocab_path = '/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic/vocab.txt'
 valid_dir = '/home/gezi/new/temp/image-caption/ai-challenger/tfrecord/seq-basic/valid'
 
-image_model_name='InceptionResnetV2'
+image_model_name = 'InceptionResnetV2'
+
+feature_name = melt.image.get_features_name(image_model_name)
 
 #if finetuned model, just  TextPredictor(model_dir, vocab_path)
 if not melt.varname_in_checkpoint(image_model_name, model_dir):
-  predictor = TextPredictor(model_dir, vocab_path, image_model_checkpoint_path, image_model_name=image_model_name)
+  predictor = TextPredictor(model_dir, vocab_path, image_model_checkpoint_path, image_model_name=image_model_name, feature_name=feature_name)
 else:
   predictor = TextPredictor(model_dir, vocab_path)
   

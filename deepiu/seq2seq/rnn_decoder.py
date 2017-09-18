@@ -625,6 +625,8 @@ class RnnDecoder(Decoder):
     TODO this is hacky, first step attention_state, input , state all size 1,
     then should be attention_state 1, input, state size is beam_size,
     also might be less then beam_size.. if not possible to find beam_size un done
+
+    FIXME seems for outgraph beam, length normalization factor not used 
     """
     if emb is None:
       emb = self.emb

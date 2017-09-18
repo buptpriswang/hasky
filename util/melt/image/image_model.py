@@ -47,7 +47,6 @@ class ImageModel(object):
                                                           width=width,
                                                           image_format=image_format,
                                                           feature_name=self.feature_name)
-
   def process(self, images):
     if not isinstance(images, (list, tuple, np.ndarray)):
       images = [images]

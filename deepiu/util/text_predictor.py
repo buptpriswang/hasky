@@ -17,10 +17,17 @@ import melt
 from deepiu.util import ids2text
 
 class TextPredictor(object):
-  def __init__(self, model_dir, vocab_path, image_checkpoint_path=None, image_model_name='InceptionResnetV2', index=0, sess=None):
+  def __init__(self, model_dir, vocab_path, 
+               image_checkpoint_path=None, 
+               image_model_name='InceptionResnetV2', 
+               feature_name=None,
+               index=0, sess=None):
     self.image_model = None
     if image_checkpoint_path is not None:
-      self.image_model = melt.image.ImageModel(image_checkpoint_path, image_model_name, sess=sess)
+      self.image_model = melt.image.ImageModel(image_checkpoint_path, 
+                                               image_model_name, 
+                                               feature_name=feature_name,
+                                               sess=sess)
 
     if not isinstance(model_dir, (list, tuple)):
       self.predictor = melt.TextPredictor(model_dir, index=index, sess=sess)

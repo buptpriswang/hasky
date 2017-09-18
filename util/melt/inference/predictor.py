@@ -46,7 +46,8 @@ def get_tensor_from_key(key, index=-1):
     try:
       ops = tf.get_collection(key)
       if len(ops) > 1:
-        print('Warning: ops more then 1 for {}, ops:{}, index:{}'.format(key, ops, index))
+        #print('Warning: ops more then 1 for {}, ops:{}, index:{}'.format(key, ops, index))
+        pass
       return ops[index]
     except Exception:
       print('Warning:', key, ' not find in graph')

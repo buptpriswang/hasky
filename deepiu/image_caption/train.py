@@ -278,8 +278,9 @@ def gen_predict_graph(predictor):
     init_predict_text = functools.partial(predictor.init_predict_text, 
                                           beam_size=FLAGS.beam_size, 
                                           convert_unk=False)
-    text, text_score = init_predict_text(decode_method=FLAGS.seq_decode_method)
-    beam_text, beam_text_score = init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam)
+    text, text_score = init_predict_text(decode_method=FLAGS.seq_decode_method) #greedy
+    init_predict_text(decode_method=SeqDecodeMethod.outgraph_beam) #outgraph
+    beam_text, beam_text_score = init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam) #ingraph must at last 
 
     tf.add_to_collection('text', text)
     tf.add_to_collection('text_score', text_score)

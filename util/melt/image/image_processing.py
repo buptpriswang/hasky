@@ -317,7 +317,7 @@ def create_image2feature_fn(name='InceptionV3'):
     return construct_fn
 
 
-image_model_info = {
+info = {
   'vgg_19': { 
               'feature_dim': 512,
               'num_features': 196 #14*14
@@ -332,6 +332,12 @@ image_model_info = {
                             'features_end_point': 'Conv2d_7b_1x1' 
                         }
 }
+
+def get_features_name(image_model_name):
+  return info[image_model_name]['features_end_point']
+
+def get_num_features(image_model_name):
+  return info[image_model_name]['num_features']
 
 def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
   """
