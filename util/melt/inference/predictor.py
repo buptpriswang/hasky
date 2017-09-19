@@ -41,10 +41,10 @@ def get_model_dir_and_path(model_dir, model_name=None):
   return os.path.dirname(model_path), model_path
 
 #tf.get_default_graph().get_all_collection_keys() get all keys
-def get_tensor_from_key(key, index=-1):
+def get_tensor_from_key(key, graph, index=-1):
   if isinstance(key, str):
     try:
-      ops = tf.get_collection(key)
+      ops = graph.get_collection(key)
       if len(ops) > 1:
         #print('Warning: ops more then 1 for {}, ops:{}, index:{}'.format(key, ops, index))
         pass
@@ -63,7 +63,8 @@ class Predictor(object):
       ##---TODO tf.Session() if sess is None
       #self.sess = tf.InteractiveSession()
       #self.sess = melt.get_session() #make sure use one same global/share sess in your graph
-      self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) #by default to use new Session, so not conflict with previous Predictors(like overwide values)
+      self.graph = tf.Graph()
+      self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True), graph=self.graph) #by default to use new Session, so not conflict with previous Predictors(like overwide values)
       if debug:
         self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
     #ops will be map and internal list like
@@ -74,14 +75,14 @@ class Predictor(object):
   #by default will use last one
   def inference(self, key, feed_dict=None, index=-1):
     if not isinstance(key, (list, tuple)):
-      return self.sess.run(get_tensor_from_key(key, index), feed_dict=feed_dict)
+      return self.sess.run(get_tensor_from_key(key, self.graph, index), feed_dict=feed_dict)
     else:
       keys = key 
       if not isinstance(index, (list, tuple)):
         indexes = [index] * len(keys)
       else:
         indexes = index 
-      keys = [get_tensor_from_key(key, index) for key,index in zip(keys, indexes)]
+      keys = [get_tensor_from_key(key, self.graph, index) for key,index in zip(keys, indexes)]
       return self.sess.run(keys, feed_dict=feed_dict)
 
   def predict(self, key, feed_dict=None, index=-1):
@@ -100,10 +101,11 @@ class Predictor(object):
     self.model_path = model_path
     if meta_graph is None:
       meta_graph = '%s.meta'%model_path
-    #print('restore from %s'%model_path, file=sys.stderr)
-    saver = tf.train.import_meta_graph(meta_graph)
-    #print('import graph ok %s'%meta_graph, file=sys.stderr)
-    saver.restore(self.sess, model_path)
+    ##https://github.com/tensorflow/tensorflow/issues/4603
+    #https://stackoverflow.com/questions/37649060/tensorflow-restoring-a-graph-and-model-then-running-evaluation-on-a-single-imag
+    with self.sess.graph.as_default():
+      saver = tf.train.import_meta_graph(meta_graph)
+      saver.restore(self.sess, model_path)
     if random_seed is not None:
       tf.set_random_seed(random_seed)
 
@@ -136,33 +138,34 @@ class SimPredictor(object):
               model_name=None, 
               debug=False, 
               sess=None):
-    self._predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
+    self.predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
+    self.graph = self.predictor.graph
     key = key or 'score'
     lfeed = lfeed or 'lfeed'
     rfeed = rfeed or 'rfeed'
-    self._key = tf.get_collection(key)[index] 
-    self._index = index
-    self._lfeed = tf.get_collection(lfeed)[index]
-    self._rfeed = tf.get_collection(rfeed)[index]
+    self.key = self.graph.get_collection(key)[index] 
+    self.index = index
+    self.lfeed = self.graph.get_collection(lfeed)[index]
+    self.rfeed = self.graph.get_collection(rfeed)[index]
 
-    self._sess = self._predictor.sess
+    self.sess = self.predictor.sess
 
   def inference(self, ltext, rtext=None, key=None, index=None):
     if key is None:
-      key = self._key
+      key = self.key
     if index is None:
-      index = self._index
+      index = self.index
     if rtext is not None:
       feed_dict = {
-        self._lfeed: ltext,
-        self._rfeed: rtext
+        self.lfeed: ltext,
+        self.rfeed: rtext
       }
-      return self._predictor.inference(key, feed_dict=feed_dict, index=index)
+      return self.predictor.inference(key, feed_dict=feed_dict, index=index)
     else:
       feed_dict = {
-        self._lfeed: ltext
+        self.lfeed: ltext
       }
-      return self._predictor.inference(key, feed_dict=feed_dict, index=index)
+      return self.predictor.inference(key, feed_dict=feed_dict, index=index)
 
 
   def predict(self, ltext, rtext=None, key=None, index=None):
@@ -186,13 +189,13 @@ class SimPredictor(object):
 
   def top_k(self, ltext, rtext, k=1, key=None):
     feed_dict = {
-      self._lfeed: ltext,
-      self._rfeed: rtext
+      self.lfeed: ltext,
+      self.rfeed: rtext
     }
     if key is None:
       key = 'nearby'
     try:
-      values, indices = self._predictor.inference(key, feed_dict=self._feed_dict, index=self._index)
+      values, indices = self.predictor.inference(key, feed_dict=self.feed_dict, index=self.index)
       return values[:k], indices[:k]
     except Exception:
       # score = self.predict(ltext, rtext)
@@ -202,35 +205,35 @@ class SimPredictor(object):
       # #like [0, 0, 1, 1] [1, 0, 0, 1] ->...  choose (0,1), (0, 0), (1,0), (1, 1)
       # values = score[np.repeat(np.arange(x), N), indices.ravel()].reshape(x, k)
       # return values, indices
-      scores = tf.get_collection(self._key)[self._index]
+      scores = tf.get_collection(self.key)[self.index]
       vals, indexes = tf.nn.top_k(scores, k)
-      return self._sess.run([vals, indexes], feed_dict=self._feed_dict)
+      return self.sess.run([vals, indexes], feed_dict=self.feed_dict)
 
 #different session for predictor and exact_predictor all using index 0! if work not correclty try to change Predictor default behave use melt.get_session() TODO
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
               lfeed=None, rfeed=None, exact_lfeed=None, exact_rfeed=None, 
-              key=None, exact_key=None, sess=None, exact_sess=None):
-    self._predictor = SimPredictor(model_dir, index=0, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
+              key=None, exact_key=None, index=0, exact_index=0, sess=None, exact_sess=None):
+    self.predictor = SimPredictor(model_dir, index=index, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
     # <tf.Tensor 'seq2seq/main/Exp_4:0' shape=(?, 1) dtype=float32>]
     #this is becasue you use evaluator(predictor + exact_predictor) when train seq2seq, so load dual_bow will add one score..
-    self._exact_predictor = SimPredictor(exact_model_dir, index=-1, lfeed=exact_lfeed, rfeed=exact_rfeed, key=exact_key, sess=exact_sess)
+    self.exact_predictor = SimPredictor(exact_model_dir, index=exact_index, lfeed=exact_lfeed, rfeed=exact_rfeed, key=exact_key, sess=exact_sess)
 
-    self._num_rerank = num_rerank
+    self.num_rerank = num_rerank
 
   def inference(self, ltext, rtext, ratio=1.):
-    scores = self._predictor.inference(ltext, rtext)
+    scores = self.predictor.inference(ltext, rtext)
     if not ratio:
       return scores
 
     exact_scores = []
     for i, score in enumerate(scores):
       index= (-score).argsort()
-      top_index = index[:self._num_rerank]
+      top_index = index[:self.num_rerank]
       exact_rtext = rtext[top_index]
-      exact_score = self._exact_predictor.elementwise_predict([ltext[i]], rtext)
+      exact_score = self.exact_predictor.elementwise_predict([ltext[i]], rtext)
       exact_score = np.squeeze(exact_score)
       if ratio < 1.:
         for j in range(len(top_index)):
@@ -244,11 +247,11 @@ class RerankSimPredictor(object):
 
   #TODO do numpy has top_k ? seems argpartition will get topn but not in order
   def top_k(self, ltext, rtext, k=1, ratio=1., sorted=True):
-    assert k <= self._num_rerank
+    assert k <= self.num_rerank
     #TODO speed hurt?
     ltext = np.array(ltext)
     rtext = np.array(rtext)
-    scores = self._predictor.predict(ltext, rtext)
+    scores = self.predictor.predict(ltext, rtext)
     
     top_values = []
     top_indices = []
@@ -262,11 +265,11 @@ class RerankSimPredictor(object):
 
     for i, score in enumerate(scores):
       index = (-score).argsort()
-      print(index,  np.argpartition(-score, self._num_rerank))
+      print(index,  np.argpartition(-score, self.num_rerank))
       if ratio:
-        top_index = index[:self._num_rerank]
+        top_index = index[:self.num_rerank]
         exact_rtext = rtext[top_index]
-        exact_score = self._exact_predictor.elementwise_predict([ltext[i]], exact_rtext)
+        exact_score = self.exact_predictor.elementwise_predict([ltext[i]], exact_rtext)
         exact_score = np.squeeze(exact_score)
         if ratio < 1.:
           for j in range(len(top_index)):
@@ -286,23 +289,24 @@ class RerankSimPredictor(object):
 
 class WordsImportancePredictor(object):
   def __init__(self, model_dir, key=None, feed=None, index=0, sess=None):
-    self._predictor = Predictor(model_dir, sess=sess)
-    self._index = index 
+    self.predictor = Predictor(model_dir, sess=sess)
+    self.graph = self.predictor.graph
+    self.index = index 
 
     if key is None:
-      self._key = tf.get_collection('words_importance')[index]
+      self.key = self.graph.get_collection('words_importance')[index]
     else:
-      self._key = key
+      self.key = key
 
     if feed is None:
-      self._feed = tf.get_collection('rfeed')[index]
+      self.feed = self.graph.get_collection('rfeed')[index]
     else:
-      self._feed = feed
+      self.feed = feed
 
 
   def inference(self, inputs):
-    feed_dict = {self._feed: inputs}
-    return self._predictor.inference(self._key, feed_dict=feed_dict, index=self._index)
+    feed_dict = {self.feed: inputs}
+    return self.predictor.inference(self.key, feed_dict=feed_dict, index=self.index)
 
   def predict(self, inputs):
     return self.inference(inputs)
@@ -316,55 +320,63 @@ class TextPredictor(object):
               score_key='beam_text_score',
               length_normalization_fator_feed='length_normalization_fator_feed',
               beam_size_feed='beam_size_feed',
+              lfeed=None,
+              rfeed=None,
+              key=None,
               index=0,
               meta_graph=None, 
               model_name=None, 
               debug=False, 
               sess=None):
-    self._predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
-    self._index = index
+    self.predictor = SimPredictor(model_dir, index=index, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
+    self.ori_predictor = self.predictor.predictor
+    self.graph = self.predictor.graph
+    self.index = index
 
-    self._text_key = text_key
-    self._score_key = score_key
+    self.text_key = text_key
+    self.score_key = score_key
 
     if feed is None:
       try:
-        self._feed = tf.get_collection('feed')[index]
+        self.feed = self.graph.get_collection('feed')[index]
       except Exception:
-        self._feed = tf.get_collection('lfeed')[index]
+        self.feed = self.graph.get_collection('lfeed')[index]
     else:
-      self._feed = feed
+      self.feed = feed
     
     try:
-      self._length_normalization_fator_feed = tf.get_collection(length_normalization_fator_feed)[index]
-      self._beam_size_feed = tf.get_collection(beam_size_feed)[index]
+      self.length_normalization_fator_feed = self.graph.get_collection(length_normalization_fator_feed)[index]
+      self.beam_size_feed = self.graph.get_collection(beam_size_feed)[index]
     except Exception:
       pass
 
   def inference(self, inputs, length_normalization_fator=None, beam_size=None, text_key=None, score_key=None, index=None):
     if text_key is None:
-      text_key = self._text_key
+      text_key = self.text_key
 
     if score_key is None:
-      score_key = self._score_key
+      score_key = self.score_key
 
     if index is None:
-      index = self._index
+      index = self.index
 
     feed_dict = {
-      self._feed: inputs
+      self.feed: inputs
     }
 
     if length_normalization_fator is not None:
-      feed[self._length_normalization_fator_feed] = length_normalization_fator
+      feed[self.length_normalization_fator_feed] = length_normalization_fator
 
     if beam_size is not None:
-      feed_dict[self._beam_size_feed] = beam_size
+      feed_dict[self.beam_size_feed] = beam_size
 
-    return self._predictor.inference([text_key, score_key], feed_dict=feed_dict, index=index)
+    return self.ori_predictor.inference([text_key, score_key], feed_dict=feed_dict, index=index)
 
-  def predict(self, inputs, length_normalization_fator=None, beam_size=None, text_key=None, score_key=None, index=None):
-    return self.inference(inputs, text_key, score_key, index)
+  def predict(self, key, feed_dict=None, index=-1):
+    return self.predictor.predict(key, feed_dict, index)
+
+  def elementwise_predict(self, ltexts, rtexts):
+    return self.predictor.elementwise_predict(ltexts, rtexts)
 
   def predict_text(self, inputs, length_normalization_fator=None, beam_size=None, text_key=None, score_key=None, index=None):
     return self.inference(inputs, text_key, score_key, index)
@@ -378,11 +390,11 @@ class EnsembleTextPredictor(object):
               index=0):
     if not isinstance(model_dirs, (list, tuple)):
       model_dirs = [model_dirs]
-    self._predictors = [TextPredictor(model_dir, feed=feed, text_key=text_key, score_key=score_key, index=index + i) for i in range(len(model_dirs))]
+    self.predictors = [TextPredictor(model_dir, feed=feed, text_key=text_key, score_key=score_key, index=index + i) for i in range(len(model_dirs))]
 
   def inference(self, inputs, length_normalization_fator=None, beam_size=None):
     m = {}
-    for predictor in self._predictors:
+    for predictor in self.predictors:
       texts, scores = predictor.inference(inputs, length_normalization_fator, beam_size)
       for text, score in zip(texts, scores):
         m.setdefault(text, 0.)
@@ -390,7 +402,7 @@ class EnsembleTextPredictor(object):
     results = sorted(m.items(), key=itemgetter(1), reverse=True)
     #https://stackoverflow.com/questions/12974474/how-to-unzip-a-list-of-tuples-into-individual-lists
     texts, scores = zip(*results)
-    scores /= float(len(self._predictors))
+    scores /= float(len(self.predictors))
     return np.array(texts), np.array(scores)
 
   def predict(self, inputs):

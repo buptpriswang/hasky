@@ -21,14 +21,19 @@ class SimPredictor(object):
   def __init__(self, model_dir,  
                image_checkpoint_path=None, 
                image_model_name=None, 
+               feature_name=None,
+               image_model=None,
                key=None, 
                lfeed=None, 
                rfeed=None, 
                index=0,
                sess=None):
-    self.image_model = None
-    if image_checkpoint_path is not None:
-      self.image_model = melt.image.ImageModel(image_checkpoint_path, image_model_name, sess=sess)
+    self.image_model = image_model
+    if image_model is None and image_checkpoint_path:
+      self.image_model = melt.image.ImageModel(image_checkpoint_path, 
+                                               image_model_name, 
+                                               feature_name=feature_name, 
+                                               sess=sess)
     self.predictor = melt.SimPredictor(model_dir, key=key, lfeed=lfeed, rfeed=rfeed, index=index, sess=sess)
     self.sess = self.predictor._sess
     self.index = index

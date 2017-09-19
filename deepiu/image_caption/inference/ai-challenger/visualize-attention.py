@@ -37,13 +37,14 @@ image_dir = image_dir = '/home/gezi/data2/data/ai_challenger/image_caption/pic/'
 image_file = '6275b5349168ac3fab6a493c509301d023cf39d3.jpg'
 image_path = os.path.join(image_dir, image_file)
 image_model_checkpoint_path = '/home/gezi/data/image_model_check_point/inception_resnet_v2_2016_08_30.ckpt'
-model_name='InceptionResnetV2'
-image_model = melt.image.ImageModel(image_model_checkpoint_path, 
-                                    model_name=model_name,
-                                    feature_name=melt.image.get_features_name(model_name))
-
-
+image_model_name='InceptionResnetV2'
 model_dir = '/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell/'
+if not melt.varname_in_checkpoint(image_model_name, model_dir):
+  image_model = melt.image.ImageModel(image_model_checkpoint_path, 
+                                      model_name=image_model_name,
+                                      feature_name=melt.image.get_features_name(image_model_name))
+else:
+  image_model = None
 predictor = melt.Predictor(model_dir)
 
 import libpinyin
@@ -58,7 +59,7 @@ def predict(image_name, num_show=1):
     return 
 
   img = melt.read_image(image_path)
-  feature = image_model.gen_feature(img)
+  feature = image_model.gen_feature(img) if image_model is not None else img
   timer = gezi.Timer()
   init_states = predictor.inference([
                                         'beam_search_beam_size',
@@ -100,7 +101,7 @@ def predict(image_name, num_show=1):
     words = beam.words    
     img = ndimage.imread(image_path)
     
-    num_features = melt.image.get_num_features(model_name)
+    num_features = melt.image.get_num_features(image_model_name)
     dim = int(np.sqrt(num_features))
     #print('dim:', dim)
 

@@ -17,13 +17,16 @@ import melt
 from deepiu.util import ids2text
 
 class TextPredictor(object):
-  def __init__(self, model_dir, vocab_path, 
+  def __init__(self, model_dir, 
+               vocab_path=None, 
                image_checkpoint_path=None, 
                image_model_name='InceptionResnetV2', 
                feature_name=None,
-               index=0, sess=None):
-    self.image_model = None
-    if image_checkpoint_path is not None:
+               image_model=None,
+               index=0, 
+               sess=None):
+    self.image_model = image_model
+    if image_model is None and image_checkpoint_path:
       self.image_model = melt.image.ImageModel(image_checkpoint_path, 
                                                image_model_name, 
                                                feature_name=feature_name,
@@ -34,21 +37,26 @@ class TextPredictor(object):
     else:
       self.predictor = melt.EnsembleTextPredictor(model_dir, index=index, sess=sess)
 
-    ids2text.init(vocab_path)
+    if vocab_path:
+      ids2text.init(vocab_path)
 
   def _predict(self, image, length_normalization_fator=None, beam_size=None):
     if self.image_model is not None:
       image = self.image_model.gen_feature(image)
-    return self.predictor.predict(image, length_normalization_fator, beam_size)
+    return self.predictor.predict_text(image, length_normalization_fator, beam_size)
   
   def predict_text(self, image, length_normalization_fator=None, beam_size=None):
     return self._predict(image, length_normalization_fator, beam_size)
 
-  def predict(self, image, length_normalization_fator=None, beam_size=None):
-    texts, scores = self._predict(image, length_normalization_fator, beam_size)
-    texts = texts[0]
-    scores = scores[0]
-    return np.array([ids2text.translate(text) for text in texts]), scores
+  def predict(self, ltext, rtext):
+    if self.image_model is not None:
+      ltext = self.image_model.gen_feature(ltext)
+    return self.predictor.predict(ltext, rtext)
+
+  def elementwise_predict(self, ltexts, rtexts):
+    if self.image_model is not None:
+      ltexts = self.image_model.gen_feature(ltexts)
+    return self.predictor.elementwise_predict(ltexts, rtexts)
 
   def word_ids(self, image, length_normalization_fator=None, beam_size=None):
     return self._predict(image, length_normalization_fator, beam_size)

@@ -163,3 +163,12 @@ class RnnControllerEncoder(ShowAndTellEncoder):
     state = None
     image_emb = tf.reduce_mean(image_embs, 1)
     return encoder_output, state, image_emb
+
+Encoders = {
+  'ShowAndTell': ShowAndTellEncoder,
+  'SimpleMemory': SimpleMemoryEncoder,
+  'Memory': MemoryEncoder,
+  'ShowAttendAndTell': ShowAttendAndTellEncoder,
+  'Rnn': RnnEncoder,
+  'RnnController': RnnControllerEncoder
+}

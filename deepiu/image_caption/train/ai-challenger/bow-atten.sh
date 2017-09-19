@@ -33,7 +33,7 @@ python ./train.py \
   --batch_size 256 \
   --num_gpus 0 \
   --eval_batch_size 200 \
-  --min_after_dequeue 1000 \
+  --min_after_dequeue 512 \
   --eval_interval_steps 1000 \
   --metric_eval_interval_steps 1000 \
   --save_interval_seconds 7200 \
@@ -58,8 +58,9 @@ python ./train.py \
   --combiner=sum \
   --exclude_zero_index 1 \
   --dynamic_batch_length 1 \
-  --emb_dim 256 \
-  --hidden_size 1024 \
+  --emb_dim 512 \
+  --image_mlp_dims 512,512 \
+  --text_mlp_dims 512,512 \
   --model_dir $model_dir \
   --num_records 0 \
   --min_records 12 \

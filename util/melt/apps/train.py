@@ -24,8 +24,11 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('num_epochs', 0, 'Number of epochs to run trainer.')
-flags.DEFINE_integer('num_steps', 0, 'Number of steps to run trainer. 0 means run forever, -1 means you just want to build graph and save without training(chaning model value)')
+flags.DEFINE_integer('num_epochs', 0, '''Number of epochs to run trainer.
+                                         0 means run forever epochs,
+                                         -1 mens you want to just run 1 step and stop!, usefull when you want to do eval all once''')
+flags.DEFINE_integer('num_steps', 0, '''Number of steps to run trainer. 0 means run forever, 
+                                        -1 means you just want to build graph and save without training(chaning model value)''')
 #-------model
 flags.DEFINE_boolean('save_model', True, '')
 flags.DEFINE_float('save_interval_epochs', 1, 'if 0 will not save, by default 1 epoch 1 model in modeldir/epoch, you can change to 2, 0.1 etc')
@@ -206,6 +209,9 @@ def train_flow(ops,
   metric_eval_interval_steps=FLAGS.metric_eval_interval_steps
   save_model=FLAGS.save_model 
   save_interval_steps = FLAGS.save_interval_steps 
+  num_steps = FLAGS.num_steps
+  num_epochs = FLAGS.num_epochs
+
   if not save_interval_steps:
     save_interval_steps = 1000000000000
 
@@ -220,13 +226,25 @@ def train_flow(ops,
   elif FLAGS.work_mode == 'train_valid':
     metric_eval_fn = None
     logging.info('running train+valid mode')
-  elif FLAGS.work_mode == 'test':
+  elif FLAGS.work_mode.startswith('test'):
     ops = None
     logging.info('running test only mode')
     interval_steps = 0
     eval_interval_steps = 1
     metric_eval_interval_steps /= FLAGS.eval_interval_steps
     save_model = False
+  elif FLAGS.work_mode.startswith('metric') or FLAGS.work_mode.startswith('eval'):
+    ops = None 
+    eval_ops = None
+    logging.info('running eval only mode')
+    interval_steps = 0 
+    eval_interval_steps = 1
+    metric_eval_interval_steps /= FLAGS.eval_interval_steps    
+    save_model = False
+    assert metric_eval_fn is not None 
+  
+  if FLAGS.work_mode.endswith('once'):
+    num_epochs = -1 #hack to make only do one step!
 
   #TODO hack seq2seq/OptimizeLoss/seq2seq/main/decode/rnn/basic_lstm_cell/kernel/Adagrad (DT_FLOAT) [1280,4096] need to save
   if variables_to_save is not None:
@@ -246,8 +264,8 @@ def train_flow(ops,
              deal_eval_results_fn=deal_eval_results_fn,
              interval_steps=interval_steps,
              eval_interval_steps=eval_interval_steps,
-             num_epochs=FLAGS.num_epochs,
-             num_steps=FLAGS.num_steps,
+             num_epochs=num_epochs,
+             num_steps=num_steps,
              save_interval_seconds=save_interval_seconds,
              save_interval_steps=save_interval_steps,
              save_model=save_model,

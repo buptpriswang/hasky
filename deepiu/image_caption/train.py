@@ -36,11 +36,11 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', '/home/gezi/new/temp/model', '')
+flags.DEFINE_string('model_dir', None, '')
 
 flags.DEFINE_string('algo', 'bow', 'default algo is bow(cbow), also support rnn, show_and_tell, TODO cnn')
 
-flags.DEFINE_string('vocab', '/tmp/train/vocab.bin', 'vocabulary binary file')
+flags.DEFINE_string('vocab', None, 'vocabulary tx file')
 
 flags.DEFINE_boolean('debug', False, '')
 
@@ -326,11 +326,6 @@ def train():
   init_fn = None
   restore_fn = None
   summary_excls = None
-  #variables_to_save = None
-  #print('all variables', slim.get_variables())
-  #TODO this is hack, but still might some time say if assistant predictor bow also include image model InceptionResnetV2 might also save that, but save additional vars not hurt!
-  variables_to_save = slim.get_variables_to_restore(exclude=["bow"]) if (algos_factory.is_generative(FLAGS.algo) and FLAGS.assistant_model_dir) else None
-  #print('variables_to_save', variables_to_save)
 
   if not FLAGS.pre_calc_image_feature:
     init_fn = melt.image.image_processing.create_image_model_init_fn(FLAGS.image_model_name, FLAGS.image_checkpoint_file)
@@ -353,9 +348,8 @@ def train():
                        summary_excls=summary_excls,
                        init_fn=init_fn,
                        restore_fn=restore_fn,
-                       variables_to_save=variables_to_save,
                        sess=sess)#notice if use melt.constant in predictor then must pass sess
-  
+
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))

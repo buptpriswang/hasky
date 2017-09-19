@@ -23,7 +23,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean('image_as_init_state', False, 'by default will treat image as input not inital state(im2txt usage)')
 flags.DEFINE_boolean('show_atten_tell', False, 'wether to use attention as in paper Show,Attend and Tell: Neeural Image Caption Generation with Visual Attention')
-flags.DEFINE_string('image_encoder_type', 'show_and_tell', '')
+flags.DEFINE_string('image_encoder', 'ShowAndTell', '')
 
 import functools
 
@@ -35,11 +35,6 @@ from deepiu.util import vocabulary
 from deepiu.seq2seq import embedding
 import deepiu
   
-# class EncoderType:
-#   simple_memory: 'simple_memory'  #just treat image features as externl memory and use it direclty
-#   show_attend_and_tell: 'show_attend_and_tell' #just follow paper
-#   lstm_encoder: 'lstm_encoder'  #use lstm to encode image features
-#   lstm_controller: 'lstm_controller' #use lstm controller to encode image features for some steps(set2seq)
 
 class ShowAndTell(object):
   """
@@ -79,6 +74,14 @@ class ShowAndTell(object):
 
     self.emb_dim = FLAGS.emb_dim
     
+    ## FIXME why wrong below..
+    # ImageEncoder = deepiu.seq2seq.image_encoder.Encoders[FLAGS.image_encoder]
+    # #juse for scritps backward compact, TODO remove show_atten_tell
+    # if FLAGS.show_atten_tell:
+    #   logging.info('warning, show_atten_tell mode depreciated, just set --image_encoder=')
+    #   ImageEnoder = deepiu.seq2seq.image_encoder.MemoryEncoder
+    # self.encoder = ImageEncoder(is_training, is_predict, self.emb_dim)
+
     if not FLAGS.show_atten_tell:
       self.encoder = deepiu.seq2seq.image_encoder.ShowAndTellEncoder(is_training, is_predict, self.emb_dim)
     else:

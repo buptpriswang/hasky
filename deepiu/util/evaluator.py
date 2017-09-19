@@ -94,6 +94,7 @@ text2img = None
 
 image_names = None
 image_features = None
+image_model = None
 
 assistant_predictor = None
 
@@ -101,7 +102,7 @@ inited = False
 
 tokenizer = None
 
-def init():
+def init(image_model_=None):
   global inited
 
   if inited:
@@ -146,25 +147,18 @@ def init():
     #NOTICE must use seperate sess!!
     if is_raw_image(image_features) and not melt.varname_in_checkpoint(FLAGS.image_model_name, FLAGS.assistant_model_dir):
       print('assist predictor use deepiu.util.sim_predictor.SimPredictor as is raw image as input')
-      assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, 
-                                                                   image_checkpoint_path=FLAGS.image_checkpoint_file, 
-                                                                   image_model_name=FLAGS.image_model_name)
+      global image_model 
+      if image_model_ is not None:
+        image_model = image_model_ 
+      else:
+        image_model = melt.image.ImageModel(FLAGS.image_checkpoint_file, 
+                                            FLAGS.image_model_name, 
+                                            feature_name=FLAGS.image_endpoint_feature_name)
+      assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, image_model=image_model)
       print('assistant predictor init ok')
     else:
       assistant_predictor = melt.SimPredictor(FLAGS.assistant_model_dir)
-    #Cannot assign a device for operation 'show_and_tell/main/tower_1/input_train_neg/shuffle_batch_join_queue': Could not satisfy explicit device specification '/device:GPU:1' because no supported kernel for GPU devices is available.
-    #fix is tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    print('collcection_keys:', tf.get_default_graph().get_all_collection_keys())
-    #HACK for safe when inference, TODO can use a separate graph? 
-    melt.rename_from_collection('score', 'assistant_score')   
-    melt.rename_from_collection('scores', 'assistant_scores')
-    melt.rename_from_collection('feed', 'assistant_feed')
-    melt.rename_from_collection('lfeed', 'assistant_lfeed')
-    melt.rename_from_collection('rfeed', 'assistant_rfeed')
-    melt.rename_from_collection('rfeed2', 'assistant_rfeed2')
-    melt.rename_from_collection('textsim', 'assistant_textsim')
     print('assistant_predictor', assistant_predictor)
-    print('collcection_keys:', tf.get_default_graph().get_all_collection_keys())
 
   inited = True
 
@@ -571,6 +565,8 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
     num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs)) 
     if num_metric_eval_examples <= 0:
       num_metric_eval_examples = len(imgs)
+    if num_metric_eval_examples == len(imgs):
+      random = False
 
     step = FLAGS.metric_eval_batch_size
 
@@ -579,6 +575,8 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
         index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
       imgs = imgs[index]
       img_features = img_features[index]
+    else:
+      img_features = img_features[:num_metric_eval_examples]
 
     rank_metrics = gezi.rank_metrics.RecallMetrics()
 
@@ -655,6 +653,9 @@ def prepare_refs():
   return refs
 
 def translation_predicts(imgs, img_features, predictor, results):
+  if isinstance(img_features[0], np.string_):
+    img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])
+
   texts, _ = predictor.predict_text(img_features)
   #only use top prediction of beam search
   texts = [x[0] for x in texts]
@@ -674,9 +675,11 @@ def evaluate_translation(predictor, random=False, index=None):
   refs = prepare_refs()
 
   imgs, img_features = get_image_names_and_features()
-  num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs)) 
+  num_metric_eval_examples = min(FLAGS.num_metric_eval_examples, len(imgs))
   if num_metric_eval_examples <= 0:
     num_metric_eval_examples = len(imgs)
+  if num_metric_eval_examples == len(imgs):
+    random = False
 
   step = FLAGS.metric_eval_batch_size
 
@@ -685,8 +688,8 @@ def evaluate_translation(predictor, random=False, index=None):
       index = np.random.choice(len(imgs), num_metric_eval_examples, replace=False)
     imgs = imgs[index]
     img_features = img_features[index]
-    if isinstance(img_features[0], np.string_):
-      img_features = np.array([melt.read_image(pic_path) for pic_path in img_features])
+  else:
+    img_features = img_features[:num_metric_eval_examples]
 
   results = {}
 
@@ -762,6 +765,11 @@ def evaluate_translation(predictor, random=False, index=None):
 
 
 def evaluate(predictor, random=False, index=None, eval_rank=True, eval_translation=False):
+  if hasattr(predictor, 'image_model'):
+    #might be used for show and tell where feature is big, need to convert from image raw data
+    if predictor.image_model is None:
+      predictor.image_model = image_model 
+
   scores = []
   metrics = []
   if eval_rank:

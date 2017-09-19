@@ -195,6 +195,7 @@ def tf_train_flow(train_once_fn,
   checkpoint_path = os.path.join(model_dir, 'model.ckpt')
 
   tf.train.write_graph(sess.graph_def, model_dir, 'train.pbtxt')
+  only_one_step = False
   try:
     step = start = pre_step +  1
     fixed_step = fixed_pre_step + 1
@@ -206,6 +207,10 @@ def tf_train_flow(train_once_fn,
                  global_step=step)
       sess.close()
       exit(0)
+    
+    if num_epochs < 0:
+      only_one_step = True
+      print('just run one step', file=sys.stderr)
 
     early_stop = True #TODO allow config
     num_bad_epochs = 0
@@ -214,6 +219,8 @@ def tf_train_flow(train_once_fn,
     num_allowed_bad_epochs = 4 #allow 5 non decrease eval loss epochs  before stop
     while not coord.should_stop():
       stop = train_once_fn(sess, step, is_start=(step==start), fixed_step=fixed_step)
+      if only_one_step:
+        stop = True
       if save_model and step:
         #step 0 is also saved! actually train one step and save
         if step % save_interval_steps == 0:
@@ -279,6 +286,9 @@ def tf_train_flow(train_once_fn,
       saver.save(sess, 
                  _get_checkpoint_path(checkpoint_path, step, num_steps_per_epoch), 
                  global_step=step)
+    if only_one_step:
+      print('Done one step', file=sys.stderr)
+      exit(0)
     if metric_eval_fn is not None:
       metric_eval_fn()
     if (num_epochs and step / num_steps_per_epoch >= num_epochs) or (num_steps and (step + 1) == start + num_steps) :
