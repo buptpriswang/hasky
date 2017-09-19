@@ -61,9 +61,11 @@ def main(_):
 		files.sort(key=os.path.getmtime)
 		files = [file.replace(suffix, '') for file in files]
 		for file in files:
+			if 'best' in file:
+				continue
 			if file not in visited_checkpoints:
-				logging.info('mointor_epoch:%d'%(len(visited_checkpoints)))
 				visited_checkpoints.add(file)
+				logging.info('mointor_epoch:%d'%(len(visited_checkpoints)))
 				#will use predict_text in eval_translation , predict in eval_rank
 				predictor = Predictor(file, image_model=image_model, feature_name=melt.get_features_name(FLAGS.image_model_name)) 
 				summary = tf.Summary()
