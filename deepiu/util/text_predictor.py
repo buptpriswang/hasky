@@ -26,6 +26,7 @@ class TextPredictor(object):
                index=0, 
                sess=None):
     self.image_model = image_model
+    self.feature_name = feature_name
     if image_model is None and image_checkpoint_path:
       self.image_model = melt.image.ImageModel(image_checkpoint_path, 
                                                image_model_name, 
@@ -42,7 +43,10 @@ class TextPredictor(object):
 
   def _predict(self, image, length_normalization_fator=None, beam_size=None):
     if self.image_model is not None:
-      image = self.image_model.gen_feature(image)
+      if self.feature_name is None:
+        image = self.image_model.gen_feature(image)
+      else:
+        image = self.image_model.gen_features(image)
     return self.predictor.predict_text(image, length_normalization_fator, beam_size)
   
   def predict_text(self, image, length_normalization_fator=None, beam_size=None):
@@ -50,12 +54,18 @@ class TextPredictor(object):
 
   def predict(self, ltext, rtext):
     if self.image_model is not None:
-      ltext = self.image_model.gen_feature(ltext)
+      if self.feature_name is None:
+        ltext = self.image_model.gen_feature(ltext)
+      else:
+        ltext = self.image_model.gen_features(ltext)
     return self.predictor.predict(ltext, rtext)
 
   def elementwise_predict(self, ltexts, rtexts):
     if self.image_model is not None:
-      ltexts = self.image_model.gen_feature(ltexts)
+      if self.feature_name is None:
+        ltexts = self.image_model.gen_feature(ltexts)
+      else:
+        ltexts = self.image_model.gen_features(ltexts)
     return self.predictor.elementwise_predict(ltexts, rtexts)
 
   def word_ids(self, image, length_normalization_fator=None, beam_size=None):

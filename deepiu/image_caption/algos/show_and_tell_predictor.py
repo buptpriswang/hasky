@@ -127,7 +127,8 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       if self.image_model is None:
         #notice must not pass self.sess! will reload fail FIXME TODO
         self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
-      image = self.image_model.gen_feature(image)
+      #HACK here only used for show attend and tell
+      image = self.image_model.gen_features(image)
 
     feed_dict = {
       self.image_feature_feed: image,
@@ -144,7 +145,8 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     if FLAGS.pre_calc_image_feature and isinstance(images[0], (str, np.string_)):
       if self.image_model is None:
         self.image_model = melt.ImageModel(FLAGS.image_checkpoint_file, FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
-      images = self.image_model.gen_feature(images)
+      #HACK here only used for show attend and tells
+      images = self.image_model.gen_features(images)
 
     if self.beam_text is None:
       self.init_predict_text(decode_method=SeqDecodeMethod.ingraph_beam)

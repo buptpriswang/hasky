@@ -74,18 +74,15 @@ class ShowAndTell(object):
 
     self.emb_dim = FLAGS.emb_dim
     
-    ## FIXME why wrong below..
-    # ImageEncoder = deepiu.seq2seq.image_encoder.Encoders[FLAGS.image_encoder]
-    # #juse for scritps backward compact, TODO remove show_atten_tell
-    # if FLAGS.show_atten_tell:
-    #   logging.info('warning, show_atten_tell mode depreciated, just set --image_encoder=')
-    #   ImageEnoder = deepiu.seq2seq.image_encoder.MemoryEncoder
-    # self.encoder = ImageEncoder(is_training, is_predict, self.emb_dim)
+    self.using_attention = FLAGS.image_encoder != 'ShowAndTell'
 
-    if not FLAGS.show_atten_tell:
-      self.encoder = deepiu.seq2seq.image_encoder.ShowAndTellEncoder(is_training, is_predict, self.emb_dim)
-    else:
-      self.encoder = deepiu.seq2seq.image_encoder.MemoryEncoder(is_training, is_predict, self.emb_dim)
+    ImageEncoder = deepiu.seq2seq.image_encoder.Encoders[FLAGS.image_encoder]
+    #juse for scritps backward compact, TODO remove show_atten_tell
+    if FLAGS.show_atten_tell:
+      logging.info('warning, show_atten_tell mode depreciated, just set --image_encoder=')
+      ImageEncoder = deepiu.seq2seq.image_encoder.MemoryEncoder
+    
+    self.encoder = ImageEncoder(is_training, is_predict, self.emb_dim)
 
     self.decoder = deepiu.seq2seq.rnn_decoder.RnnDecoder(is_training, is_predict)
     self.decoder.set_embedding(emb)
@@ -119,7 +116,7 @@ class ShowAndTell(object):
   def process(self, image_feature):
     if self.image_process_fn is not None:
       image_feature = self.image_process_fn(image_feature) 
-    if FLAGS.show_atten_tell:
+    if self.using_attention:
       image_feature = tf.reshape(image_feature, [-1, FLAGS.image_attention_size, int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)])
     return image_feature
 

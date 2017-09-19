@@ -22,6 +22,7 @@ python ./train.py \
   --num_records_file  $train_output_path/num_records.txt \
   --model_dir=$model_dir \
   --assistant_model_dir="$assistant_model_dir" \
+  --assistant_rerank_num 10 \
   --algo show_and_tell \
   --num_sampled 0 \
   --log_uniform_sample 1 \

@@ -42,9 +42,10 @@ def main(_):
 
 	image_model = None 
 	if FLAGS.image_checkpoint_file:
+		#feature_name = None, since in show and tell predictor will use gen_features not gen_feature
 		image_model = melt.image.ImageModel(FLAGS.image_checkpoint_file, 
                                         FLAGS.image_model_name, 
-                                        feature_name=FLAGS.image_endpoint_feature_name)
+                                        feature_name=None)
 
 	evaluator.init(image_model)
 
@@ -64,7 +65,7 @@ def main(_):
 				logging.info('mointor_epoch:%d'%(len(visited_checkpoints)))
 				visited_checkpoints.add(file)
 				#will use predict_text in eval_translation , predict in eval_rank
-				predictor = Predictor(file, image_model=image_model) 
+				predictor = Predictor(file, image_model=image_model, feature_name=melt.get_features_name(FLAGS.image_model_name)) 
 				summary = tf.Summary()
 				scores, metrics = evaluator.evaluate(predictor, eval_rank=FLAGS.eval_rank, eval_translation=FLAGS.eval_translation)
 				melt.add_summarys(summary, scores, metrics)

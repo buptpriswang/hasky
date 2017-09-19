@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic-atten/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell.posconcat
 ##TODO now ok but will load two image model graph init in two session, too much gpu mem usage, so just set samll metric_eval_examples, 500 -> 200 
 ## and eval rank will be slow here for generative model so can just disable eval rank during training and set metric eval examples to 500 
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
@@ -26,7 +26,7 @@ python ./train.py \
   --assistant_model_dir="$assistant_model_dir" \
   --assistant_rerank_num 10 \
   --algo show_and_tell \
-  --image_encoder Memory \
+  --image_encoder MemoryWithPosConcat \
   --eval_rank 1 \
   --eval_translation 1 \
   --image_attention_size 64 \
@@ -44,7 +44,7 @@ python ./train.py \
   --metric_eval 1 \
   --monitor_level 2 \
   --no_log 0 \
-  --batch_size 256 \
+  --batch_size 128 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
   --min_after_dequeue 512 \

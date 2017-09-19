@@ -69,12 +69,16 @@ class RnnEncoder(Encoder):
                     end_id=(self.end_id if FLAGS.encode_end_mark else None))
   
   #TODO  add scope
-  def encode(self, sequence, emb=None, input=None, output_method=None):
+  def encode(self, sequence, emb=None, input=None, output_method=None, 
+             embedding_lookup=False, method=None):
     if emb is None:
       emb = self.emb 
 
     #--for debug
-    sequence, sequence_length = self.pad(sequence)
+    if embedding_lookup:
+      sequence, sequence_length = self.pad(sequence)
+    else:
+      sequence_length = tf.ones([melt.get_batch_size(sequence),], dtype=tf.int32) * tf.shape(sequence)[1]
 
     self.sequence = sequence
     self.sequence_length = sequence_length
@@ -87,7 +91,10 @@ class RnnEncoder(Encoder):
     #  num_steps = tf.cast(tf.reduce_max(sequence_length), dtype=tf.int32)
     #  sequence = tf.slice(sequence, [0,0], [-1, num_steps])   
     
-    inputs = tf.nn.embedding_lookup(emb, sequence) 
+    if embedding_lookup:
+      inputs = tf.nn.embedding_lookup(emb, sequence) 
+    else:
+      inputs = sequence
 
     if input is not None:
       inputs = tf.concat([tf.expand_dims(input, 1), inputs], 1)
@@ -101,7 +108,7 @@ class RnnEncoder(Encoder):
           inputs, 
           sequence_length, 
           cell_bw=self.bwcell,
-          encode_method=FLAGS.rnn_method,
+          encode_method=method or FLAGS.rnn_method,
           output_method=output_method or FLAGS.rnn_output_method)
 
     return encode_feature, state

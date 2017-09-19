@@ -19,7 +19,7 @@ FLAGS = flags.FLAGS
 
 class Encoder(object):
   def __init__(self):
-    pass
+    self.emb = None
 
   def set_embedding(self, emb):
     self.emb = emb 

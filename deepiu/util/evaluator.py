@@ -155,7 +155,7 @@ def init(image_model_=None):
       else:
         image_model = melt.image.ImageModel(FLAGS.image_checkpoint_file, 
                                             FLAGS.image_model_name, 
-                                            feature_name=FLAGS.image_endpoint_feature_name)
+                                            feature_name=None)
       assistant_predictor = deepiu.util.sim_predictor.SimPredictor(FLAGS.assistant_model_dir, image_model=image_model)
       print('assistant predictor init ok')
     else:
@@ -376,7 +376,6 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
 score_op = None
 
 def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, exact_ratio=1.):
-  timer = gezi.Timer('preidctor.predict')
   # TODO gpu outofmem predict for showandtell#
   if exact_predictor is None:
     if assistant_predictor is not None:
@@ -430,18 +429,13 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     scores.append(score)
     start = end
   score = np.concatenate(scores, 1)
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
-  timer.print()
-
+  #print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   num_texts = texts.shape[0]
 
   for i, img in enumerate(imgs):
     indexes = (-score[i]).argsort()
-
     #rerank
     if exact_predictor:
-      if i == 0:
-        print('rerank using exact_predictor')
       top_indexes = indexes[:FLAGS.assistant_rerank_num]
       exact_texts = texts[top_indexes]
       exact_score = exact_predictor.elementwise_predict([img_features[i]], exact_texts)
@@ -459,7 +453,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
       for j in range(len(exact_indexes)):
         new_indexes[j] = indexes[exact_indexes[j]]
       indexes = new_indexes
-    
+
     hits = img2text[img]
 
     if FLAGS.show_info_interval and i % FLAGS.show_info_interval == 0:

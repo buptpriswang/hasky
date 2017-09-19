@@ -31,6 +31,8 @@ class Seq2seq(object):
   def __init__(self, is_training=True, is_predict=False):
     super(Seq2seq, self).__init__()
 
+    #assert FLAGS.rnn_output_method == 'all', 'attention need to encode all'
+
     self.is_training = is_training 
     self.is_predict = is_predict
     self.is_evaluate = (not is_training) and (not is_predict)
@@ -64,7 +66,7 @@ class Seq2seq(object):
     assert not (exact_prob and exact_loss)
     assert not ((not self.is_predict) and (exact_prob or exact_loss))
     with tf.variable_scope("encode"):
-      encoder_output, state = self.encoder.encode(input_text)
+      encoder_output, state = self.encoder.encode(input_text, output_method=melt.rnn.OutputMethod.all)
       if not FLAGS.use_attention:
         encoder_output = None
     with tf.variable_scope("decode"):
@@ -136,7 +138,7 @@ class Seq2seqPredictor(Seq2seq, melt.PredictorBase):
 
   def build_predict_text_graph(self, input_text, decode_method='greedy', beam_size=5, convert_unk=True):
     with tf.variable_scope("encode"):
-      encoder_output, state = self.encoder.encode(input_text)
+      encoder_output, state = self.encoder.encode(input_text, output_method=melt.rnn.OutputMethod.all)
       if not FLAGS.use_attention:
         encoder_output = None
     with tf.variable_scope("decode"):
