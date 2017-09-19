@@ -62,6 +62,7 @@ python ../tools/monitor_epoch.py \
   --eval_rank 1 \
   --eval_translation 1 \
   --num_metric_eval_examples 0 \
+  --show_info_interval 0 \
   --work_mode full \
 
   #--model_dir /home/gezi/data/image-text-sim/model/model.ckpt-387000 \

@@ -6,8 +6,8 @@ source $conf_path/config
 model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell
 ##TODO now ok but will load two image model graph init in two session, too much gpu mem usage, so just set samll metric_eval_examples, 500 -> 200 
 ## and eval rank will be slow here for generative model so can just disable eval rank during training and set metric eval examples to 500 
-#assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
-assistant_model_dir=''
+assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow.atten
+#assistant_model_dir=''
 mkdir -p $model_dir
 
 python ../tools/monitor_epoch.py \
@@ -67,9 +67,10 @@ python ../tools/monitor_epoch.py \
   --rnn_hidden_size 512 \
   --dynamic_batch_length 1 \
   --log_device 0 \
-  --eval_rank 0 \
+  --eval_rank 1 \
   --eval_translation 1 \
   --num_metric_eval_examples 0 \
+  --show_info_interval 0 \
   --work_mode full \
 
   #--model_dir /home/gezi/data/image-text-sim/model/model.ckpt-387000 \

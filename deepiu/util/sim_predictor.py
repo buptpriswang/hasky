@@ -35,7 +35,7 @@ class SimPredictor(object):
                                                feature_name=feature_name, 
                                                sess=sess)
     self.predictor = melt.SimPredictor(model_dir, key=key, lfeed=lfeed, rfeed=rfeed, index=index, sess=sess)
-    self.sess = self.predictor._sess
+    self.sess = self.predictor.sess
     self.index = index
 
   def predict(self, ltext, rtext):

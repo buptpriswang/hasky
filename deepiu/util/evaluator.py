@@ -55,6 +55,8 @@ flags.DEFINE_boolean('eval_rank', True, '')
 flags.DEFINE_boolean('eval_translation', True, 'for generative method')
 flags.DEFINE_boolean('eval_translation_reseg', True, 'for different seg tranining but use same seg if True')
 
+flags.DEFINE_integer('show_info_interval', 100, '') 
+
 import sys, os
 import gezi.nowarning
 
@@ -460,7 +462,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     
     hits = img2text[img]
 
-    if i % 100 == 0:
+    if FLAGS.show_info_interval and i % FLAGS.show_info_interval == 0:
       label_text = '|'.join([text_strs[x] for x in hits])
       img_str = img
       if is_img(img):
@@ -585,7 +587,8 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
       end = start + step
       if end > num_metric_eval_examples:
         end = num_metric_eval_examples
-      print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
+      #print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
+      print('predicts image start:', start, 'end:', end, file=sys.stderr)
       predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics, 
                exact_predictor=exact_predictor, exact_ratio=exact_ratio)
       start = end
