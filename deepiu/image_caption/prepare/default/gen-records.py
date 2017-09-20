@@ -65,7 +65,13 @@ import gezi
 from deepiu.util import text2ids
 
 import conf  
-from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK, IMAGE_FEATURE_LEN
+from conf import TEXT_MAX_WORDS, NUM_RESERVED_IDS, ENCODE_UNK, IMAGE_FEATURE_LEN 
+
+import sys,os
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+import normalize
 
 gtexts = []
 gtext_strs = []
@@ -147,6 +153,7 @@ def deal_imgtextfile(file):
 
       is_top_text = True
       for text in texts:
+        text = normalize.norm(text)
         if text.strip() == '':
           print('empty line', line, file=sys.stderr)
           continue
@@ -249,6 +256,7 @@ def deal_file_with_imgdir(file):
 
       is_top_text = True
       for text in texts:
+        text = normalize.norm(text)
         if text.strip() == '':
           print('empty line', line, file=sys.stderr)
           continue
@@ -350,6 +358,7 @@ def deal_file(file):
 
       is_top_text = True
       for text in texts:
+        text = normalize.norm(text)
         if text.strip() == '':
           print('empty line', line, file=sys.stderr)
           continue

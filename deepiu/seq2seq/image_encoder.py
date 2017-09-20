@@ -15,7 +15,7 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-import sys, os
+import sys, os, math
 
 import nets #slim nets
 import tensorflow.contrib.slim as slim
@@ -23,6 +23,8 @@ from deepiu.seq2seq import embedding
 from deepiu.seq2seq import rnn_encoder
 
 import melt
+
+from deepiu.image_caption.conf import IMAGE_FEATURE_LEN
 
 class ImageEncoder(object):
   def __init__(self, is_training=False, is_predict=False, 

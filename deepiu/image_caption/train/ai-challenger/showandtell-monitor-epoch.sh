@@ -3,7 +3,7 @@ conf_path=./prepare/default/app-conf/ai-challenger/seq-basic/
 cp $conf_path/conf.py .
 source $conf_path/config  
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showandtell
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/$1
 assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
 #assistant_model_dir=''
 mkdir -p $model_dir
@@ -36,13 +36,13 @@ python ../tools/monitor_epoch.py \
   --batch_size 256 \
   --num_gpus 0 \
   --eval_batch_size 1000 \
-  --min_after_dequeue 500 \
+  --min_after_dequeue 512 \
   --learning_rate 0.1 \
-  --eval_interval_steps 512 \
+  --eval_interval_steps 500 \
   --metric_eval_interval_steps 1000 \
   --save_interval_steps 1000 \
   --save_interval_epochs 1 \
-  --metric_eval_batch_size 1000 \
+  --metric_eval_batch_size 500 \
   --max_texts 20000 \
   --margin 0.5 \
   --feed_dict 0 \
@@ -59,10 +59,11 @@ python ../tools/monitor_epoch.py \
   --rnn_hidden_size 512 \
   --dynamic_batch_length 1 \
   --log_device 0 \
-  --eval_rank 1 \
+  --eval_rank 0 \
   --eval_translation 1 \
   --num_metric_eval_examples 0 \
   --show_info_interval 0 \
+  --assistant_rerank_num 10 \
   --work_mode full \
 
   #--model_dir /home/gezi/data/image-text-sim/model/model.ckpt-387000 \

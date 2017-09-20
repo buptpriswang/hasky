@@ -52,6 +52,8 @@ from conf import IMAGE_FEATURE_LEN
 from gezi import Segmentor
 segmentor = Segmentor()
 
+import normalize
+
 START_WORD = '<S>'
 END_WORD = '</S>'
 
@@ -71,8 +73,7 @@ for line in sys.stdin:
   #texts = l[2].split('\x01')
   
   for text in texts:
-    text = text.lower()
-    text = text.strip().replace('。','') 
+    text = normalize.norm(text)
     words = segmentor.Segment(text, FLAGS.seg_method)
     if num % 10000 == 0:
       print(text, '|'.join(words), len(words), file=sys.stderr)

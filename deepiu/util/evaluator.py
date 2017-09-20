@@ -382,7 +382,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
       exact_predictor = predictor
       predictor = assistant_predictor
 
-  print(predictor, exact_predictor)
+  #print(predictor, exact_predictor)
 
   if isinstance(img_features[0], np.string_):
     assert(len(img_features) < 2000) #otherwise too big mem ..
@@ -424,7 +424,7 @@ def predicts(imgs, img_features, predictor, rank_metrics, exact_predictor=None, 
     end = start + step 
     if end > len(texts):
       end = len(texts)
-    print('predicts texts start:', start, 'end:', end, end='\r', file=sys.stderr)
+    #print('predicts texts start:', start, 'end:', end, end='\r', file=sys.stderr)
     score = predictor.predict(img_features, texts[start: end])
     scores.append(score)
     start = end
@@ -501,7 +501,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
     end = start + step 
     if end > len(img_features):
       end = len(img_features)
-    print('predicts images start:', start, 'end:', end, file=sys.stderr, end='\r')
+    #print('predicts images start:', start, 'end:', end, file=sys.stderr, end='\r')
     
     #here might not accept raw image for bow predictor as assistant predictor TODO how to add image process here to gen feature first?
     score = predictor.predict(img_features[start: end], texts)
@@ -511,7 +511,7 @@ def predicts_txt2im(text_strs, texts, predictor, rank_metrics, exact_predictor=N
   #score = predictor.predict(img_features, texts)
   score = np.concatenate(scores, 0)
   score = score.transpose()
-  print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
+  #print('image_feature_shape:', img_features.shape, 'text_feature_shape:', texts.shape, 'score_shape:', score.shape)
   timer.print()
 
   text2img = get_bidrectional_lable_map_txt2im()
@@ -581,8 +581,7 @@ def evaluate_scores(predictor, random=False, index=None, exact_predictor=None, e
       end = start + step
       if end > num_metric_eval_examples:
         end = num_metric_eval_examples
-      #print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
-      print('predicts image start:', start, 'end:', end, file=sys.stderr)
+      print('predicts image start:', start, 'end:', end, file=sys.stderr, end='\r')
       predicts(imgs[start: end], img_features[start: end], predictor, rank_metrics, 
                exact_predictor=exact_predictor, exact_ratio=exact_ratio)
       start = end
