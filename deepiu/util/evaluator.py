@@ -54,6 +54,7 @@ flags.DEFINE_boolean('eval_text2img', False, '')
 flags.DEFINE_boolean('eval_rank', True, '')
 flags.DEFINE_boolean('eval_translation', True, 'for generative method')
 flags.DEFINE_boolean('eval_translation_reseg', True, 'for different seg tranining but use same seg if True')
+flags.DEFINE_string('eval_result_dir', None, 'dir for writting result')
 
 flags.DEFINE_integer('show_info_interval', 100, '') 
 
@@ -734,10 +735,25 @@ def evaluate_translation(predictor, random=False, index=None):
       for sc, scs, m in zip(score, scores, method):
         score_list.append(sc)
         metric_list.append(m)
+        if FLAGS.eval_result_dir:
+          out = open(os.path.join(FLAGS.eval_result_dir, m+'.txt'), 'w')
+          for i, sc in enumerate(scs):
+            key = selected_results.keys()[i]
+            result = selected_results[key]
+            refs = '\x01'.join(selected_refs[key])
+            print(key, result, refs, sc, sep='\t', file=out)
     else:
       score_list.append(score)
       metric_list.append(method)
-
+      if FLAGS.eval_result_dir:
+        out = open(os.path.join(FLAGS.eval_result_dir, m+'.txt'), 'w')
+        for i, sc in enumerate(scores):
+          key = selected_results.keys()[i]
+          result = selected_results[key]
+          refs = '\x01'.join(selected_refs[key])
+          print(key, result, refs, sc, sep='\t', file=out)
+  
+  #exclude "bleu_1", "bleu_2", "bleu_3"
   score_list, metric_list = score_list[3:], metric_list[3:]
   assert(len(score_list) == 4)
 

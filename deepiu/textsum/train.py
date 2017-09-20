@@ -253,9 +253,7 @@ def train():
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
-
-  if not FLAGS.num_gpus:
-    FLAGS.num_gpus = melt.get_num_gpus()
+  melt.apps.train.init()
     
   InputApp.init()
   vocabulary.init()

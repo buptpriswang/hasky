@@ -62,7 +62,6 @@ class ShowAndTell(object):
     #if is_training:
     logging.info('num_sampled:{}'.format(FLAGS.num_sampled))
     logging.info('log_uniform_sample:{}'.format(FLAGS.log_uniform_sample))
-    logging.info('num_layers:{}'.format(FLAGS.num_layers))
     logging.info('keep_prob:{}'.format(FLAGS.keep_prob))
     logging.info('emb_dim:{}'.format(FLAGS.emb_dim))
     logging.info('add_text_start:{}'.format(FLAGS.add_text_start))

@@ -60,8 +60,10 @@ def main(_):
 		#from epoch 1, 2, ..
 		files.sort(key=os.path.getmtime)
 		files = [file.replace(suffix, '') for file in files]
-		for file in files:
+		for i, file in enumerate(files):
 			if 'best' in file:
+				continue
+			if FLAGS.start_epoch and i + 1 < FLAGS.start_epoch:
 				continue
 			if file not in visited_checkpoints:
 				visited_checkpoints.add(file)

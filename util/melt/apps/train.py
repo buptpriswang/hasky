@@ -69,7 +69,20 @@ flags.DEFINE_string('mode', 'train', 'or predict')
 flags.DEFINE_boolean('use_tower_loss', True, '')
 #----------multi gpu
 flags.DEFINE_integer('num_gpus', 0, """How many GPUs to use. set 0 to disable multi gpu mode""")
-tf.app.flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
+flags.DEFINE_boolean('log_device_placement', False, """Whether to log device placement.""")
+flags.DEFINE_boolean('batch_size_by_gpu_num', False, '''by default False means, if num_gpus = 2, batch_size set 128, then each gpu with batch size 128,
+                                                        means 256 insts per step actually, if num_gpus == 0, will try to read env info if you set like 
+                                                        CUDA_VISIABLE_DIVICES=0,1 then actually will use 2 GPUS, and 256 insts per step also 
+                                                        if not find CUDA_VISIABLE_DIVICES infoep then, just use 1 GPU, single gpu mode, 128 insts per step
+                                                        if num_gpus == 1, also 1GPU, 128 insts per step, but will use tower_loss with 1 gpu(mainly for test if tower_loss ok)
+                                                        not used much, so if you want use single gpu, just set num_gpus=0 
+                                                        if batch_size_by_gpu_num = True, with 2gpu, then it means each GPU will be of batch size 128 / 2 = 64, total insts 
+                                                        are still 128 per step
+                                                        batch_size_by_gpu_num True is better for debug, all program, deal same num instances so better for comparation
+                                                        batch_size_by_gpu_num False is better for speed up, fully use multi gpu, like one gpu can only train batch 32(OOM for
+                                                        bigger batch_size) then 2 gpu can deal 2 * 32 instances per step
+                                                     ''') 
+
 
 #----------scope
 flags.DEFINE_boolean('add_global_scope', True, '''default will add global scope as algo name,
@@ -82,13 +95,23 @@ import tensorflow.contrib.slim as slim
 
 __pacage__ = None 
 from six.moves import xrange  # pylint: disable=redefined-builti
-import os
+import sys, os
 
 import melt 
 
 #or from melt.utils import logging
 import melt.utils.logging as logging
 #import logging
+
+def init(): 
+  """
+  now maily for gpu setting change, but can do anything needed before building graph
+  """
+  if not FLAGS.num_gpus:
+    FLAGS.num_gpus = melt.get_num_gpus()
+  if FLAGS.batch_size_by_gpu_num and FLAGS.num_gpus > 1:
+    print('batch size is shrink by %d for each gpu to make total insts per step still %d'%(FLAGS.num_gpus, FLAGS.batch_size), file=sys.stderr)
+    FLAGS.batch_size = int(FLAGS.batch_size / FLAGS.num_gpus)
 
 def get_global_scope():
   global_scope = ''

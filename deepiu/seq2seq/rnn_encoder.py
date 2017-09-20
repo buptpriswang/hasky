@@ -63,6 +63,11 @@ class RnnEncoder(Encoder):
     else:
       self.bwcell = None
 
+    logging.info('num_layers:{}'.format(FLAGS.num_layers))
+    logging.info('rnn_cell:{}'.format(FLAGS.cell))
+    logging.info('rnn_method:{}'.format(FLAGS.rnn_method))
+    logging.info('rnn_hidden_size:{}'.format(FLAGS.rnn_hidden_size))
+
   def pad(self, sequence):
     return melt.pad(sequence, 
                     start_id=(vocabulary.vocab.start_id() if FLAGS.encode_start_mark else None),

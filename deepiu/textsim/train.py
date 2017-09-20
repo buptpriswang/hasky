@@ -229,6 +229,7 @@ def train():
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
+  melt.apps.train.init()
 
   vocabulary.init()
   text2ids.init()

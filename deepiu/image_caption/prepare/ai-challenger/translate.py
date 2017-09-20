@@ -14,7 +14,7 @@ from __future__ import print_function
 import sys, os
 import requests, json, md5
 import urllib
-import random 
+import random, time
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -25,16 +25,23 @@ valid_file = '/home/gezi/new2/data/MSCOCO/val2014.txt'
 cn_train_file = '/home/gezi/new2/data/MSCOCO/cn_train2014.txt'
 cn_valid_file = '/home/gezi/new2/data/MSCOCO/cn_val2014.txt'
 
-out_train = open(cn_train_file, 'w')
-out_valid =  open(cn_valid_file, 'w')
+out_train = open(cn_train_file, 'a')
+out_valid =  open(cn_valid_file, 'a')
 
 appid = '20170920000084005'
 key = 'VURTIxWSU4LsGSkX3qlA'
+
+pics = set()
+for line in open(cn_valid_file, 'r'):
+  pic = line.strip().split('\t')[0]
+  pics.add(pic)
 
 num_lines = 0
 for line in open(valid_file):
   line = line.strip()
   pic, caption = line.split('\t')
+  if pic in pics:
+    continue
   captions = caption.split('\x01')
   cn_captions = []
   for caption in captions:
@@ -44,7 +51,11 @@ for line in open(valid_file):
     m1.update(sign)
     sign = m1.hexdigest()
     query = 'http://api.fanyi.baidu.com/api/trans/vip/translate?q=%s&from=en&to=zh&appid=%s&salt=%d&sign=%s'%(urllib.quote(caption), appid, salt, sign)
-    result = requests.post(query)
+    try:
+      result = requests.post(query)
+    except Exception:
+      time.sleep(100)
+      result = requests.post(query)
     result = json.loads(result.text)
     result = result['trans_result']
     for item in result:

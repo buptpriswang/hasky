@@ -46,6 +46,7 @@ python ./train.py \
   --no_log 0 \
   --batch_size 256 \
   --num_gpus 0 \
+  --batch_size_by_gpu_num 1 \
   --eval_batch_size 1000 \
   --min_after_dequeue 512 \
   --learning_rate 0.1 \

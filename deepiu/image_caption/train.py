@@ -353,16 +353,13 @@ def train():
 def main(_):
   #-----------init global resource
   logging.set_logging_path(gezi.get_dir(FLAGS.model_dir))
+  melt.apps.train.init()
 
-  if not FLAGS.num_gpus:
-    FLAGS.num_gpus = melt.get_num_gpus()
-  
   has_image_model = FLAGS.image_checkpoint_file and os.path.exists(FLAGS.image_checkpoint_file)
   if has_image_model:
     melt.apps.image_processing.init(FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
 
   FLAGS.pre_calc_image_feature = FLAGS.pre_calc_image_feature or (not has_image_model)
-
 
   vocabulary.init()
   text2ids.init()

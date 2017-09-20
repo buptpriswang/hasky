@@ -17,7 +17,6 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
  
 flags.DEFINE_string('cell', 'lstm_block', 'now lstm or gru?? lstm_block is fastest')
-flags.DEFINE_boolean('bidirectional', False, 'wether use bidirectional rnn')
 flags.DEFINE_integer('num_layers', 1, 'or > 1')
 flags.DEFINE_boolean('feed_initial_sate', False, """set true just like ptb_word_lm to feed 
                                                   last batch final state to be inital state 
