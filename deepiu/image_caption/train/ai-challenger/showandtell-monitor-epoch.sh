@@ -64,6 +64,7 @@ python ../tools/monitor_epoch.py \
   --num_metric_eval_examples 0 \
   --show_info_interval 0 \
   --assistant_rerank_num 10 \
+  --start_epoch $2 \
   --work_mode full \
 
   #--model_dir /home/gezi/data/image-text-sim/model/model.ckpt-387000 \

@@ -6,7 +6,7 @@ source $conf_path/config
 
 #seems learning rate 0.00025 work(need about 6 hours to recover..), may be setting to smaller can convergent faster like 0.0001 TODO
 
-model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell.rnn.finetune.later
+model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/showattentell.rnn.finetune.later2
 ##TODO now ok but will load two image model graph init in two session, too much gpu mem usage, so just set samll metric_eval_examples, 500 -> 200 
 ## and eval rank will be slow here for generative model so can just disable eval rank during training and set metric eval examples to 500 
 #assistant_model_dir=/home/gezi/new/temp/image-caption/ai-challenger/model/bow
@@ -43,7 +43,7 @@ python ./train.py \
   --finetune_image_model 1 \
   --image_features_batch_norm 1 \
   --image_features_drop_out 1 \
-  --learning_rate 0.1 \
+  --learning_rate 0.00001 \
   --num_sampled 0 \
   --log_uniform_sample 1 \
   --fixed_eval_batch_size 10 \

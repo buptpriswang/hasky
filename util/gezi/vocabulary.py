@@ -108,3 +108,6 @@ class Vocabulary(object):
   def unk_id(self):
     return self._unk_id
 
+  def has(self, word):
+    return word in self.vocab
+

@@ -24,14 +24,16 @@ class TextPredictor(object):
                feature_name=None,
                image_model=None,
                index=0, 
-               sess=None):
+               sess=None,
+               graph=None):
     self.image_model = image_model
     self.feature_name = feature_name
     if image_model is None and image_checkpoint_path:
       self.image_model = melt.image.ImageModel(image_checkpoint_path, 
                                                image_model_name, 
                                                feature_name=feature_name,
-                                               sess=sess)
+                                               sess=sess,
+                                               graph=graph)
 
     if not isinstance(model_dir, (list, tuple)):
       self.predictor = melt.TextPredictor(model_dir, index=index, sess=sess)

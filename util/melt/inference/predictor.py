@@ -56,14 +56,14 @@ def get_tensor_from_key(key, graph, index=-1):
     return key
 
 class Predictor(object):
-  def __init__(self, model_dir=None, meta_graph=None, model_name=None, debug=False, sess=None):
+  def __init__(self, model_dir=None, meta_graph=None, model_name=None, debug=False, sess=None, graph=None):
     super(Predictor, self).__init__()
     self.sess = sess
     if self.sess is None:
       ##---TODO tf.Session() if sess is None
       #self.sess = tf.InteractiveSession()
       #self.sess = melt.get_session() #make sure use one same global/share sess in your graph
-      self.graph = tf.Graph()
+      self.graph = graph or tf.Graph()
       self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True), graph=self.graph) #by default to use new Session, so not conflict with previous Predictors(like overwide values)
       if debug:
         self.sess = tf_debug.LocalCLIDebugWrapperSession(self.sess)
@@ -137,8 +137,9 @@ class SimPredictor(object):
               meta_graph=None, 
               model_name=None, 
               debug=False, 
-              sess=None):
-    self.predictor = Predictor(model_dir, meta_graph, model_name, debug, sess)
+              sess=None,
+              graph=None):
+    self.predictor = Predictor(model_dir, meta_graph, model_name, debug, sess, graph)
     self.graph = self.predictor.graph
     key = key or 'score'
     lfeed = lfeed or 'lfeed'
@@ -213,13 +214,14 @@ class SimPredictor(object):
 class RerankSimPredictor(object):
   def __init__(self, model_dir, exact_model_dir, num_rerank=100, 
               lfeed=None, rfeed=None, exact_lfeed=None, exact_rfeed=None, 
-              key=None, exact_key=None, index=0, exact_index=0, sess=None, exact_sess=None):
-    self.predictor = SimPredictor(model_dir, index=index, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
+              key=None, exact_key=None, index=0, exact_index=0, sess=None, exact_sess=None, graph=None, exact_graph=None):
+    self.predictor = SimPredictor(model_dir, index=index, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess, graph=graph)
     #TODO FIXME for safe use -1, should be 1 also ok, but not sure why dual_bow has two 'score'.. 
     #[<tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>, <tf.Tensor 'dual_bow/main/dual_textsim_1/dot/MatMul:0' shape=(?, ?) dtype=float32>,
     # <tf.Tensor 'seq2seq/main/Exp_4:0' shape=(?, 1) dtype=float32>]
     #this is becasue you use evaluator(predictor + exact_predictor) when train seq2seq, so load dual_bow will add one score..
-    self.exact_predictor = SimPredictor(exact_model_dir, index=exact_index, lfeed=exact_lfeed, rfeed=exact_rfeed, key=exact_key, sess=exact_sess)
+    self.exact_predictor = SimPredictor(exact_model_dir, index=exact_index, lfeed=exact_lfeed, rfeed=exact_rfeed, key=exact_key, 
+                                        sess=exact_sess, graph=exact_graph)
 
     self.num_rerank = num_rerank
 
@@ -327,8 +329,9 @@ class TextPredictor(object):
               meta_graph=None, 
               model_name=None, 
               debug=False, 
-              sess=None):
-    self.predictor = SimPredictor(model_dir, index=index, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess)
+              sess=None,
+              graph=None):
+    self.predictor = SimPredictor(model_dir, index=index, lfeed=lfeed, rfeed=rfeed, key=key, sess=sess, graph=graph)
     self.ori_predictor = self.predictor.predictor
     self.graph = self.predictor.graph
     self.index = index
