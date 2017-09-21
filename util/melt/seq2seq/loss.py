@@ -170,7 +170,7 @@ def exact_predict_loss(logits, targets, mask, num_steps,
     
     #selected_log_probs = melt.dynamic_gather2d(step_log_probs, step_targets)
     batch_nums = tf.range(0, limit=batch_size) # shape (batch_size)
-    step_indices = tf.stack( (batch_nums, tf.to_int32(step_targets)), axis=1) # shape (batch_size, 2)
+    step_indices = tf.stack((batch_nums, tf.to_int32(step_targets)), axis=1) # shape (batch_size, 2)
     selected_log_probs = tf.gather_nd(step_log_probs, step_indices) # shape (batch_size). loss on this step for each batch
 
     #if not need_softmax:

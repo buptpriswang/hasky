@@ -47,6 +47,7 @@ __all__ = [
     "CustomHelper",
     "ScheduledEmbeddingTrainingHelper",
     "ScheduledOutputTrainingHelper",
+    "MultinomialEmbeddingHelper",
 ]
 
 _transpose_batch_time = decoder._transpose_batch_time  # pylint: disable=protected-access
@@ -590,7 +591,7 @@ class MultinomialEmbeddingHelper(Helper):
   result through an embedding layer to get the next input.
   """
 
-  def __init__(self, embedding, first_input, end_token):
+  def __init__(self, embedding, first_input, end_token, need_softmax=True):
     """Initializer.
 
     Args:
@@ -615,6 +616,8 @@ class MultinomialEmbeddingHelper(Helper):
     self._batch_size = array_ops.shape(first_input)[0]
     self._start_inputs = first_input
 
+    self._need_softmax = need_softmax
+
   @property
   def batch_size(self):
     return self._batch_size
@@ -630,9 +633,22 @@ class MultinomialEmbeddingHelper(Helper):
     if not isinstance(outputs, ops.Tensor):
       raise TypeError("Expected outputs to be a single Tensor, got: %s" %
                       type(outputs))
-    sample_ids = math_ops.cast(
-        math_ops.argmax(outputs, axis=-1), dtypes.int32)
-    return sample_ids
+  
+    if self._need_softmax:
+      log_probs = tf.nn.log_softmax(outputs)
+    else:
+      log_probs = tf.log(tf.maximum(outputs, 1e-12))
+
+    sample_ids = tf.multinomial(log_probs, 1)
+    sample_ids = tf.reshape(sample_ids, [self.batch_size,])
+    sample_ids = tf.to_int32(sample_ids)   
+    
+    batch_nums = tf.range(0, limit=self.batch_size) # shape (batch_size)
+    step_indices = tf.stack((batch_nums, sample_ids), axis=1) # shape (batch_size, 2)
+    sample_log_probs = tf.gather_nd(log_probs, step_indices) # shape (batch_size). loss on this step for each batch
+    sample_log_probs = tf.reshape(sample_log_probs, [self.batch_size,])
+
+    return sample_ids, sample_log_probs
 
   def next_inputs(self, time, outputs, state, sample_ids, name=None):
     """next_inputs_fn for GreedyEmbeddingHelper."""

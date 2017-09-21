@@ -110,6 +110,7 @@ from tensorflow.python.util import nest
 
 class SeqDecodeMethod:
   greedy = 'greedy'
+  multinomal = 'multinomal'
   sample = 'sample'
   full_sample = 'full_sample'
   ingraph_beam = 'ingraph_beam'                
@@ -475,10 +476,11 @@ class RnnDecoder(Decoder):
     #if not is_predict loss is averaged per time step else not but avg loss will average it 
     return loss
 
-  def generate_sequence_greedy(self, input, max_words, 
+  def generate_sequence(self, input, max_words, 
                         initial_state=None, attention_states=None,
                         convert_unk=True, 
                         input_text=None,
+                        Helper=None,
                         emb=None):
     """
     this one is using greedy search method
@@ -498,11 +500,15 @@ class RnnDecoder(Decoder):
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
     need_logprobs = FLAGS.greedy_decode_with_logprobs 
-    if not need_logprobs:
-      helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
+    if Helper is None:  
+      if not need_logprobs:
+        helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
+      else:
+        helper = melt.seq2seq.LogProbsGreedyEmbeddingHelper(embedding=emb, first_input=input, 
+                                        end_token=self.end_id, need_softmax=self.need_softmax)
     else:
-      helper = melt.seq2seq.LogProbsGreedyEmbeddingHelper(embedding=emb, first_input=input, 
-                                      end_token=self.end_id, need_softmax=self.need_softmax)
+      helper = melt.seq2seq.MultinomialEmbeddingHelper(embedding=emb, first_input=input, 
+                                        end_token=self.end_id, need_softmax=self.need_softmax)
  
     if FLAGS.gen_only:
       output_fn = self.output_fn 
@@ -548,6 +554,33 @@ class RnnDecoder(Decoder):
     #------like beam search return sequence, score
     return sequence, score
 
+  def generate_sequence_greedy(self, input, max_words, 
+                               initial_state=None, attention_states=None,
+                               convert_unk=True, 
+                               input_text=None,
+                               emb=None):
+
+    return self.generate_sequence(input, max_words, 
+                                  initial_state=initial_state,
+                                  attention_states=attention_states,
+                                  convert_unk=convert_unk,
+                                  input_text=input_text,
+                                  emb=emb)
+
+  def generate_sequence_multinomial(self, input, max_words, 
+                               initial_state=None, attention_states=None,
+                               convert_unk=True, 
+                               input_text=None,
+                               emb=None):
+
+    return self.generate_sequence(input, max_words, 
+                                  initial_state=initial_state,
+                                  attention_states=attention_states,
+                                  convert_unk=convert_unk,
+                                  input_text=input_text,
+                                  Helper=melt.seq2seq.MultinomialEmbeddingHelper,
+                                  emb=emb)
+  
 
   def generate_sequence_ingraph_beam(self, input, max_words, 
                              initial_state=None, attention_states=None,

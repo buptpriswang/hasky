@@ -53,7 +53,7 @@ python ./train.py \
   --min_records 0 \
   --seg_method $online_seg_method \
   --feed_single $feed_single \
-  --seq_decode_method greedy \
+  --seq_decode_method multinomal \
   --length_normalization_factor 1. \
   --keep_prob 1. \
   --scheduled_sampling_probability 0. \

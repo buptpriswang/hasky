@@ -87,12 +87,18 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
       image_emb = self.decoder.get_start_embedding_input(batch_size)
 
     max_words = TEXT_MAX_WORDS
-    if decode_method == SeqDecodeMethod.greedy:
+    if decode_method == SeqDecodeMethod.greedy:      
       return self.decoder.generate_sequence_greedy(image_emb, 
                                      max_words=max_words, 
                                      initial_state=initial_state,
                                      attention_states=attention_states,
                                      convert_unk=convert_unk)
+    elif decode_method == SeqDecodeMethod.multinomal:
+      return self.decoder.generate_sequence_multinomial(image_emb, 
+                                    max_words=max_words, 
+                                    initial_state=initial_state,
+                                    attention_states=attention_states,
+                                    convert_unk=convert_unk)     
     else:
       if decode_method == SeqDecodeMethod.ingraph_beam:
         decode_func = self.decoder.generate_sequence_ingraph_beam
