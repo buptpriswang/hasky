@@ -133,7 +133,7 @@ def exact_predict_loss(logits, targets, mask, num_steps,
   here mainly for debug, comparing experimenting purpose!
   logits  [batch_size, num_steps, vocab_size]
   targets [batch_size, num_steps]
-  mast    [batch_size, num_steps]
+  mask    [batch_size, num_steps]
 
   return final -logprob 
   also record seqence of log probs 

@@ -131,8 +131,8 @@ def beam_decode(input, max_words, initial_state, cell, loop_function, scope=None
     
     if topn == 1:
       #compat with topn > 1
-      score = [decoder.logprobs_finished_beams]
-      path = [decoder.finished_beams]
+      score = tf.expand_dims(decoder.logprobs_finished_beams, 1)
+      path = tf.expand_dims(decoder.finished_beams, 1)
     else:
       path, score = decoder.calc_topn()
     
@@ -191,7 +191,7 @@ class BeamDecoder():
       (tf.range(self.batch_size * length) // length) * length,
       [self.batch_size, length])
 
-    indice_offsets = indice_offsets[:, 0:self.topn]
+    indice_offsets = indice_offsets[:, :self.topn]
 
     #[batch_size, max_len(length index) - 2, beam_size, max_len]
     paths = tf.concat(self.paths_list, 1)
@@ -203,7 +203,6 @@ class BeamDecoder():
     paths = tf.reshape(paths, [-1, self.max_len])
 
     top_paths = tf.gather(paths, indice_offsets + indices)
-
     return top_paths, top_logprobs
         
   def take_step(self, i, prev, state):

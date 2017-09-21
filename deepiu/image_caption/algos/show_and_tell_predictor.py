@@ -63,9 +63,10 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
     self.beam_text_score = score
     return text, score
 
-  def init_predict(self, exact_loss=False):
+  def init_predict(self, exact_prob=False, exact_loss=False):
     self.score = self.build_predict_graph(self.image_feature_feed, 
                                           self.text_feed, 
+                                          exact_prob=exact_prob,
                                           exact_loss=exact_loss)
     tf.add_to_collection('score', self.score)
     return self.score
@@ -108,7 +109,7 @@ class ShowAndTellPredictor(ShowAndTell, melt.PredictorBase):
                          attention_states=attention_states,
                          length_normalization_factor=FLAGS.length_normalization_factor)
 
-  def build_predict_graph(self, image, text, exact_loss=False):
+  def build_predict_graph(self, image, text, exact_prob=False, exact_loss=False):
     text = tf.reshape(text, [-1, TEXT_MAX_WORDS])
     
     loss = self.build_graph(image, text)

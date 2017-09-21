@@ -196,7 +196,8 @@ def train():
       input_results, 
       trainer)
     scope.reuse_variables()
-
+    algos_factory.set_eval_mode(trainer)
+    
     if predictor is not None and FLAGS.gen_predict:
       gen_predict_graph(predictor)
 

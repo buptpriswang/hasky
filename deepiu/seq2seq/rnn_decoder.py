@@ -73,6 +73,7 @@ flags.DEFINE_string('attention_option', 'luong', 'luong(multiply) or bahdanau(ad
 
 flags.DEFINE_integer('beam_size', 10, 'for seq decode beam search size')
 flags.DEFINE_integer('decode_max_words', 0, 'if 0 use TEXT_MAX_WORDS from conf.py otherwise use decode_max_words')
+flags.DEFINE_boolean('greedy_decode_with_logprobs', True, 'if False a bit faster, not calc sofmtax and sum logprobs')
 #----notice decdoe_copy and decode_use_alignment all means gen_only mode, then restrict decode by copy ! not using copy to train
 #--like copy_only and gen_copy(mix copy and gen)
 flags.DEFINE_boolean('decode_copy', False, 'if True rstrict to use only input words(copy mode)')
@@ -187,6 +188,8 @@ class RnnDecoder(Decoder):
         print('rnn decoder copy only mode !', file=sys.stderr)
     else:
       print('rnn decoder gen only mode', file=sys.stderr)
+
+    self.need_softmax = not(FLAGS.gen_copy_switch and FLAGS.switch_after_softmax)
 
     #if use copy mode use score as alignment(no softmax)
     self.score_as_alignment = False if FLAGS.gen_only else True
@@ -494,7 +497,12 @@ class RnnDecoder(Decoder):
       initial_state = None
     state = cell.zero_state(batch_size, tf.float32) if initial_state is None else initial_state
 
-    helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
+    need_logprobs = FLAGS.greedy_decode_with_logprobs 
+    if not need_logprobs:
+      helper = melt.seq2seq.GreedyEmbeddingHelper(embedding=emb, first_input=input, end_token=self.end_id)
+    else:
+      helper = melt.seq2seq.LogProbsGreedyEmbeddingHelper(embedding=emb, first_input=input, 
+                                      end_token=self.end_id, need_softmax=self.need_softmax)
  
     if FLAGS.gen_only:
       output_fn = self.output_fn 
@@ -506,19 +514,39 @@ class RnnDecoder(Decoder):
         output_fn_ = self.gen_copy_output_fn
       output_fn = lambda cell_output, cell_state: output_fn_(indices, batch_size, cell_output, cell_state)
 
-    my_decoder = melt.seq2seq.BasicDecoder(
+    Decoder = melt.seq2seq.BasicDecoder if not need_logprobs else melt.seq2seq.LogProbsDecoder
+    my_decoder = Decoder(
           cell=cell,
           helper=helper,
           initial_state=state,
           vocab_size=self.vocab_size,
           output_fn=output_fn)
 
-    outputs, _, _ = melt.seq2seq.dynamic_decode(my_decoder, 
+    outputs, final_state, sequence_length = melt.seq2seq.dynamic_decode(my_decoder, 
                                                 maximum_iterations=max_words, 
+                                                #MUST set to True, other wise will not set zero and sumup tokens past done/end token
+                                                impute_finished=True, 
                                                 scope=self.scope)
-    generated_sequence = outputs.sample_id
+    sequence = outputs.sample_id
+    if not hasattr(final_state, 'log_probs'):
+      score = tf.zeros([batch_size,]) 
+    else:
+      score = self.normalize_length(final_state.log_probs, sequence_length, reshape=False) 
+      ##below can be verified to be the same 
+      # num_steps = tf.to_int32(tf.reduce_max(sequence_length))
+      # score2 = -melt.seq2seq.exact_predict_loss(outputs.rnn_output, sequence, tf.to_float(tf.sign(sequence)), 
+      #                                       num_steps, need_softmax=True, average_across_timesteps=False)
+      # score2 = self.normalize_length(score2, sequence_length, reshape=False)
+      # score -= score2
+
+      #score = tf.exp(score)
+      #score = tf.concat([tf.expand_dims(score, 1), outputs.log_probs], 1)
+      if FLAGS.predict_use_prob:
+        score = tf.exp(score)
+      tf.add_to_collection('greedy_log_probs_list', outputs.log_probs)
+
     #------like beam search return sequence, score
-    return generated_sequence, tf.zeros([batch_size,])
+    return sequence, score
 
 
   def generate_sequence_ingraph_beam(self, input, max_words, 
@@ -569,7 +597,6 @@ class RnnDecoder(Decoder):
         output_fn_ = self.gen_copy_output_fn
       output_fn = lambda cell_output, cell_state: output_fn_(indices, batch_size, cell_output, cell_state)
 
-
     ##TODO to be safe make topn the same as beam size
     return melt.seq2seq.beam_decode(input, max_words, state, 
                                     cell, loop_function, scope=self.scope,
@@ -577,7 +604,7 @@ class RnnDecoder(Decoder):
                                     output_fn=output_fn,
                                     length_normalization_factor=length_normalization_factor,
                                     topn=beam_size,
-                                    need_softmax=not(FLAGS.gen_copy_switch and FLAGS.switch_after_softmax))
+                                    need_softmax=self.need_softmax)
 
     ##---dynamic beam search decoder can run but seems not correct or good reuslt, maybe bug TODO
     ##check with one small and simple testcase 
@@ -858,10 +885,11 @@ class RnnDecoder(Decoder):
     return start_embedding_input
  
   #always use this in predict mode
-  def normalize_length(self, loss, sequence_length):
+  def normalize_length(self, loss, sequence_length, reshape=True):
     sequence_length = tf.cast(sequence_length, tf.float32)
     #NOTICE must check if shape ok, [?,1] / [?,] will get [?,?]
-    sequence_length = tf.reshape(sequence_length, [-1, 1])
+    if reshape:
+      sequence_length = tf.reshape(sequence_length, [-1, 1])
     #notice for predict we always not average per step! so not need to turn it back
     #loss = loss * sequence_length 
     normalize_factor = tf.pow(sequence_length, FLAGS.length_normalization_factor)

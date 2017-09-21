@@ -27,8 +27,9 @@ class ImageModel(object):
                width=299,
                feature_name=None,
                image_format='jpeg',
-               sess=None):
-    self.graph = tf.Graph()
+               sess=None,
+               graph=None):
+    self.graph = tf.Graph() if graph is None else graph
     self.sess = melt.gen_session(graph=self.graph) if sess is None else sess
     self.feature_name = feature_name
     self.model_name = model_name

@@ -433,6 +433,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
           # for key in end_points:
           #   print(key, end_points[key].shape)
           if feature_name is None:
+            print('image_model feature_name is None will get PreLogits')
             if 'PreLogitsFlatten' in end_points:
               image_feature = end_points['PreLogitsFlatten']
             elif 'PreLogits' in end_points:
@@ -441,6 +442,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
             else:
               raise ValueError('not found pre logits!')
           else:
+            print('image_model will get feature_name %s'%feature_name)
             image_feature = end_points[feature_name]
             image_feature = slim.flatten(image_feature)
           #TODO check is it really ok? not finetune? seems still slow as im2txt it should be much faster then fintune.. FIXME?
@@ -474,6 +476,7 @@ def create_image2feature_slim_fn(name='InceptionResnetV2', feature_name=None):
           #but for predictor escape_fn3 = create_escape_construct_fn('XXX') you call it again, then escape_fn3() will fail need reuse
 
         scope.reuse_variables() #this is fine make function() '' scope resue, set True, but if not use function with ... will fail also
+      print('image_feature:', image_feature)
       return image_feature
 
     return construct_fn

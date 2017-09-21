@@ -54,6 +54,9 @@ def main(_):
 		visited_checkpoints = set()
 	else:
 		visited_checkpoints = pickle.load(open(visited_path, 'rb'))
+
+	visited_checkpoints = set([x.split('/')[-1] for x in visited_checkpoints])
+
 	while True:
 		suffix = '.data-00000-of-00001'
 		files = glob.glob(os.path.join(epoch_dir, 'model.ckpt*.data-00000-of-00001'))
@@ -65,15 +68,17 @@ def main(_):
 				continue
 			if FLAGS.start_epoch and i + 1 < FLAGS.start_epoch:
 				continue
-			if file not in visited_checkpoints:
-				visited_checkpoints.add(file)
-				logging.info('mointor_epoch:%d'%(len(visited_checkpoints)))
+			file_ = file.split('/')[-1]
+			if file_ not in visited_checkpoints:
+				visited_checkpoints.add(file_)
+				epoch = int(file_.split('-')[-2])
+				logging.info('mointor_epoch:%d from %d model files'%(epoch, len(visited_checkpoints)))
 				#will use predict_text in eval_translation , predict in eval_rank
 				predictor = Predictor(file, image_model=image_model, feature_name=melt.get_features_name(FLAGS.image_model_name)) 
 				summary = tf.Summary()
 				scores, metrics = evaluator.evaluate(predictor, eval_rank=FLAGS.eval_rank, eval_translation=FLAGS.eval_translation)
 				melt.add_summarys(summary, scores, metrics)
-				summary_writer.add_summary(summary, len(visited_checkpoints))
+				summary_writer.add_summary(summary, epoch)
 				summary_writer.flush()
 				pickle.dump(visited_checkpoints, open(visited_path, 'wb'))
 		time.sleep(5)

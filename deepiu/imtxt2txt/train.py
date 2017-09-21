@@ -185,11 +185,11 @@ def train():
       input_results, 
       trainer)
     scope.reuse_variables()
-
+    algos_factory.set_eval_mode(trainer)
+    
     if predictor is not None and FLAGS.gen_predict:
       beam_text, beam_text_score = gen_predict_graph(predictor)
-
-    algos_factory.set_eval_mode(trainer)
+    
     eval_ops, gen_eval_feed_dict, deal_eval_results = gen_validate(
       input_app, 
       input_results, 

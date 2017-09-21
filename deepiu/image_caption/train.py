@@ -235,11 +235,14 @@ def gen_validate(input_app, input_results, trainer, predictor):
     eval_neg_text_ = eval_neg_text
     if not FLAGS.neg_right:
       eval_neg_text_ = None
+    if algos_factory.is_generative(FLAGS.algo):
+      eval_neg_image_feature = None
+      eval_neg_text_ = None
+      
     eval_loss = trainer.build_train_graph(eval_image_feature, eval_text, eval_neg_image_feature, eval_neg_text_)
     eval_scores = tf.get_collection('scores')[-1]
     eval_ops = [eval_loss]
 
-    #TODO check
     if algos_factory.is_generative(FLAGS.algo):
       eval_neg_text = None 
       eval_neg_text_str = None 
@@ -270,7 +273,9 @@ def gen_predict_graph(predictor):
   if algos_factory.is_generative(FLAGS.algo):
     exact_score = predictor.init_predict(exact_loss=True)
     tf.add_to_collection('exact_score', exact_score)
-    
+    exact_prob = predictor.init_predict(exact_prob=True)
+    tf.add_to_collection('exact_prob', exact_prob)
+
     ##TODO
     # beam_size = tf.placeholder_with_default(FLAGS.beam_size, shape=None)
     # tf.add_to_collection('beam_size_feed', beam_size)
@@ -302,14 +307,12 @@ def train():
      trainer)
   
     scope.reuse_variables()
+    algos_factory.set_eval_mode(trainer)
 
     #saving predict graph, so later can direclty predict without building from scratch
     #also used in gen validate if you want to use direclty predict as evaluate per epoch
     if predictor is not None and FLAGS.gen_predict:
      gen_predict_graph(predictor)
-
-    algos_factory.set_eval_mode(trainer)
-    #print([x for x in tf.global_variables() if not x.op.name.startswith('Inception')])
 
     eval_ops, gen_eval_feed_dict, deal_eval_results = gen_validate(
       input_app, 
@@ -357,6 +360,7 @@ def main(_):
 
   has_image_model = FLAGS.image_checkpoint_file and os.path.exists(FLAGS.image_checkpoint_file)
   if has_image_model:
+    print('image_endpoint_feature_name:', FLAGS.image_endpoint_feature_name)
     melt.apps.image_processing.init(FLAGS.image_model_name, feature_name=FLAGS.image_endpoint_feature_name)
 
   FLAGS.pre_calc_image_feature = FLAGS.pre_calc_image_feature or (not has_image_model)
@@ -364,13 +368,16 @@ def main(_):
   vocabulary.init()
   text2ids.init()
 
-  #must init before main graph so to escape like show_and_tell/bow/main/image_text_sim_8/cosine/...
-  try:
-    evaluator.init()
-  except Exception:
-    print(traceback.format_exc(), file=sys.stderr)
-    print('evaluator init fail will not do metric eval')
-    FLAGS.metric_eval = False
+  ## TODO FIXME if evaluator init before main graph(assistant preidictor with image model) then will wrong for finetune later,
+  ## image scope as not defined, to set reuse = None? though assistant in different scope graph still scope reused??
+  ## so right now just let evaluator lazy init, init when used after main graph build
+
+  # try:
+  #   evaluator.init()
+  # except Exception:
+  #   print(traceback.format_exc(), file=sys.stderr)
+  #   print('evaluator init fail will not do metric eval')
+  #   FLAGS.metric_eval = False
 
   logging.info('algo:{}'.format(FLAGS.algo))
   logging.info('monitor_level:{}'.format(FLAGS.monitor_level))

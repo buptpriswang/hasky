@@ -140,3 +140,7 @@ def gen_trainer_and_predictor(algo):
 def set_eval_mode(trainer):
   with tf.variable_scope("init", reuse=True):
     trainer.__init__(is_training=False)
+
+def finish_train(trainer):
+  with tf.variable_scope("init", reuse=True):
+    trainer.__init__(is_training=False)

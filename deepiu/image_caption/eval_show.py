@@ -187,7 +187,7 @@ def gen_eval_generated_texts_ops(input_app, input_results, predictor, eval_score
                       decode_method=FLAGS.seq_decode_method, 
                       beam_size=FLAGS.beam_size,
                       convert_unk=False)
-
+ 
   if FLAGS.show_beam_search:
     generated_texts_beam, generated_texts_score_beam = predictor.build_predict_text_graph(
                         evaluate_image_feature, 

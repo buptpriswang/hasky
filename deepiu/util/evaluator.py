@@ -301,17 +301,23 @@ def print_img_text_negscore(img, i, text, score, text_ids, neg_text=None, neg_sc
     logging.info(content_html.format('neg [ {} ] {:.6f} {}'.format(neg_text, neg_score, neg_text_words)))  
 
 #for show and tell 
-def print_generated_text(generated_text, id=-1, name='gen'):
+def print_generated_text(generated_text, id=-1, name='greedy'):
   if id >= 0:
     logging.info(content_html.format('{}_{}:[ {} ]'.format(name, id, ids2text(generated_text))))
   else:
     logging.info(content_html.format('{}:[ {} ]'.format(name, ids2text(generated_text))))
 
-def print_generated_text_score(generated_text, score, id=-1, name='gen'):
-  if id >= 0:
-    logging.info(content_html.format('{}_{}:[ {} ] {:.6f}'.format(name, id, ids2text(generated_text), score)))
-  else:
-    logging.info(content_html.format('{}:[ {} ] {:.6f}'.format(name, ids2text(generated_text), score)))
+def print_generated_text_score(generated_text, score, id=-1, name='greedy'):
+  try:
+    if id >= 0:
+      logging.info(content_html.format('{}_{}:[ {} ] {:.6f}'.format(name, id, ids2text(generated_text), score)))
+    else:
+      logging.info(content_html.format('{}:[ {} ] {:.6f}'.format(name, ids2text(generated_text), score)))
+  except Exception:
+    if id >= 0:
+      logging.info(content_html.format('{}_{}:[ {} ] {}'.format(name, id, ids2text(generated_text), score)))
+    else:
+      logging.info(content_html.format('{}:[ {} ] {}'.format(name, ids2text(generated_text), score)))  
 
 def print_img_text_negscore_generatedtext(img, i, text, score,
                                           text_ids,  
@@ -324,7 +330,7 @@ def print_img_text_negscore_generatedtext(img, i, text, score,
     print_generated_text_score(generated_text, generated_text_score)
   except Exception:
     for i, text in enumerate(generated_text):
-      print_generated_text_score(text, generated_text_score[i], name='gen__max', id=i)   
+      print_generated_text_score(text, generated_text_score[i], name='max', id=i)   
   
   #print('-----------------------', generated_text_beam, generated_text_beam.shape)
   #print(generated_text_score_beam, generated_text_score_beam.shape)
@@ -333,7 +339,7 @@ def print_img_text_negscore_generatedtext(img, i, text, score,
       print_generated_text_score(generated_text_beam, generated_text_score_beam)
     except Exception:
       for i, text in enumerate(generated_text_beam):
-        print_generated_text_score(text, generated_text_score_beam[i], name='gen_beam', id=i)
+        print_generated_text_score(text, generated_text_score_beam[i], name='beam', id=i)
 
 
 def print_img_text_generatedtext(img, i, input_text, input_text_ids, 
@@ -365,14 +371,14 @@ def print_img_text_generatedtext_score(img, i, input_text, input_text_ids,
     print_generated_text_score(generated_text, generated_text_score)
   except Exception:
     for i, text in enumerate(generated_text):
-      print_generated_text_score(text, generated_text_score[i], name='gen_max', id=i)   
+      print_generated_text_score(text, generated_text_score[i], name='max', id=i)   
   
   if generated_text_beam is not None:
     try:
       print_generated_text_score(generated_text_beam, generated_text_score_beam)
     except Exception:
       for i, text in enumerate(generated_text_beam):
-        print_generated_text_score(text, generated_text_score_beam[i], name='gen_beam', id=i)
+        print_generated_text_score(text, generated_text_score_beam[i], name='beam', id=i)
 
 score_op = None
 
@@ -781,6 +787,7 @@ def evaluate(predictor, random=False, index=None, eval_rank=True, eval_translati
     #might be used for show and tell where feature is big, need to convert from image raw data
     if predictor.image_model is None:
       predictor.image_model = image_model 
+    print('predictor.image_model:', predictor.image_model)
 
   scores = []
   metrics = []

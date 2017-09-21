@@ -15,6 +15,9 @@ import tensorflow as tf
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+flags.DEFINE_boolean('image_features_batch_norm', False, '')
+flags.DEFINE_boolean('image_features_dropout', False, '')
+
 import sys, os, math
 
 import nets #slim nets
@@ -108,6 +111,33 @@ def inception_resnet_v2(inputs, is_training=True,
                            scope='Dropout')
 
     return net
+
+def batch_norm(x, is_training=False, name=''):  
+  return tf.contrib.layers.batch_norm(inputs=x,
+                                      decay=0.95,
+                                      center=True,
+                                      scale=True,
+                                      is_training=is_training,
+                                      updates_collections=None,
+                                      scope=(name + 'batch_norm'))
+
+def features2feature(inputs, is_training, dropout_keep_prob=0.8, reuse=None):
+  if not FLAGS.image_features_dropout:
+    is_training = False  
+
+  if FLAGS.image_features_batch_norm:
+    inputs = batch_norm(inputs, is_training=is_training)
+
+  fe_dim = int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)
+  attn_dim = int(math.sqrt(FLAGS.image_attention_size))
+  inputs = tf.reshape(inputs, [-1, attn_dim, attn_dim, fe_dim])
+
+  #TODO for other image type use other ones
+  if FLAGS.image_model_name == 'InceptionResnetV2':
+    return inception_resnet_v2(inputs, is_training, 
+                             dropout_keep_prob=dropout_keep_prob, reuse=reuse)
+  else:
+    raise 'Type error only support InceptionResnetV2 currently'
   
 class MemoryEncoder(ShowAndTellEncoder):
   """
@@ -117,8 +147,8 @@ class MemoryEncoder(ShowAndTellEncoder):
     ShowAndTellEncoder.__init__(self, is_training, is_predict, emb_dim, initializer)
 
   def encode(self, image_features):
-    image_emb = inception_resnet_v2(tf.reshape(image_features, [-1, 8, 8, 1536]), is_training=False)
- 
+    image_emb = features2feature(image_features, is_training=is_training)
+    
     image_features = tf.concat([image_features, tf.expand_dims(image_emb, 1)], 1)    
     image_embs = self.build_image_embeddings(image_features)
     image_emb = image_embs[:,-1]
@@ -146,9 +176,7 @@ class MemoryWithPosConcatEncoder(ShowAndTellEncoder):
     self.pos_emb = embedding.get_embedding_cpu(name='pos_emb', height=FLAGS.image_attention_size)
 
   def encode(self, image_features):
-    fe_dim = int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)
-    attn_dim = int(math.sqrt(FLAGS.image_attention_size))
-    image_emb = inception_resnet_v2(tf.reshape(image_features, [-1, attn_dim, attn_dim, fe_dim]), is_training=False)
+    image_emb = features2feature(image_features, is_training=self.is_training)
  
     image_features = tf.concat([image_features, tf.expand_dims(image_emb, 1)], 1)    
     image_embs = self.build_image_embeddings(image_features)
@@ -179,9 +207,7 @@ class MemoryWithPosSumEncoder(ShowAndTellEncoder):
     self.pos_emb = embedding.get_embedding_cpu(name='pos_emb', height=FLAGS.image_attention_size)
 
   def encode(self, image_features):
-    fe_dim = int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)
-    attn_dim = int(math.sqrt(FLAGS.image_attention_size))
-    image_emb = inception_resnet_v2(tf.reshape(image_features, [-1, attn_dim, attn_dim, fe_dim]), is_training=False)
+    image_emb = features2feature(image_features, is_training=self.is_training)
     
     image_features = tf.concat([image_features, tf.expand_dims(image_emb, 1)], 1)    
     image_embs = self.build_image_embeddings(image_features)
@@ -271,10 +297,7 @@ class RnnEncoder(ShowAndTellEncoder):
     self.encoder = rnn_encoder.RnnEncoder(is_training, is_predict)
 
   def encode(self, image_features):
-    #TODO 8 8 1536
-    fe_dim = int(IMAGE_FEATURE_LEN / FLAGS.image_attention_size)
-    attn_dim = int(math.sqrt(FLAGS.image_attention_size))
-    image_emb = inception_resnet_v2(tf.reshape(image_features, [-1, attn_dim, attn_dim, fe_dim]), is_training=False)
+    image_emb = features2feature(image_features, is_training=self.is_training)
  
     image_features = tf.concat([image_features, tf.expand_dims(image_emb, 1)], 1)    
     image_embs = self.build_image_embeddings(image_features)

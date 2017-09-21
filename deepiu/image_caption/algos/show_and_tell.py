@@ -121,7 +121,7 @@ class ShowAndTell(object):
 
 
   #NOTICE for generative method, neg support removed to make simple!
-  def build_graph(self, image_feature, text, neg_image_feature=None, neg_text=None, exact_loss=False):
+  def build_graph(self, image_feature, text, neg_image_feature=None, neg_text=None, exact_prob=False, exact_loss=False):
     attention_states, initial_state, image_emb = self.encoder.encode(self.process(image_feature))
 
     if not FLAGS.image_as_init_state:
@@ -130,6 +130,7 @@ class ShowAndTell(object):
                                           input=image_emb, 
                                           initial_state=initial_state, 
                                           attention_states=attention_states, 
+                                          exact_prob=exact_prob,
                                           exact_loss=exact_loss)
     else:
       #for im2txt one more step at first, just for exp not used much 
@@ -141,6 +142,7 @@ class ShowAndTell(object):
                                           input=None, 
                                           initial_state=initial_state, 
                                           attention_states=attention_states, 
+                                          exact_prob=exact_prob,
                                           exact_loss=exact_loss)
 
     if not self.is_training and not self.is_predict: #evaluate mode
