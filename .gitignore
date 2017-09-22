@@ -29,3 +29,4 @@ model.ckpt*
 /examples/text-classification/model 
 /deepiu/image_caption/inference/flickr/tf-bow-predict
 /scripts/log
+*tmphws4so 

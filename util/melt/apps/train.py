@@ -218,6 +218,7 @@ def train_flow(ops,
         clip_gradients=FLAGS.clip_gradients,
         learning_rate_decay_fn=learning_rate_decay_fn,
         name=optimize_scope)
+    
     #set the last tower loss as loss in ops
     ops[0] = ops[0][-1]
  

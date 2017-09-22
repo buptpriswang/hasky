@@ -296,9 +296,9 @@ def print_img_text_negscore(img, i, text, score, text_ids, neg_text=None, neg_sc
   text_words = ids2text(text_ids)
   if neg_text is not None:
     neg_text_words = ids2text(neg_text_ids)
-  logging.info(content_html.format('pos [ {} ] {:.6f} {}'.format(text, score, text_words)))
+  logging.info(content_html.format('pos   :[ {} ] {:.6f} {}'.format(text, score, text_words)))
   if neg_text is not None:
-    logging.info(content_html.format('neg [ {} ] {:.6f} {}'.format(neg_text, neg_score, neg_text_words)))  
+    logging.info(content_html.format('neg  :[ {} ] {:.6f} {}'.format(neg_text, neg_score, neg_text_words)))  
 
 #for show and tell 
 def print_generated_text(generated_text, id=-1, name='greedy'):
